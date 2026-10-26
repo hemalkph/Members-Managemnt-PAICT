@@ -3,6 +3,7 @@ import {
   BriefcaseBusinessIcon,
   CalculatorIcon,
   BanknoteIcon,
+  BellIcon,
   FileTextIcon,
   HistoryIcon,
   ShieldCheckIcon,
@@ -23,6 +24,7 @@ export type NavItem = { title: string; href: string; icon: LucideIcon; exact?: b
 
 export const MEMBER_NAV: NavItem[] = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboardIcon, keywords: "home" },
+  { title: "Notifications", href: "/notifications", icon: BellIcon, keywords: "inbox messages alerts reminders" },
   { title: "Submit work", href: "/work/new", icon: FilePlus2Icon, keywords: "log add new task" },
   { title: "My work", href: "/work", icon: ListChecksIcon, keywords: "submissions history" },
   { title: "Profile", href: "/profile", icon: UserIcon, keywords: "account phone nic photo" },

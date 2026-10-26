@@ -2,12 +2,14 @@ import { cookies } from "next/headers";
 import { AppSidebar } from "@/components/app-sidebar";
 import { BirthdayCelebration } from "@/components/birthday-celebration";
 import { CommandMenu } from "@/components/command-menu";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { requireUser } from "@/lib/auth";
 import { ageOn, isBirthdayToday } from "@/lib/birthday";
 import { todayISO } from "@/lib/month";
+import { getBellNotifications } from "@/lib/notifications";
 import { signedAvatarUrl } from "@/lib/storage";
 import { createClient } from "@/lib/supabase/server";
 
@@ -19,11 +21,12 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   const today = todayISO();
   const birthdayToday = isBirthdayToday(profile.date_of_birth, today);
 
-  const [avatarUrl, pending] = await Promise.all([
+  const [avatarUrl, pending, bell] = await Promise.all([
     signedAvatarUrl(supabase, profile.avatar_path),
     profile.is_admin
       ? supabase.from("submissions").select("id", { count: "exact", head: true }).eq("status", "pending")
       : Promise.resolve({ count: 0 }),
+    getBellNotifications(supabase, profile.id),
   ]);
 
   return (
@@ -48,6 +51,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           </span>
           <div className="ml-auto flex items-center gap-1.5">
             <CommandMenu isAdmin={profile.is_admin} isMainAdmin={profile.is_main_admin} />
+            <NotificationBell userId={profile.id} initialItems={bell.items} initialUnread={bell.unread} />
             <ThemeToggle />
           </div>
         </header>
