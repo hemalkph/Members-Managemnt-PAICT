@@ -25,7 +25,9 @@ Built with Next.js 16 (App Router) · TypeScript (strict) · Tailwind CSS v4 · 
 - Monthly report: approved count and quantity per member per role, with CSV export
 - Sections & roles: create, rename and delete (stored in the database, not hard-coded)
 - Rates & budget: set per-unit prices for each role (per page for Type Setting and Converting, per design category such as Thumbnail / Flyer / Banner / Template for Graphic Design, per paper and per marking scheme for Paper Creating). Categories can be added or removed; roles like WhatsApp Admin and LMS Admin can be marked **Fixed salary**. A **live budget preview in a phone mock-up** calculates the cost as you type prices and quantities
-- **Analytics (main admins only):** monthly spending (radar chart), spending by section (donut), budget used (radial), payouts per member with CSV export, spending by role, and a monthly budget setting
+- **Analytics (main admins only):** monthly spending (radar chart), spending by section (donut), budget used (radial), payouts per member (salary + work), spending by role, and a monthly budget setting
+- **Fixed salaries:** for salaried roles (e.g. WhatsApp Admin, LMS Admin) main admins enter each member's monthly salary in Rates & budget. Salaries are included in Analytics and the live preview
+- **Payroll CSV (main admins only):** one row per member with phone, bank, branch, account holder, **full account number**, salary, work amount, total to pay and a TOTAL row — ready for making payments. Set `PAYROLL_CSV_INCLUDES_FULL_ACCOUNT_NUMBER = false` in `lib/config.ts` to export masked numbers instead
 - **Notice board:** admins post notices (pinned / with an end date); members see them on their dashboard
 - **Quick search:** press Ctrl/⌘ + K anywhere to jump to a page or switch the theme
 - **Work types and amounts:** when a role has rates, members pick the type of work (e.g. Flyer); amount = quantity × rate. The price is locked when the work is approved, so later price changes don't rewrite history. Members see their own estimated earnings (turn off with `SHOW_MEMBERS_THEIR_EARNINGS` in `lib/config.ts`)
@@ -56,11 +58,12 @@ The schema lives in [`supabase/migrations`](supabase/migrations) and the starter
 | `20261026000004_harden_functions.sql` | Stops anonymous visitors calling helper functions |
 | `20261026000005_birthdays_and_rates.sql` | Date of birth from NIC, salaried roles, `rate_items` table |
 | `20261026000006_analytics_payouts_notices.sql` | Main admins, work type + amount on submissions, monthly budget, notice board |
+| `20261026000007_member_salaries.sql` | Fixed monthly salaries per member for salaried roles |
 | `seed.sql` | Sections & roles, 4 sample members, sample submissions |
 
 **Option A: Supabase SQL editor (no tools needed)**
 
-Open **SQL Editor → New query**, paste each migration file **in order** (01 to 06) and press **Run**. Then do the same with `seed.sql`.
+Open **SQL Editor → New query**, paste each migration file **in order** (01 to 07) and press **Run**. Then do the same with `seed.sql`.
 
 **Option B: Supabase CLI**
 
