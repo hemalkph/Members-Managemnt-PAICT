@@ -31,8 +31,9 @@ export function LoginForm({ initialError }: { initialError?: string }) {
         toast.error(result.error);
         return;
       }
-      toast.success("Logged in");
-      router.replace(result.data?.redirectTo ?? "/");
+      const next = result.data?.redirectTo ?? "/";
+      if (next !== "/login/two-step") toast.success("Logged in");
+      router.replace(next);
       router.refresh();
     });
 

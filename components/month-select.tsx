@@ -30,7 +30,7 @@ export function MonthSelect({ value, className }: { value: string; className?: s
         <ChevronLeftIcon />
       </Button>
       <Select value={value} onValueChange={go}>
-        <SelectTrigger className="w-[170px]" aria-label="Month">
+        <SelectTrigger className="w-[184px]" aria-label="Month">
           <CalendarIcon />
           <SelectValue />
         </SelectTrigger>

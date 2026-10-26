@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
-import { InboxIcon } from "lucide-react";
+import { InboxIcon, LockIcon } from "lucide-react";
 import type { ReviewRow } from "@/components/admin/review-dialog";
 import { ReviewFilters } from "@/components/admin/review-filters";
 import { ReviewTable } from "@/components/admin/review-table";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { requireAdmin } from "@/lib/auth";
 import { dateToMonthKey, monthKeyToDate, monthLabel, parseMonthParam } from "@/lib/month";
+import { getPayMonth } from "@/lib/payments";
 import { getStructure } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
 import { uuid } from "@/lib/validation";
@@ -29,9 +31,10 @@ export default async function ReviewPage({ searchParams }: PageProps<"/admin/rev
   const section = uuid.safeParse(param(sp.section)).success ? param(sp.section) : null;
 
   const supabase = await createClient();
-  const [structure, { data: members }] = await Promise.all([
+  const [structure, { data: members }, payMonth] = await Promise.all([
     getStructure(supabase),
     supabase.from("profiles").select("id, full_name, email").order("full_name"),
+    getPayMonth(supabase, month),
   ]);
 
   let query = supabase
@@ -83,6 +86,16 @@ export default async function ReviewPage({ searchParams }: PageProps<"/admin/rev
         sections={structure.map((s) => ({ id: s.id, name: s.name, roles: s.roles.map((r) => ({ id: r.id, name: r.name })) }))}
         members={(members ?? []).map((m) => ({ id: m.id, name: m.full_name || m.email }))}
       />
+      {payMonth && (
+        <Alert>
+          <LockIcon />
+          <AlertTitle>{monthLabel(month)} is closed for payments</AlertTitle>
+          <AlertDescription>
+            Reviews for this month are locked. A main admin can reopen the month from Payments if something needs to
+            change.
+          </AlertDescription>
+        </Alert>
+      )}
       {rows.length === 0 ? (
         <EmptyState
           icon={InboxIcon}

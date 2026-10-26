@@ -19,3 +19,12 @@ export const SHOW_MEMBERS_THEIR_EARNINGS = true;
  * Set to false to export masked numbers (****1234) instead.
  */
 export const PAYROLL_CSV_INCLUDES_FULL_ACCOUNT_NUMBER = true;
+
+/**
+ * Members can open and download their own payslips (My payslips) once a
+ * month is closed. Set to false to keep payslips for main admins only.
+ */
+export const MEMBERS_CAN_SEE_PAYSLIPS = true;
+
+/** Name printed at the top of payslips. */
+export const PAYSLIP_ORGANISATION = "PA ICT – A/L ICT Class Team";

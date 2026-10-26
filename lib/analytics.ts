@@ -3,6 +3,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { monthKeyToDate, monthLabel, shiftMonth } from "@/lib/month";
+import { salaryLinesOf } from "@/lib/payments";
 import { getStructure } from "@/lib/queries";
 
 // "Spent" = approved work (price locked at approval).
@@ -79,6 +80,8 @@ export async function getAnalytics(
     { data: roleRows },
     { data: salaryRows },
     { data: holderRows },
+    { data: closedRows },
+    { data: closedMonthRows },
   ] = await Promise.all([
     supabase
       .from("submissions")
@@ -92,6 +95,9 @@ export async function getAnalytics(
     supabase.from("roles").select("id, name, is_salaried"),
     supabase.from("member_salaries").select("user_id, role_id, monthly_amount, created_at"),
     supabase.from("member_roles").select("user_id, role_id"),
+    // Closed months keep the salaries saved when they were closed.
+    supabase.from("payouts").select("month, user_id, salary_lines").gte("month", first).lte("month", last),
+    supabase.from("pay_months").select("month").gte("month", first).lte("month", last),
   ]);
 
   const submissions = rows ?? [];
@@ -120,9 +126,29 @@ export async function getAnalytics(
       holds.has(`${s.user_id}:${s.role_id}`) &&
       profileById.get(s.user_id)?.is_active,
   );
-  // A salary counts from the month it was first set (current amounts are used).
+  type SalaryEntry = { user_id: string; role_id: string; amount: number };
+  // Closed months: the salary lines saved in their payouts. Payout rows only
+  // exist for closed months (and only main admins can read them).
+  const closedSalaries = new Map<string, SalaryEntry[]>(
+    (closedMonthRows ?? []).map((r) => [r.month.slice(0, 7), [] as SalaryEntry[]]),
+  );
+  for (const row of closedRows ?? []) {
+    const key = row.month.slice(0, 7);
+    const list = closedSalaries.get(key) ?? [];
+    if (row.user_id) {
+      for (const line of salaryLinesOf(row)) list.push({ user_id: row.user_id, role_id: line.roleId, amount: line.amount });
+    }
+    closedSalaries.set(key, list);
+  }
+  // Open months: a salary counts from the month it was first set (current amounts).
+  const salariesFor = (key: string): SalaryEntry[] =>
+    closedSalaries.get(key) ??
+    salaries
+      .filter((s) => s.created_at.slice(0, 7) <= key)
+      .map((s) => ({ user_id: s.user_id, role_id: s.role_id, amount: num(s.monthly_amount) }));
+
   for (const m of months) {
-    for (const s of salaries) if (s.created_at.slice(0, 7) <= m.key) m.spent += num(s.monthly_amount);
+    for (const s of salariesFor(m.key)) m.spent += s.amount;
   }
 
   // Current month breakdowns
@@ -157,9 +183,8 @@ export async function getAnalytics(
 
   // Salaries for the selected month
   let salaryTotal = 0;
-  for (const s of salaries) {
-    if (s.created_at.slice(0, 7) > month) continue;
-    const amount = num(s.monthly_amount);
+  for (const s of salariesFor(month)) {
+    const amount = s.amount;
     const info = roleInfo.get(s.role_id) ?? { role: "Salaried role", section: "Other" };
     const payout = payoutFor(s.user_id);
     payout.salary += amount;

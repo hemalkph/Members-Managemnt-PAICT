@@ -28,6 +28,10 @@ Built with Next.js 16 (App Router) · TypeScript (strict) · Tailwind CSS v4 · 
 - **Analytics (main admins only):** monthly spending (radar chart), spending by section (donut), budget used (radial), payouts per member (salary + work), spending by role, and a monthly budget setting
 - **Fixed salaries:** for salaried roles (e.g. WhatsApp Admin, LMS Admin) main admins enter each member's monthly salary in Rates & budget. Salaries are included in Analytics and the live preview
 - **Payroll CSV (main admins only):** one row per member with phone, bank, branch, account holder, **full account number**, salary, work amount, total to pay and a TOTAL row — ready for making payments. Set `PAYROLL_CSV_INCLUDES_FULL_ACCOUNT_NUMBER = false` in `lib/config.ts` to export masked numbers instead
+- **Payments (main admins only):** close a month when all its work is reviewed. Closing locks that month's work (nobody can add, change or delete it) and creates a **payslip** for every member with a salary or approved work, using the amounts at that moment. Then mark members as **paid** one by one or all at once, with the date and a bank reference. A month can be reopened while nobody in it is marked as paid. A warning shows when a member changed their bank details after the month was closed
+- **Payslips:** members open and download their own payslips as PDF in **My payslips** (salary lines, work lines with quantity × rate, total, paid date and reference, masked bank account). Main admins can open anyone's payslip from Payments. Turn off member access with `MEMBERS_CAN_SEE_PAYSLIPS` in `lib/config.ts`
+- **Activity log (main admins only):** every approval and rejection, rate, salary, budget and role change, bank detail change, member activation/deactivation, admin change, password reset, month close/reopen, payment and payroll CSV download is recorded with who did it and when. The database writes the log itself (triggers), so it can't be skipped, edited or deleted from the app. Search and filter by type, person and month
+- **Two-step login:** anyone can turn on an authenticator app (Google Authenticator, Microsoft Authenticator…) in **Two-step login**. It is **required for main admins**: Analytics, Payments, Rates & budget, the Activity log and the payroll CSV only open after the 6-digit code was entered, and the database enforces this too. Main admins can reset another person's two-step login if they lose their phone
 - **Notice board:** admins post notices (pinned / with an end date); members see them on their dashboard
 - **Quick search:** press Ctrl/⌘ + K anywhere to jump to a page or switch the theme
 - **Work types and amounts:** when a role has rates, members pick the type of work (e.g. Flyer); amount = quantity × rate. The price is locked when the work is approved, so later price changes don't rewrite history. Members see their own estimated earnings (turn off with `SHOW_MEMBERS_THEIR_EARNINGS` in `lib/config.ts`)
@@ -59,11 +63,12 @@ The schema lives in [`supabase/migrations`](supabase/migrations) and the starter
 | `20261026000005_birthdays_and_rates.sql` | Date of birth from NIC, salaried roles, `rate_items` table |
 | `20261026000006_analytics_payouts_notices.sql` | Main admins, work type + amount on submissions, monthly budget, notice board |
 | `20261026000007_member_salaries.sql` | Fixed monthly salaries per member for salaried roles |
+| `20261026000008_payments_activity_two_step.sql` | Closed months, payouts/payslips, activity log, two-step login for main admins |
 | `seed.sql` | Sections & roles, 4 sample members, sample submissions |
 
 **Option A: Supabase SQL editor (no tools needed)**
 
-Open **SQL Editor → New query**, paste each migration file **in order** (01 to 07) and press **Run**. Then do the same with `seed.sql`.
+Open **SQL Editor → New query**, paste each migration file **in order** (01 to 08) and press **Run**. Then do the same with `seed.sql`.
 
 **Option B: Supabase CLI**
 
@@ -146,7 +151,25 @@ There is no public sign-up, so the first admin is made by hand:
 
    `is_main_admin` makes you a **main admin** (owner): only main admins see **Analytics** and can change **Rates & budget**. Leave it out for ordinary admins.
 
-3. Log in to the app. You will see the **Admin** menu. From there, add the other members (and other admins) using **Members → Add member**.
+3. Log in to the app. Main admins are asked to turn on **two-step login** first: install Google Authenticator or Microsoft Authenticator on your phone, scan the QR code and enter the 6-digit code. After that you will see every admin page.
+4. You will see the **Admin** menu. From there, add the other members (and other admins) using **Members → Add member**.
+
+### Two-step login
+
+Supabase turns on authenticator apps (TOTP) by default. If setting it up says it is turned off, enable it in **Authentication → Multi-Factor → TOTP**.
+
+**A main admin lost their phone:** the other main admin opens **Two-step login** and presses **Reset** next to their name (needs `SUPABASE_SERVICE_ROLE_KEY`). If no main admin can log in, run this in the Supabase **SQL Editor** (with the right email), then set it up again after logging in:
+
+```sql
+delete from auth.mfa_factors where user_id = (select id from auth.users where email = 'you@example.com');
+```
+
+### Monthly payments
+
+1. Review all of the month's work (**Work review**).
+2. **Payments → Close month**. Payslips are created and the month's work is locked.
+3. Download the **Payroll CSV**, make the bank transfers, then **Mark as paid** (date + reference).
+4. Members see their payslips in **My payslips** and can download the PDF.
 
 ---
 
@@ -157,6 +180,8 @@ There is no public sign-up, so the first admin is made by hand:
 - Bank details are in their own `bank_details` table. Pages only load the last 4 digits (`account_last4`); the full number is fetched by a server action only when the owner presses **Show**. To let admins reveal it too, set `ADMINS_CAN_REVEAL_ACCOUNT_NUMBER = true` in [`lib/config.ts`](lib/config.ts).
 - Storage buckets are **private**. Files are stored under `<user id>/…` and opened through `/files/<id>`, which checks access and redirects to a signed URL that expires after 60 seconds.
 - Every server action and route handler validates its input with Zod and re-checks who is signed in.
+- Main-admin powers (rates, salaries, payments, payouts, the activity log) need a **two-step (aal2) session**: `is_main_admin()` checks the `aal` claim of the login token, so they can't be used with just a stolen password.
+- The **activity log** and **payouts** can only be written by database functions; no user (not even a main admin) can insert, edit or delete rows directly. Work in a closed month is locked by a trigger.
 - Deactivated members are signed out, cannot submit work (RLS), and are banned in Supabase Auth when the service role key is set.
 
 ## React Bits components

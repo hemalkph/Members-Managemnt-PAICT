@@ -35,6 +35,11 @@ export async function signInAction(input: LoginInput): Promise<ActionResult<{ re
     return { ok: false, error: "Your account is deactivated. Please contact an admin." };
   }
 
+  // Two-step login is on: ask for the authenticator code next.
+  if ((data.user.factors ?? []).some((f) => f.factor_type === "totp" && f.status === "verified")) {
+    return { ok: true, data: { redirectTo: "/login/two-step" } };
+  }
+
   return { ok: true, data: { redirectTo: profile.is_admin ? "/admin" : "/dashboard" } };
 }
 
