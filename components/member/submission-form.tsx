@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
-import { useFieldArray, useForm } from "react-hook-form";
+import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FileIcon, Link2Icon, Loader2Icon, PaperclipIcon, PlusIcon, Trash2Icon, XIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { createSubmissionAction, updateSubmissionAction } from "@/lib/actions/submissions";
-import { formatBytes } from "@/lib/format";
+import { formatBytes, formatLKR } from "@/lib/format";
 import { monthLabel } from "@/lib/month";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -34,12 +34,21 @@ import {
   type SubmissionInput,
 } from "@/lib/validation";
 
-type RoleOption = { id: string; name: string; sectionName: string };
+type RoleOption = {
+  id: string;
+  name: string;
+  sectionName: string;
+  /** Work types (rate categories) for this role; empty when it has none. */
+  rates?: { id: string; name: string; unit: string; price: number }[];
+};
 type ExistingAttachment = { id: string; file_name: string; size_bytes: number };
 type NewAttachment = AttachmentInput & { key: string };
 
 function safeFileName(name: string) {
-  const cleaned = name.normalize("NFKD").replace(/[^a-zA-Z0-9._-]+/g, "_").replace(/_+/g, "_");
+  const cleaned = name
+    .normalize("NFKD")
+    .replace(/[^a-zA-Z0-9._-]+/g, "_")
+    .replace(/_+/g, "_");
   return cleaned.slice(-100) || "file";
 }
 
@@ -51,6 +60,7 @@ export function SubmissionForm({
   defaultValues,
   submissionId,
   existingAttachments = [],
+  showMoney = false,
 }: {
   userId: string;
   roles: RoleOption[];
@@ -59,6 +69,8 @@ export function SubmissionForm({
   defaultValues: SubmissionInput;
   submissionId?: string;
   existingAttachments?: ExistingAttachment[];
+  /** Show prices and the estimated amount. */
+  showMoney?: boolean;
 }) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -72,6 +84,12 @@ export function SubmissionForm({
     defaultValues,
   });
   const links = useFieldArray({ control: form.control, name: "links" });
+  const [roleId, rateItemId, quantity] = useWatch({
+    control: form.control,
+    name: ["role_id", "rate_item_id", "quantity"],
+  });
+  const roleRates = roles.find((r) => r.id === roleId)?.rates ?? [];
+  const chosenRate = roleRates.find((r) => r.id === rateItemId);
 
   const keptExisting = existingAttachments.filter((a) => !removedIds.includes(a.id));
   const fileCount = keptExisting.length + newFiles.length + uploading.length;
@@ -105,7 +123,13 @@ export function SubmissionForm({
       }
       setNewFiles((f) => [
         ...f,
-        { key, storage_path: path, file_name: file.name.slice(0, 200), mime_type: file.type || null, size_bytes: file.size },
+        {
+          key,
+          storage_path: path,
+          file_name: file.name.slice(0, 200),
+          mime_type: file.type || null,
+          size_bytes: file.size,
+        },
       ]);
     }
   };
@@ -116,6 +140,10 @@ export function SubmissionForm({
   };
 
   const onSubmit = (values: SubmissionInput) => {
+    if (roleRates.length > 0 && !values.rate_item_id) {
+      form.setError("rate_item_id", { message: "Choose the type of work" });
+      return;
+    }
     if (uploading.length > 0) {
       toast.error("Please wait for the files to finish uploading.");
       return;
@@ -182,7 +210,14 @@ export function SubmissionForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Role</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
+                <Select
+                  value={field.value}
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    const rates = roles.find((r) => r.id === value)?.rates ?? [];
+                    form.setValue("rate_item_id", rates.length === 1 ? rates[0].id : "");
+                  }}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Choose one of your roles" />
@@ -206,6 +241,34 @@ export function SubmissionForm({
             )}
           />
         </div>
+
+        {roleRates.length > 0 && (
+          <FormField
+            control={form.control}
+            name="rate_item_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Type of work</FormLabel>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose the type of work" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {roleRates.map((rate) => (
+                      <SelectItem key={rate.id} value={rate.id}>
+                        {rate.name}
+                        {showMoney ? ` · ${formatLKR(rate.price)} / ${rate.unit}` : ` (per ${rate.unit})`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         <FormField
           control={form.control}
@@ -255,7 +318,13 @@ export function SubmissionForm({
                     onChange={(e) => field.onChange(e.target.valueAsNumber)}
                   />
                 </FormControl>
-                <FormDescription>e.g. papers marked or designs made</FormDescription>
+                <FormDescription>
+                  {chosenRate
+                    ? showMoney && Number.isFinite(quantity) && quantity > 0
+                      ? `Estimated: ${quantity} × ${formatLKR(chosenRate.price)} = ${formatLKR(quantity * chosenRate.price)}`
+                      : `Number of ${chosenRate.unit}s`
+                    : "e.g. papers marked or designs made"}
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}

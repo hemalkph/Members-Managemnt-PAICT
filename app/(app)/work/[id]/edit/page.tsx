@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { requireCompleteProfile } from "@/lib/auth";
 import { dateToMonthKey, recentMonths, todayISO } from "@/lib/month";
-import { getMemberRoles } from "@/lib/queries";
+import { SHOW_MEMBERS_THEIR_EARNINGS } from "@/lib/config";
+import { getMemberRoles, getRatesForRoles } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
 import { uuid } from "@/lib/validation";
 
@@ -24,7 +25,7 @@ export default async function EditWorkPage({ params }: PageProps<"/work/[id]/edi
   const [{ data: submission }, roles] = await Promise.all([
     supabase
       .from("submissions")
-      .select("id, role_id, work_month, title, description, quantity, date_done, links, status, submission_attachments(id, file_name, size_bytes)")
+      .select("id, role_id, rate_item_id, work_month, title, description, quantity, date_done, links, status, submission_attachments(id, file_name, size_bytes)")
       .eq("id", id)
       .eq("user_id", profile.id)
       .maybeSingle(),
@@ -54,6 +55,11 @@ export default async function EditWorkPage({ params }: PageProps<"/work/[id]/edi
 
   const months = recentMonths(12, true);
   if (!months.includes(month)) months.push(month);
+  const rates = await getRatesForRoles(
+    supabase,
+    roles.map((r) => r.id),
+  );
+  const roleOptions = roles.map((r) => ({ ...r, rates: rates.get(r.id) ?? [] }));
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -63,13 +69,15 @@ export default async function EditWorkPage({ params }: PageProps<"/work/[id]/edi
           <SubmissionForm
             userId={profile.id}
             submissionId={submission.id}
-            roles={roles}
+            roles={roleOptions}
+            showMoney={SHOW_MEMBERS_THEIR_EARNINGS}
             months={months}
             today={todayISO()}
             existingAttachments={submission.submission_attachments}
             defaultValues={{
               work_month: month,
               role_id: roles.some((r) => r.id === submission.role_id) ? submission.role_id : "",
+              rate_item_id: submission.rate_item_id ?? "",
               title: submission.title,
               description: submission.description ?? "",
               quantity: submission.quantity,

@@ -24,6 +24,7 @@ export type Database = {
           avatar_path: string | null;
           date_of_birth: string | null;
           is_admin: boolean;
+          is_main_admin: boolean;
           is_active: boolean;
           created_at: string;
           updated_at: string;
@@ -37,6 +38,7 @@ export type Database = {
           nic?: string | null;
           avatar_path?: string | null;
           is_admin?: boolean;
+          is_main_admin?: boolean;
           is_active?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -50,6 +52,7 @@ export type Database = {
           nic?: string | null;
           avatar_path?: string | null;
           is_admin?: boolean;
+          is_main_admin?: boolean;
           is_active?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -163,6 +166,68 @@ export type Database = {
           },
         ];
       };
+      app_settings: {
+        Row: {
+          id: boolean;
+          monthly_budget: number;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: boolean;
+          monthly_budget?: number;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          id?: boolean;
+          monthly_budget?: number;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      announcements: {
+        Row: {
+          id: string;
+          title: string;
+          body: string | null;
+          pinned: boolean;
+          expires_on: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          body?: string | null;
+          pinned?: boolean;
+          expires_on?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          title?: string;
+          body?: string | null;
+          pinned?: boolean;
+          expires_on?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "announcements_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       rate_items: {
         Row: {
           id: string;
@@ -252,6 +317,9 @@ export type Database = {
           admin_comment: string | null;
           reviewed_by: string | null;
           reviewed_at: string | null;
+          rate_item_id: string | null;
+          unit_price: number | null;
+          amount: number | null;
           created_at: string;
           updated_at: string;
         };
@@ -269,6 +337,7 @@ export type Database = {
           admin_comment?: string | null;
           reviewed_by?: string | null;
           reviewed_at?: string | null;
+          rate_item_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -286,6 +355,7 @@ export type Database = {
           admin_comment?: string | null;
           reviewed_by?: string | null;
           reviewed_at?: string | null;
+          rate_item_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -309,6 +379,13 @@ export type Database = {
             columns: ["reviewed_by"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "submissions_rate_item_id_fkey";
+            columns: ["rate_item_id"];
+            isOneToOne: false;
+            referencedRelation: "rate_items";
             referencedColumns: ["id"];
           },
         ];
@@ -378,6 +455,7 @@ export type Database = {
       is_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
       is_active_member: { Args: Record<PropertyKey, never>; Returns: boolean };
       nic_birth_date: { Args: { nic: string }; Returns: string | null };
+      is_main_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
     };
     Enums: {
       submission_status: SubmissionStatus;
@@ -399,3 +477,4 @@ export type Role = Tables<"roles">;
 export type Submission = Tables<"submissions">;
 export type SubmissionAttachment = Tables<"submission_attachments">;
 export type RateItem = Tables<"rate_items">;
+export type Announcement = Tables<"announcements">;

@@ -57,7 +57,10 @@ export default async function MembersPage({ searchParams }: PageProps<"/admin/me
     return true;
   });
 
-  const avatars = await signedAvatarUrls(supabase, members.map((m) => m.avatar_path));
+  const avatars = await signedAvatarUrls(
+    supabase,
+    members.map((m) => m.avatar_path),
+  );
   const canManageAuth = hasServiceRoleKey();
   const today = todayISO();
   const everyone = profiles ?? [];
@@ -79,7 +82,14 @@ export default async function MembersPage({ searchParams }: PageProps<"/admin/me
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label="Total accounts" value={everyone.length} icon={UsersIcon} hint="Everyone in the team" />
-        <StatCard label="Active" value={activeCount} icon={UserCheckIcon} tone="success" hint="Can log in" delay={0.1} />
+        <StatCard
+          label="Active"
+          value={activeCount}
+          icon={UserCheckIcon}
+          tone="success"
+          hint="Can log in"
+          delay={0.1}
+        />
         <StatCard
           label="Inactive"
           value={everyone.length - activeCount}
@@ -99,7 +109,11 @@ export default async function MembersPage({ searchParams }: PageProps<"/admin/me
       </div>
 
       <MemberFilters
-        sections={structure.map((s) => ({ id: s.id, name: s.name, roles: s.roles.map((r) => ({ id: r.id, name: r.name })) }))}
+        sections={structure.map((s) => ({
+          id: s.id,
+          name: s.name,
+          roles: s.roles.map((r) => ({ id: r.id, name: r.name })),
+        }))}
       />
 
       {members.length === 0 ? (
@@ -134,7 +148,11 @@ export default async function MembersPage({ searchParams }: PageProps<"/admin/me
                         <div className="min-w-0">
                           <p className="flex items-center gap-1.5 truncate font-medium hover:underline">
                             {m.full_name || "—"}
-                            {m.is_admin && <Badge variant="outline" className="text-[10px]">Admin</Badge>}
+                            {m.is_admin && (
+                              <Badge variant="outline" className="text-[10px]">
+                                {m.is_main_admin ? "Main admin" : "Admin"}
+                              </Badge>
+                            )}
                             {m.id === me.id && <Badge className="text-[10px]">You</Badge>}
                             {isBirthdayToday(m.date_of_birth, today) && (
                               <span title="Birthday today" aria-label="Birthday today">
@@ -142,7 +160,9 @@ export default async function MembersPage({ searchParams }: PageProps<"/admin/me
                               </span>
                             )}
                           </p>
-                          <p className="text-muted-foreground max-w-[200px] truncate text-xs sm:max-w-none">{m.email}</p>
+                          <p className="text-muted-foreground max-w-[200px] truncate text-xs sm:max-w-none">
+                            {m.email}
+                          </p>
                           <p className="text-muted-foreground max-w-[200px] truncate text-xs md:hidden">
                             {roles.length === 0 ? "No roles" : roles.map((r) => r.name).join(", ")}
                             {!m.is_active && " · Inactive"}
@@ -166,12 +186,20 @@ export default async function MembersPage({ searchParams }: PageProps<"/admin/me
                       </div>
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">
-                      {m.is_active ? <Badge variant="success">Active</Badge> : <Badge variant="destructive">Inactive</Badge>}
+                      {m.is_active ? (
+                        <Badge variant="success">Active</Badge>
+                      ) : (
+                        <Badge variant="destructive">Inactive</Badge>
+                      )}
                     </TableCell>
                     <TableCell className="pr-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <span
-                          className={m.is_active ? "bg-success size-2.5 rounded-full" : "bg-muted-foreground/40 size-2.5 rounded-full"}
+                          className={
+                            m.is_active
+                              ? "bg-success size-2.5 rounded-full"
+                              : "bg-muted-foreground/40 size-2.5 rounded-full"
+                          }
                           title={m.is_active ? "Active" : "Inactive"}
                           aria-label={m.is_active ? "Active" : "Inactive"}
                         />

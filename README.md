@@ -25,6 +25,11 @@ Built with Next.js 16 (App Router) · TypeScript (strict) · Tailwind CSS v4 · 
 - Monthly report: approved count and quantity per member per role, with CSV export
 - Sections & roles: create, rename and delete (stored in the database, not hard-coded)
 - Rates & budget: set per-unit prices for each role (per page for Type Setting and Converting, per design category such as Thumbnail / Flyer / Banner / Template for Graphic Design, per paper and per marking scheme for Paper Creating). Categories can be added or removed; roles like WhatsApp Admin and LMS Admin can be marked **Fixed salary**. A **live budget preview in a phone mock-up** calculates the cost as you type prices and quantities
+- **Analytics (main admins only):** monthly spending (radar chart), spending by section (donut), budget used (radial), payouts per member with CSV export, spending by role, and a monthly budget setting
+- **Notice board:** admins post notices (pinned / with an end date); members see them on their dashboard
+- **Quick search:** press Ctrl/⌘ + K anywhere to jump to a page or switch the theme
+- **Work types and amounts:** when a role has rates, members pick the type of work (e.g. Flyer); amount = quantity × rate. The price is locked when the work is approved, so later price changes don't rewrite history. Members see their own estimated earnings (turn off with `SHOW_MEMBERS_THEIR_EARNINGS` in `lib/config.ts`)
+- **Log again:** start a new submission from an earlier one in one tap
 - Birthdays: a banner on admin pages on the day, an "Upcoming birthdays" card on the overview, and a 🎂 next to the member's name
 
 **UI**: sidebar layout (different menus for members and admins), light/dark/system theme, works on phones, loading skeletons, empty states and toast messages.
@@ -50,11 +55,12 @@ The schema lives in [`supabase/migrations`](supabase/migrations) and the starter
 | `20261026000003_storage.sql` | Private `attachments` and `avatars` buckets + storage policies |
 | `20261026000004_harden_functions.sql` | Stops anonymous visitors calling helper functions |
 | `20261026000005_birthdays_and_rates.sql` | Date of birth from NIC, salaried roles, `rate_items` table |
+| `20261026000006_analytics_payouts_notices.sql` | Main admins, work type + amount on submissions, monthly budget, notice board |
 | `seed.sql` | Sections & roles, 4 sample members, sample submissions |
 
 **Option A: Supabase SQL editor (no tools needed)**
 
-Open **SQL Editor → New query**, paste each migration file **in order** (01 to 05) and press **Run**. Then do the same with `seed.sql`.
+Open **SQL Editor → New query**, paste each migration file **in order** (01 to 06) and press **Run**. Then do the same with `seed.sql`.
 
 **Option B: Supabase CLI**
 
@@ -132,8 +138,10 @@ There is no public sign-up, so the first admin is made by hand:
 2. In **SQL Editor**, run (with your own email):
 
    ```sql
-   update public.profiles set is_admin = true where email = 'you@example.com';
+   update public.profiles set is_admin = true, is_main_admin = true where email = 'you@example.com';
    ```
+
+   `is_main_admin` makes you a **main admin** (owner): only main admins see **Analytics** and can change **Rates & budget**. Leave it out for ordinary admins.
 
 3. Log in to the app. You will see the **Admin** menu. From there, add the other members (and other admins) using **Members → Add member**.
 

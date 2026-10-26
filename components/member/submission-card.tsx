@@ -1,11 +1,21 @@
 import Link from "next/link";
-import { CalendarIcon, FileIcon, HashIcon, Link2Icon, MessageSquareIcon, PencilIcon } from "lucide-react";
+import {
+  CalendarIcon,
+  CopyPlusIcon,
+  FileIcon,
+  HashIcon,
+  Link2Icon,
+  MessageSquareIcon,
+  PencilIcon,
+  TagIcon,
+  WalletIcon,
+} from "lucide-react";
 import SpotlightCard from "@/components/reactbits/spotlight-card";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { SubmissionStatus } from "@/lib/database.types";
-import { formatBytes, formatDate } from "@/lib/format";
+import { formatBytes, formatDate, formatLKR } from "@/lib/format";
 import { DeleteSubmissionButton } from "./delete-submission-button";
 
 export type MemberSubmission = {
@@ -17,11 +27,23 @@ export type MemberSubmission = {
   links: string[];
   status: SubmissionStatus;
   admin_comment: string | null;
+  unit_price: number | null;
+  amount: number | null;
+  rate_items: { name: string; unit: string } | null;
   roles: { name: string; sections: { name: string } | null } | null;
   submission_attachments: { id: string; file_name: string; size_bytes: number }[];
 };
 
-export function SubmissionCard({ submission, editable = true }: { submission: MemberSubmission; editable?: boolean }) {
+export function SubmissionCard({
+  submission,
+  editable = true,
+  showMoney = false,
+}: {
+  submission: MemberSubmission;
+  editable?: boolean;
+  /** Show the amount (quantity × rate) for this work. */
+  showMoney?: boolean;
+}) {
   const s = submission;
   const canEdit = editable && s.status === "pending";
 
@@ -49,6 +71,17 @@ export function SubmissionCard({ submission, editable = true }: { submission: Me
         <span className="inline-flex items-center gap-1">
           <CalendarIcon className="size-3.5" /> {formatDate(s.date_done)}
         </span>
+        {s.rate_items && (
+          <span className="inline-flex items-center gap-1">
+            <TagIcon className="size-3.5" /> {s.rate_items.name}
+          </span>
+        )}
+        {showMoney && s.amount !== null && s.status !== "rejected" && (
+          <span className="text-foreground inline-flex items-center gap-1 font-medium">
+            <WalletIcon className="size-3.5" /> {formatLKR(Number(s.amount))}
+            {s.status === "pending" && <span className="text-muted-foreground font-normal">(estimate)</span>}
+          </span>
+        )}
       </div>
 
       {s.description && <p className="text-sm whitespace-pre-line">{s.description}</p>}
@@ -93,14 +126,23 @@ export function SubmissionCard({ submission, editable = true }: { submission: Me
         </div>
       )}
 
-      {canEdit && (
-        <div className="flex justify-end gap-1 border-t pt-3">
+      {editable && (
+        <div className="flex flex-wrap justify-end gap-1 border-t pt-3">
           <Button asChild variant="ghost" size="sm">
-            <Link href={`/work/${s.id}/edit`}>
-              <PencilIcon /> Edit
+            <Link href={`/work/new?from=${s.id}`} title="Start a new submission with the same details">
+              <CopyPlusIcon /> Log again
             </Link>
           </Button>
-          <DeleteSubmissionButton id={s.id} title={s.title} />
+          {canEdit && (
+            <>
+              <Button asChild variant="ghost" size="sm">
+                <Link href={`/work/${s.id}/edit`}>
+                  <PencilIcon /> Edit
+                </Link>
+              </Button>
+              <DeleteSubmissionButton id={s.id} title={s.title} />
+            </>
+          )}
         </div>
       )}
     </SpotlightCard>

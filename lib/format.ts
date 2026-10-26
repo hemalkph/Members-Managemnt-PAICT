@@ -47,3 +47,9 @@ export function formatLKR(value: number): string {
   const safe = Number.isFinite(value) ? value : 0;
   return `Rs. ${new Intl.NumberFormat("en-LK", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(safe)}`;
 }
+
+/** Short rupee amounts for chart centres, e.g. "Rs 32.5K", "Rs 1.2M". */
+export function formatLKRCompact(value: number): string {
+  const safe = Number.isFinite(value) ? value : 0;
+  return `Rs ${new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(safe)}`;
+}

@@ -5,12 +5,15 @@ import BlurText from "@/components/reactbits/blur-text";
 import { EmptyState } from "@/components/empty-state";
 import { MonthlySummary } from "@/components/member/monthly-summary";
 import { RolesList } from "@/components/member/roles-list";
+import { NoticeBoard } from "@/components/notice-board";
 import { SubmissionCard } from "@/components/member/submission-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireCompleteProfile } from "@/lib/auth";
+import { SHOW_MEMBERS_THEIR_EARNINGS } from "@/lib/config";
 import { getSubmissionsForMonth, summarise } from "@/lib/member-queries";
 import { currentMonthKey, monthLabel } from "@/lib/month";
+import { getCurrentNotices } from "@/lib/notices";
 import { getMemberRoles } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
 
@@ -21,10 +24,11 @@ export default async function DashboardPage() {
   const supabase = await createClient();
   const month = currentMonthKey();
 
-  const [submissions, roles, { data: bank }] = await Promise.all([
+  const [submissions, roles, { data: bank }, notices] = await Promise.all([
     getSubmissionsForMonth(supabase, profile.id, month),
     getMemberRoles(supabase, profile.id),
     supabase.from("bank_details").select("user_id").eq("user_id", profile.id).maybeSingle(),
+    getCurrentNotices(supabase, 5),
   ]);
   const summary = summarise(submissions);
   const firstName = (profile.full_name || "there").split(" ")[0];
@@ -43,7 +47,7 @@ export default async function DashboardPage() {
         </Button>
       </div>
 
-      <MonthlySummary month={month} {...summary} />
+      <MonthlySummary month={month} {...summary} showMoney={SHOW_MEMBERS_THEIR_EARNINGS} />
 
       {!bank && (
         <Link
@@ -56,7 +60,7 @@ export default async function DashboardPage() {
         </Link>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
+      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold">This month</h2>
@@ -75,20 +79,23 @@ export default async function DashboardPage() {
           ) : (
             <div className="grid gap-3">
               {submissions.slice(0, 4).map((s) => (
-                <SubmissionCard key={s.id} submission={s} />
+                <SubmissionCard key={s.id} submission={s} showMoney={SHOW_MEMBERS_THEIR_EARNINGS} />
               ))}
             </div>
           )}
         </section>
-        <Card className="h-fit">
-          <CardHeader>
-            <CardTitle>My roles</CardTitle>
-            <CardDescription>You can log work for these roles.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <RolesList roles={roles} emptyText="No roles yet. Ask an admin to assign your roles." />
-          </CardContent>
-        </Card>
+        <div className="grid h-fit gap-6">
+          <NoticeBoard notices={notices} />
+          <Card className="h-fit">
+            <CardHeader>
+              <CardTitle>My roles</CardTitle>
+              <CardDescription>You can log work for these roles.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <RolesList roles={roles} emptyText="No roles yet. Ask an admin to assign your roles." />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
