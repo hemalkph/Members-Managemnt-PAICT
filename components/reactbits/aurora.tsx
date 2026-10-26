@@ -85,7 +85,8 @@ type AuroraProps = {
   className?: string;
 };
 
-const DEFAULT_STOPS: [string, string, string] = ["#4f46e5", "#22d3ee", "#a855f7"];
+// PA ICT logo blues: navy, sky, azure.
+const DEFAULT_STOPS: [string, string, string] = ["#0838a8", "#08b8f8", "#0888f8"];
 
 export default function Aurora({
   colorStops = DEFAULT_STOPS,

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { ordinal } from "@/lib/birthday";
 
-const COLORS = ["#1e6fe8", "#22c3f5", "#0a3fb3", "#f59e0b", "#ec4899", "#22c55e", "#a855f7"];
+const COLORS = ["#1e6fe8", "#22c3f5", "#0a3fb3", "#f59e0b", "#ec4899", "#22c55e", "#0888f8"];
 
 /** Falling confetti on a full-screen canvas. Stops by itself after a few seconds. */
 function Confetti() {
