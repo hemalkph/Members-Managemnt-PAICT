@@ -15,8 +15,8 @@ const CONTENT_W = PAGE_W - MARGIN * 2;
 const INK = rgb(0.09, 0.1, 0.13);
 const MUTED = rgb(0.42, 0.45, 0.5);
 const LINE = rgb(0.86, 0.87, 0.9);
-const BRAND = rgb(0.16, 0.32, 0.75);
-const BRAND_SOFT = rgb(0.93, 0.95, 1);
+const BRAND = rgb(0.031, 0.408, 0.847); // #0868D8 (logo blue)
+const BRAND_SOFT = rgb(0.92, 0.96, 1);
 const GREEN = rgb(0.06, 0.55, 0.32);
 const AMBER = rgb(0.72, 0.45, 0.02);
 
