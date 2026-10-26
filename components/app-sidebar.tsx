@@ -18,6 +18,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { BrandLogo } from "@/components/brand-logo";
 import ShinyText from "@/components/reactbits/shiny-text";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -109,8 +110,8 @@ export function AppSidebar({ user, pendingReviews }: { user: SidebarUser; pendin
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <Link href={user.isAdmin ? "/admin" : "/dashboard"} onClick={() => setOpenMobile(false)}>
-                <div className="bg-primary text-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <ClipboardCheckIcon className="size-4" />
+                <div className="flex aspect-square size-8 shrink-0 items-center justify-center">
+                  <BrandLogo className="h-auto w-8" priority />
                 </div>
                 <div className="grid flex-1 text-left leading-tight">
                   <ShinyText text="Team Work Tracker" className="truncate font-semibold" />

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { BrandLogo } from "@/components/brand-logo";
 import BlurText from "@/components/reactbits/blur-text";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { LoginForm } from "./login-form";
@@ -17,6 +18,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   return (
     <Card className="bg-card/85 w-full max-w-sm backdrop-blur-md">
       <CardHeader className="text-center">
+        <BrandLogo className="mx-auto mb-2 h-14 drop-shadow-sm" priority />
         <BlurText
           as="h1"
           text="Welcome back"
