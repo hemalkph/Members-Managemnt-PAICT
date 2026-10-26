@@ -3,6 +3,7 @@ import Link from "next/link";
 import {
   BadgeCheckIcon,
   BanknoteIcon,
+  CalendarClockIcon,
   CircleDashedIcon,
   ClipboardCheckIcon,
   DownloadIcon,
@@ -11,6 +12,8 @@ import {
   UsersIcon,
   WalletIcon,
 } from "lucide-react";
+import { DeadlineSettingsDialog } from "@/components/deadline/deadline-settings-dialog";
+import { ExtendDeadlineDialog } from "@/components/deadline/extend-deadline-dialog";
 import { EmptyState } from "@/components/empty-state";
 import { MonthSelect } from "@/components/month-select";
 import { CloseMonthDialog } from "@/components/payments/close-month-dialog";
@@ -20,12 +23,14 @@ import { ReopenMonthButton } from "@/components/payments/reopen-month-button";
 import BlurText from "@/components/reactbits/blur-text";
 import { StatCard } from "@/components/stat-card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getAnalytics } from "@/lib/analytics";
 import { requireMainAdmin } from "@/lib/auth";
+import { getDeadline, getDeadlineSettings } from "@/lib/deadlines";
 import { formatDateTime, formatLKR } from "@/lib/format";
 import { currentMonthKey, monthKeyToDate, monthLabel, parseMonthParam, todayISO } from "@/lib/month";
 import { getPayMonth, getPayoutsForMonth, payoutTotals } from "@/lib/payments";
@@ -39,13 +44,15 @@ export default async function PaymentsPage({ searchParams }: PageProps<"/admin/p
   const label = monthLabel(month);
   const supabase = await createClient();
 
-  const [payMonth, { count: pendingCount }] = await Promise.all([
+  const [payMonth, { count: pendingCount }, deadline, deadlineSettings] = await Promise.all([
     getPayMonth(supabase, month),
     supabase
       .from("submissions")
       .select("id", { count: "exact", head: true })
       .eq("work_month", monthKeyToDate(month))
       .eq("status", "pending"),
+    getDeadline(supabase, month),
+    getDeadlineSettings(supabase),
   ]);
   const pending = pendingCount ?? 0;
   const isFuture = month > currentMonthKey();
@@ -58,6 +65,7 @@ export default async function PaymentsPage({ searchParams }: PageProps<"/admin/p
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <MonthSelect value={month} />
+        <DeadlineSettingsDialog settings={deadlineSettings} />
         <Button asChild variant="outline">
           <a href={`/admin/analytics/payouts?month=${month}`} download>
             <DownloadIcon /> Payroll CSV
@@ -109,6 +117,30 @@ export default async function PaymentsPage({ searchParams }: PageProps<"/admin/p
                 and create payslips.
               </p>
             )}
+            <p className="flex items-start gap-2">
+              <CalendarClockIcon className="mt-0.5 size-4 shrink-0" />
+              <span>
+                {deadline.deadline ? (
+                  deadline.passed ? (
+                    <>Members&apos; deadline passed on {deadline.lastDayLabel}; only admins can change work now.</>
+                  ) : (
+                    <>
+                      Members can log {label} work until <strong>{deadline.lastDayLabel}</strong>
+                      {deadline.daysLeft !== null &&
+                        ` (${deadline.daysLeft} day${deadline.daysLeft === 1 ? "" : "s"} left)`}
+                      .
+                    </>
+                  )
+                ) : (
+                  <>No deadline for members.</>
+                )}
+                {deadline.extended && (
+                  <Badge variant="outline" className="ml-2">
+                    Extended
+                  </Badge>
+                )}
+              </span>
+            </p>
             <div className="mt-2 flex flex-wrap gap-2">
               <CloseMonthDialog
                 month={month}
@@ -117,6 +149,15 @@ export default async function PaymentsPage({ searchParams }: PageProps<"/admin/p
                 total={total}
                 disabled={pending > 0 || isFuture}
               />
+              {!isFuture && (
+                <ExtendDeadlineDialog
+                  month={month}
+                  monthLabel={label}
+                  lastDay={deadline.lastDay}
+                  extended={deadline.extended}
+                  minDate={monthKeyToDate(month)}
+                />
+              )}
               {pending > 0 && (
                 <Button asChild variant="outline">
                   <Link href={`/admin/review?month=${month}&status=pending`}>

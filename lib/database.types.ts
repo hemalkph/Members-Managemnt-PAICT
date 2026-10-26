@@ -299,22 +299,59 @@ export type Database = {
           },
         ];
       };
+      notifications: {
+        Row: {
+          id: number;
+          user_id: string;
+          kind: string;
+          title: string;
+          body: string | null;
+          link: string | null;
+          dedupe_key: string | null;
+          created_at: string;
+          read_at: string | null;
+        };
+        // Created only by database functions; people can mark their own as read.
+        Insert: { [_ in never]: never };
+        Update: { read_at?: string | null };
+        Relationships: [];
+      };
+      month_deadlines: {
+        Row: {
+          month: string;
+          deadline: string;
+          set_by: string | null;
+          created_at: string;
+        };
+        Insert: { [_ in never]: never };
+        Update: { [_ in never]: never };
+        Relationships: [];
+      };
       app_settings: {
         Row: {
           id: boolean;
           monthly_budget: number;
+          deadline_enabled: boolean;
+          deadline_day: number;
+          reminder_days: number;
           updated_by: string | null;
           updated_at: string;
         };
         Insert: {
           id?: boolean;
           monthly_budget?: number;
+          deadline_enabled?: boolean;
+          deadline_day?: number;
+          reminder_days?: number;
           updated_by?: string | null;
           updated_at?: string;
         };
         Update: {
           id?: boolean;
           monthly_budget?: number;
+          deadline_enabled?: boolean;
+          deadline_day?: number;
+          reminder_days?: number;
           updated_by?: string | null;
           updated_at?: string;
         };
@@ -592,6 +629,10 @@ export type Database = {
       log_event: { Args: { p_action: string; p_target?: string | null; p_details?: Json }; Returns: undefined };
       close_pay_month: { Args: { p_month: string; p_note?: string | null }; Returns: number };
       reopen_pay_month: { Args: { p_month: string }; Returns: undefined };
+      work_deadline: { Args: { p_month: string }; Returns: string | null };
+      work_deadlines: { Args: { p_months: string[] }; Returns: { month: string; deadline: string | null }[] };
+      set_month_deadline: { Args: { p_month: string; p_last_day: string | null }; Returns: undefined };
+      send_deadline_reminders: { Args: Record<PropertyKey, never>; Returns: number };
       set_payouts_paid: {
         Args: { p_ids: string[]; p_paid: boolean; p_paid_on?: string | null; p_reference?: string | null };
         Returns: number;
@@ -620,3 +661,4 @@ export type RateItem = Tables<"rate_items">;
 export type Announcement = Tables<"announcements">;
 export type Payout = Tables<"payouts">;
 export type ActivityEntry = Tables<"activity_log">;
+export type AppNotification = Tables<"notifications">;

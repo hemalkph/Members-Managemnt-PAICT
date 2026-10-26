@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRightIcon, FilePlus2Icon, InboxIcon, LandmarkIcon } from "lucide-react";
 import BlurText from "@/components/reactbits/blur-text";
+import { DeadlineCard } from "@/components/deadline/deadline-card";
 import { EmptyState } from "@/components/empty-state";
 import { MonthlySummary } from "@/components/member/monthly-summary";
 import { RolesList } from "@/components/member/roles-list";
@@ -12,25 +13,50 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { requireCompleteProfile } from "@/lib/auth";
 import { SHOW_MEMBERS_THEIR_EARNINGS } from "@/lib/config";
 import { getMySalary, getSubmissionsForMonth, summarise } from "@/lib/member-queries";
-import { currentMonthKey, monthLabel } from "@/lib/month";
+import { getDeadlines, sendDueReminders } from "@/lib/deadlines";
+import { currentMonthKey, monthLabel, shiftMonth } from "@/lib/month";
+import { getClosedMonthKeys } from "@/lib/payments";
 import { getCurrentNotices } from "@/lib/notices";
 import { getMemberRoles } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
+/** % of the time between start and end that has passed. */
+function progressTo(start: string, end: string): number {
+  const s = new Date(start).getTime();
+  const e = new Date(end).getTime();
+  const now = Date.now();
+  if (e <= s) return 100;
+  return Math.min(100, Math.max(0, Math.round(((now - s) / (e - s)) * 100)));
+}
+
 export default async function DashboardPage() {
   const profile = await requireCompleteProfile();
   const supabase = await createClient();
   const month = currentMonthKey();
 
-  const [submissions, roles, { data: bank }, notices, salary] = await Promise.all([
+  const previous = shiftMonth(month, -1);
+  // Reminders are also sent by a daily job; this catches up when someone opens the app.
+  await sendDueReminders(supabase);
+  const [submissions, roles, { data: bank }, notices, salary, deadlines, closedMonths] = await Promise.all([
     getSubmissionsForMonth(supabase, profile.id, month),
     getMemberRoles(supabase, profile.id),
     supabase.from("bank_details").select("user_id").eq("user_id", profile.id).maybeSingle(),
     getCurrentNotices(supabase, 5),
     SHOW_MEMBERS_THEIR_EARNINGS ? getMySalary(supabase, profile.id) : Promise.resolve(0),
+    getDeadlines(supabase, [previous, month]),
+    getClosedMonthKeys(supabase),
   ]);
+  // The next deadline: last month's if it is still open, otherwise this month's.
+  const prevDeadline = deadlines.get(previous);
+  const nextDeadline =
+    prevDeadline?.deadline && !prevDeadline.passed && !closedMonths.includes(previous)
+      ? prevDeadline
+      : deadlines.get(month);
+  const deadlineProgress = nextDeadline?.deadline
+    ? progressTo(`${nextDeadline.month}-01T00:00:00+05:30`, nextDeadline.deadline)
+    : 0;
   const summary = summarise(submissions);
   const firstName = (profile.full_name || "there").split(" ")[0];
 
@@ -47,6 +73,8 @@ export default async function DashboardPage() {
           </Link>
         </Button>
       </div>
+
+      {roles.length > 0 && nextDeadline && <DeadlineCard deadline={nextDeadline} progress={deadlineProgress} />}
 
       <MonthlySummary month={month} {...summary} salary={salary} showMoney={SHOW_MEMBERS_THEIR_EARNINGS} />
 

@@ -3,6 +3,7 @@
 import {
   BadgeCheckIcon,
   BanknoteIcon,
+  CalendarClockIcon,
   CalculatorIcon,
   ClipboardCheckIcon,
   HistoryIcon,
@@ -42,6 +43,7 @@ const ICONS: Record<string, LucideIcon> = {
   member: UserCogIcon,
   bank: LandmarkIcon,
   two_step: ShieldCheckIcon,
+  deadline: CalendarClockIcon,
 };
 
 const TONES = {
