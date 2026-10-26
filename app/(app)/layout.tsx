@@ -1,0 +1,49 @@
+import { cookies } from "next/headers";
+import { AppSidebar } from "@/components/app-sidebar";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { Separator } from "@/components/ui/separator";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { requireUser } from "@/lib/auth";
+import { signedAvatarUrl } from "@/lib/storage";
+import { createClient } from "@/lib/supabase/server";
+
+export default async function AppLayout({ children }: LayoutProps<"/">) {
+  const profile = await requireUser();
+  const supabase = await createClient();
+  const cookieStore = await cookies();
+  const defaultOpen = cookieStore.get("sidebar_state")?.value !== "false";
+
+  const [avatarUrl, pending] = await Promise.all([
+    signedAvatarUrl(supabase, profile.avatar_path),
+    profile.is_admin
+      ? supabase.from("submissions").select("id", { count: "exact", head: true }).eq("status", "pending")
+      : Promise.resolve({ count: 0 }),
+  ]);
+
+  return (
+    <SidebarProvider defaultOpen={defaultOpen}>
+      <AppSidebar
+        user={{
+          name: profile.full_name || profile.email,
+          email: profile.email,
+          avatarUrl,
+          isAdmin: profile.is_admin,
+        }}
+        pendingReviews={pending.count ?? 0}
+      />
+      <SidebarInset>
+        <header className="bg-background/80 sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b px-3 backdrop-blur sm:px-4">
+          <SidebarTrigger className="-ml-1" />
+          <Separator orientation="vertical" className="mr-1 data-[orientation=vertical]:h-4" />
+          <span className="text-muted-foreground truncate text-sm">
+            {profile.is_admin ? "Admin" : "Member"} · {profile.full_name || profile.email}
+          </span>
+          <div className="ml-auto">
+            <ThemeToggle />
+          </div>
+        </header>
+        <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-5 sm:px-6 sm:py-8">{children}</div>
+      </SidebarInset>
+    </SidebarProvider>
+  );
+}
