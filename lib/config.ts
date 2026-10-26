@@ -12,3 +12,10 @@ export const ADMINS_CAN_REVEAL_ACCOUNT_NUMBER = false;
  * their submissions and dashboard. Set to false to hide money from members.
  */
 export const SHOW_MEMBERS_THEIR_EARNINGS = true;
+
+/**
+ * The payroll CSV (Analytics > Payroll CSV, main admins only) includes each
+ * member's FULL account number so salaries and work payments can be made.
+ * Set to false to export masked numbers (****1234) instead.
+ */
+export const PAYROLL_CSV_INCLUDES_FULL_ACCOUNT_NUMBER = true;

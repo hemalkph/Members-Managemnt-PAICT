@@ -10,16 +10,30 @@ import { getStructure } from "@/lib/queries";
 
 export type MonthSpend = { key: string; month: string; spent: number; pending: number };
 export type SectionSpend = { key: string; section: string; spent: number; fill: string };
-export type RoleSpend = { roleId: string; role: string; section: string; units: number; spent: number; pending: number };
+export type RoleSpend = {
+  roleId: string;
+  role: string;
+  section: string;
+  units: number;
+  spent: number;
+  pending: number;
+};
 export type MemberPayout = {
   userId: string;
   name: string;
   email: string;
+  phone: string | null;
   bankLast4: string | null;
   bankName: string | null;
   approvedItems: number;
   approvedUnits: number;
+  /** Approved work amount. */
   spent: number;
+  /** Fixed monthly salary (salaried roles). */
+  salary: number;
+  salaryRoles: string[];
+  /** spent + salary */
+  total: number;
   pending: number;
 };
 
@@ -35,6 +49,8 @@ export type AnalyticsData = {
   periodSpent: number;
   budget: number;
   salariedRoles: string[];
+  /** Fixed salaries included in `spent` for the selected month. */
+  salaryTotal: number;
   unpricedApproved: number;
 };
 
@@ -54,34 +70,115 @@ export async function getAnalytics(
   const first = monthKeyToDate(keys[0]);
   const last = monthKeyToDate(month);
 
-  const [{ data: rows }, structure, { data: settings }, { data: profiles }, { data: banks }, { data: roleRows }] =
-    await Promise.all([
-      supabase
-        .from("submissions")
-        .select("user_id, role_id, work_month, status, quantity, amount, unit_price, rate_item_id")
-        .gte("work_month", first)
-        .lte("work_month", last),
-      getStructure(supabase),
-      supabase.from("app_settings").select("monthly_budget").maybeSingle(),
-      supabase.from("profiles").select("id, full_name, email"),
-      supabase.from("bank_details").select("user_id, bank_name, account_last4"),
-      supabase.from("roles").select("id, name, is_salaried"),
-    ]);
+  const [
+    { data: rows },
+    structure,
+    { data: settings },
+    { data: profiles },
+    { data: banks },
+    { data: roleRows },
+    { data: salaryRows },
+    { data: holderRows },
+  ] = await Promise.all([
+    supabase
+      .from("submissions")
+      .select("user_id, role_id, work_month, status, quantity, amount, unit_price, rate_item_id")
+      .gte("work_month", first)
+      .lte("work_month", last),
+    getStructure(supabase),
+    supabase.from("app_settings").select("monthly_budget").maybeSingle(),
+    supabase.from("profiles").select("id, full_name, email, phone, is_active"),
+    supabase.from("bank_details").select("user_id, bank_name, account_last4"),
+    supabase.from("roles").select("id, name, is_salaried"),
+    supabase.from("member_salaries").select("user_id, role_id, monthly_amount, created_at"),
+    supabase.from("member_roles").select("user_id, role_id"),
+  ]);
 
   const submissions = rows ?? [];
-  const roleInfo = new Map(structure.flatMap((s) => s.roles.map((r) => [r.id, { role: r.name, section: s.name }] as const)));
+  const roleInfo = new Map(
+    structure.flatMap((s) => s.roles.map((r) => [r.id, { role: r.name, section: s.name }] as const)),
+  );
   const profileById = new Map((profiles ?? []).map((p) => [p.id, p]));
   const bankByUser = new Map((banks ?? []).map((b) => [b.user_id, b]));
 
   // Months (radar)
-  const months: MonthSpend[] = keys.map((key) => ({ key, month: monthLabel(key, "short").split(" ")[0], spent: 0, pending: 0 }));
+  const months: MonthSpend[] = keys.map((key) => ({
+    key,
+    month: monthLabel(key, "short").split(" ")[0],
+    spent: 0,
+    pending: 0,
+  }));
   const monthIndex = new Map(keys.map((k, i) => [k, i]));
+
+  // Fixed salaries that apply: salaried role, member still holds it and is active.
+  const salariedRoleIds = new Set((roleRows ?? []).filter((r) => r.is_salaried).map((r) => r.id));
+  const holds = new Set((holderRows ?? []).map((h) => `${h.user_id}:${h.role_id}`));
+  const salaries = (salaryRows ?? []).filter(
+    (s) =>
+      num(s.monthly_amount) > 0 &&
+      salariedRoleIds.has(s.role_id) &&
+      holds.has(`${s.user_id}:${s.role_id}`) &&
+      profileById.get(s.user_id)?.is_active,
+  );
+  // A salary counts from the month it was first set (current amounts are used).
+  for (const m of months) {
+    for (const s of salaries) if (s.created_at.slice(0, 7) <= m.key) m.spent += num(s.monthly_amount);
+  }
 
   // Current month breakdowns
   const sectionTotals = new Map<string, number>(structure.map((s) => [s.name, 0]));
   const roleTotals = new Map<string, RoleSpend>();
   const payouts = new Map<string, MemberPayout>();
   let unpricedApproved = 0;
+
+  const payoutFor = (userId: string): MemberPayout => {
+    const existing = payouts.get(userId);
+    if (existing) return existing;
+    const profile = profileById.get(userId);
+    const bank = bankByUser.get(userId);
+    const created: MemberPayout = {
+      userId,
+      name: profile?.full_name || profile?.email || "Unknown member",
+      email: profile?.email ?? "",
+      phone: profile?.phone ?? null,
+      bankLast4: bank?.account_last4 ?? null,
+      bankName: bank?.bank_name ?? null,
+      approvedItems: 0,
+      approvedUnits: 0,
+      spent: 0,
+      salary: 0,
+      salaryRoles: [],
+      total: 0,
+      pending: 0,
+    };
+    payouts.set(userId, created);
+    return created;
+  };
+
+  // Salaries for the selected month
+  let salaryTotal = 0;
+  for (const s of salaries) {
+    if (s.created_at.slice(0, 7) > month) continue;
+    const amount = num(s.monthly_amount);
+    const info = roleInfo.get(s.role_id) ?? { role: "Salaried role", section: "Other" };
+    const payout = payoutFor(s.user_id);
+    payout.salary += amount;
+    payout.salaryRoles.push(info.role);
+    const role =
+      roleTotals.get(s.role_id) ??
+      ({
+        roleId: s.role_id,
+        role: info.role,
+        section: info.section,
+        units: 0,
+        spent: 0,
+        pending: 0,
+      } satisfies RoleSpend);
+    role.spent += amount;
+    roleTotals.set(s.role_id, role);
+    sectionTotals.set(info.section, (sectionTotals.get(info.section) ?? 0) + amount);
+    salaryTotal += amount;
+  }
 
   for (const s of submissions) {
     const key = s.work_month.slice(0, 7);
@@ -96,22 +193,15 @@ export async function getAnalytics(
     const info = roleInfo.get(s.role_id) ?? { role: "Deleted role", section: "Other" };
     const role =
       roleTotals.get(s.role_id) ??
-      ({ roleId: s.role_id, role: info.role, section: info.section, units: 0, spent: 0, pending: 0 } satisfies RoleSpend);
-    const profile = profileById.get(s.user_id);
-    const bank = bankByUser.get(s.user_id);
-    const payout =
-      payouts.get(s.user_id) ??
       ({
-        userId: s.user_id,
-        name: profile?.full_name || profile?.email || "Unknown member",
-        email: profile?.email ?? "",
-        bankLast4: bank?.account_last4 ?? null,
-        bankName: bank?.bank_name ?? null,
-        approvedItems: 0,
-        approvedUnits: 0,
+        roleId: s.role_id,
+        role: info.role,
+        section: info.section,
+        units: 0,
         spent: 0,
         pending: 0,
-      } satisfies MemberPayout);
+      } satisfies RoleSpend);
+    const payout = payoutFor(s.user_id);
 
     if (s.status === "approved") {
       role.units += s.quantity;
@@ -126,8 +216,8 @@ export async function getAnalytics(
       payout.pending += amount;
     }
     roleTotals.set(s.role_id, role);
-    payouts.set(s.user_id, payout);
   }
+  for (const p of payouts.values()) p.total = p.spent + p.salary;
 
   const sections: SectionSpend[] = [...sectionTotals.entries()].map(([section, spent], i) => ({
     key: `s${i}`,
@@ -144,13 +234,14 @@ export async function getAnalytics(
     months,
     sections,
     roles: [...roleTotals.values()].sort((a, b) => b.spent - a.spent || a.role.localeCompare(b.role)),
-    payouts: [...payouts.values()].sort((a, b) => b.spent - a.spent || a.name.localeCompare(b.name)),
+    payouts: [...payouts.values()].sort((a, b) => b.total - a.total || a.name.localeCompare(b.name)),
     spent: current?.spent ?? 0,
     pending: current?.pending ?? 0,
     previousSpent: previous?.spent ?? 0,
     periodSpent: months.reduce((s, m) => s + m.spent, 0),
     budget: num(settings?.monthly_budget),
     salariedRoles: (roleRows ?? []).filter((r) => r.is_salaried).map((r) => r.name),
+    salaryTotal,
     unpricedApproved,
   };
 }

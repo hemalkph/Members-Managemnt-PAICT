@@ -29,7 +29,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
   const label = monthLabel(month);
   const rangeLabel = `${monthLabel(shiftMonth(month, -5), "short")} – ${monthLabel(month, "short")}`;
   const change = percentChange(data.spent, data.previousSpent);
-  const paidMembers = data.payouts.filter((p) => p.spent > 0).length;
+  const paidMembers = data.payouts.filter((p) => p.total > 0).length;
 
   return (
     <div className="space-y-6">
@@ -42,7 +42,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
           <MonthSelect value={month} />
           <Button asChild variant="outline">
             <a href={`/admin/analytics/payouts?month=${month}`} download>
-              <DownloadIcon /> Payouts CSV
+              <DownloadIcon /> Payroll CSV
             </a>
           </Button>
         </div>
@@ -54,7 +54,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
           value={data.spent}
           prefix="Rs."
           icon={WalletIcon}
-          hint="Approved work"
+          hint={data.salaryTotal > 0 ? `Incl. ${formatLKR(data.salaryTotal)} salaries` : "Approved work"}
         />
         <StatCard
           label="Waiting for review"
@@ -89,12 +89,20 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
         />
       </div>
 
-      {(data.salariedRoles.length > 0 || data.unpricedApproved > 0) && (
+      {(data.salaryTotal > 0 || data.salariedRoles.length > 0 || data.unpricedApproved > 0) && (
         <div className="text-muted-foreground flex gap-2 rounded-xl border p-3 text-sm">
           <InfoIcon className="mt-0.5 size-4 shrink-0" />
           <p>
-            {data.salariedRoles.length > 0 && (
-              <>{data.salariedRoles.join(" and ")} are on a fixed salary and not counted here. </>
+            {data.salaryTotal > 0 && <>Includes {formatLKR(data.salaryTotal)} in fixed monthly salaries. </>}
+            {data.salaryTotal === 0 && data.salariedRoles.length > 0 && (
+              <>
+                {data.salariedRoles.join(" and ")} {data.salariedRoles.length === 1 ? "is" : "are"} on a fixed salary.
+                Enter salaries in{" "}
+                <Link href="/admin/rates" className="text-primary hover:underline">
+                  Rates &amp; budget
+                </Link>{" "}
+                to include them.{" "}
+              </>
             )}
             {data.unpricedApproved > 0 && (
               <>
@@ -110,11 +118,11 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
         </div>
       )}
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="grid gap-6 2xl:grid-cols-2">
         <Card className="gap-3">
           <CardHeader>
             <CardTitle>Payouts</CardTitle>
-            <CardDescription>What each member is owed for {label}</CardDescription>
+            <CardDescription>What each member is owed for {label} (salary + approved work)</CardDescription>
           </CardHeader>
           <CardContent className="px-0">
             {data.payouts.length === 0 ? (
@@ -125,8 +133,9 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
                   <TableRow>
                     <TableHead className="pl-6">Member</TableHead>
                     <TableHead className="hidden sm:table-cell">Bank</TableHead>
-                    <TableHead className="text-right">Items</TableHead>
-                    <TableHead className="pr-6 text-right">Amount</TableHead>
+                    <TableHead className="hidden text-right md:table-cell">Salary</TableHead>
+                    <TableHead className="hidden text-right md:table-cell">Work</TableHead>
+                    <TableHead className="pr-6 text-right">Total</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -151,8 +160,16 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
                           "Not added"
                         )}
                       </TableCell>
-                      <TableCell className="text-right tabular-nums">{p.approvedItems}</TableCell>
-                      <TableCell className="pr-6 text-right font-semibold tabular-nums">{formatLKR(p.spent)}</TableCell>
+                      <TableCell className="hidden text-right tabular-nums md:table-cell">
+                        {p.salary > 0 ? formatLKR(p.salary) : "—"}
+                      </TableCell>
+                      <TableCell className="hidden text-right tabular-nums md:table-cell">
+                        {p.spent > 0 ? formatLKR(p.spent) : "—"}
+                        {p.approvedItems > 0 && (
+                          <span className="text-muted-foreground block text-xs">{p.approvedItems} items</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="pr-6 text-right font-semibold tabular-nums">{formatLKR(p.total)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
