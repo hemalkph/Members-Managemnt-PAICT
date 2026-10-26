@@ -1,5 +1,9 @@
 import {
+  AlarmClockIcon,
   BadgeCheckIcon,
+  FileStackIcon,
+  ListTodoIcon,
+  TriangleAlertIcon,
   BellIcon,
   CalendarClockIcon,
   CircleCheckIcon,
@@ -38,6 +42,12 @@ const META: Record<string, { icon: LucideIcon; tone: string }> = {
   "salary.changed": { icon: WalletIcon, tone: "bg-success/15 text-success" },
   "deadline.reminder": { icon: CalendarClockIcon, tone: "bg-warning/20 text-amber-700 dark:text-warning" },
   "deadline.passed": { icon: CalendarClockIcon, tone: "bg-destructive/15 text-destructive" },
+  "task.assigned": { icon: ListTodoIcon, tone: "bg-primary/10 text-primary" },
+  "task.turn": { icon: FileStackIcon, tone: "bg-primary/10 text-primary" },
+  "task.due": { icon: AlarmClockIcon, tone: "bg-warning/20 text-amber-700 dark:text-warning" },
+  "task.overdue": { icon: TriangleAlertIcon, tone: "bg-destructive/15 text-destructive" },
+  "task.done": { icon: CircleCheckIcon, tone: "bg-success/15 text-success" },
+  "paper.unassigned": { icon: FileStackIcon, tone: "bg-warning/20 text-amber-700 dark:text-warning" },
 };
 
 export function relativeTime(iso: string, now: number): string {

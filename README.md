@@ -34,6 +34,9 @@ Built with Next.js 16 (App Router) · TypeScript (strict) · Tailwind CSS v4 · 
 - **Two-step login:** anyone can turn on an authenticator app (Google Authenticator, Microsoft Authenticator…) in **Two-step login**. It is **required for main admins**: Analytics, Payments, Rates & budget, the Activity log and the payroll CSV only open after the 6-digit code was entered, and the database enforces this too. Main admins can reset another person's two-step login if they lose their phone
 - **Notifications:** a bell in the top bar (live updates) and a Notifications page. Members are told when their work is approved or rejected, when their payslip is ready and when they are paid, about new notices, new roles and salary changes, and about deadlines. Admins get one grouped "N submissions waiting for review" message and a note when a month's deadline has passed. The database creates the messages itself
 - **Monthly work deadline:** members must log a month's work by a set day of the next month (default: the 3rd). Reminders start a few days before (default 3) and a countdown card shows on the member dashboard. After the deadline members can't add or change that month's work; admins still can. Main admins change the rule in **Payments → Deadline** and can give a single month more time with **Change deadline**
+- **Batches, exams & centres:** admins keep a list of A/L batches (e.g. “2026 A/L”), their exams/tests (e.g. “Term Test 2”) and class centres (e.g. “Kandy hall”) in **Batches & exams**. Members can tag work with an exam and a centre, and **Monthly report → By exam** shows approved work per test and role (e.g. papers marked for Term Test 2), filtered by batch and centre
+- **Tasks:** admins assign a task (member, optional role, exam, centre, quantity, due date, high priority) in **Tasks**. The member is notified, sees it in **My tasks** and on the dashboard, logs work against it (**Log work** fills in the form) and marks it done. Reminders are sent the day before and on the due date, and once when it is overdue. Admins are told when a task is finished
+- **Paper production tracker:** in **Papers**, admins add a paper or tute for an exam and choose an owner and due date for each stage: Create → Type set → Convert to English → Mark (stages can be skipped). Each stage becomes a task for its owner. When one stage is marked done the next starts and its owner gets a “Your turn” notification; when every stage is done the paper is finished. Each paper page shows the stepper, who has it now, overdue stages and the files for every stage with **version numbers** (v1, v2…; private storage, 25 MB per file). Stage owners can see and upload files only for their papers
 - **Notice board:** admins post notices (pinned / with an end date); members see them on their dashboard
 - **Quick search:** press Ctrl/⌘ + K anywhere to jump to a page or switch the theme
 - **Work types and amounts:** when a role has rates, members pick the type of work (e.g. Flyer); amount = quantity × rate. The price is locked when the work is approved, so later price changes don't rewrite history. Members see their own estimated earnings (turn off with `SHOW_MEMBERS_THEIR_EARNINGS` in `lib/config.ts`)
@@ -67,11 +70,12 @@ The schema lives in [`supabase/migrations`](supabase/migrations) and the starter
 | `20261026000007_member_salaries.sql` | Fixed monthly salaries per member for salaried roles |
 | `20261026000008_payments_activity_two_step.sql` | Closed months, payouts/payslips, activity log, two-step login for main admins |
 | `20261026000009_notifications_deadlines.sql` | Notifications, monthly work deadline and daily reminders |
+| `20261026000010_classes_tasks_papers.sql` | Batches, exams, centres, tasks, paper production tracker and the private `papers` bucket |
 | `seed.sql` | Sections & roles, 4 sample members, sample submissions |
 
 **Option A: Supabase SQL editor (no tools needed)**
 
-Open **SQL Editor → New query**, paste each migration file **in order** (01 to 09) and press **Run**. Then do the same with `seed.sql`.
+Open **SQL Editor → New query**, paste each migration file **in order** (01 to 10) and press **Run**. Then do the same with `seed.sql`.
 
 **Option B: Supabase CLI**
 
