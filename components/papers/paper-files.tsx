@@ -15,7 +15,7 @@ import type { PaperStageName } from "@/lib/database.types";
 import { formatBytes } from "@/lib/format";
 import { PAPERS_BUCKET, STAGE_LABEL, STAGES } from "@/lib/papers";
 import { createClient } from "@/lib/supabase/client";
-import { MAX_PAPER_FILE_BYTES } from "@/lib/validation";
+import { MAX_PAPER_FILE_BYTES, type UPLOAD_STAGES } from "@/lib/validation";
 
 export type FileItem = {
   id: string;
@@ -42,7 +42,16 @@ function safeFileName(name: string) {
 }
 
 /** Upload a new version of a file for a stage. */
-export function PaperFileUploader({ paperId, defaultStage }: { paperId: string; defaultStage: PaperStageName }) {
+export function PaperFileUploader({
+  paperId,
+  defaultStage,
+  stages,
+}: {
+  paperId: string;
+  defaultStage: PaperStageName;
+  /** Stages that still take files (only the first four, never from review on). */
+  stages: { stage: PaperStageName; label: string }[];
+}) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [stage, setStage] = useState<PaperStageName>(defaultStage);
@@ -68,7 +77,7 @@ export function PaperFileUploader({ paperId, defaultStage }: { paperId: string; 
     }
     const result = await addPaperFileAction({
       paper_id: paperId,
-      stage,
+      stage: stage as (typeof UPLOAD_STAGES)[number],
       storage_path: path,
       file_name: file.name.slice(0, 200),
       mime_type: file.type || null,
@@ -95,7 +104,7 @@ export function PaperFileUploader({ paperId, defaultStage }: { paperId: string; 
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {STAGES.map((s) => (
+            {stages.map((s) => (
               <SelectItem key={s.stage} value={s.stage}>
                 {s.label}
               </SelectItem>
@@ -147,7 +156,7 @@ export function PaperFileList({ files }: { files: FileItem[] }) {
     });
 
   if (files.length === 0) {
-    return <p className="text-muted-foreground text-sm">No files yet. Upload drafts and final versions here.</p>;
+    return <p className="text-muted-foreground text-sm">No files yet. Share drafts here until the English type setting is done.</p>;
   }
 
   return (

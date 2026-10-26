@@ -14,6 +14,20 @@ export function formatDate(value: string | null | undefined): string {
   }).format(date);
 }
 
+/** A plain date ("YYYY-MM-DD") as "Wed 4 Nov". */
+export function formatDay(value: string | null | undefined): string {
+  if (!value) return "—";
+  return new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).format(
+    new Date(`${value}T00:00:00Z`),
+  );
+}
+
+/** Work days: "Mon 26 Oct – Fri 30 Oct", or one day when start = due. */
+export function formatDayRange(start: string | null | undefined, due: string | null | undefined): string {
+  if (start && due && start !== due) return `${formatDay(start)} – ${formatDay(due)}`;
+  return formatDay(due ?? start);
+}
+
 export function formatDateTime(value: string | null | undefined): string {
   if (!value) return "—";
   return new Intl.DateTimeFormat("en-GB", {

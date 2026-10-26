@@ -3,13 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { friendlyDbError, type ActionResult } from "@/lib/action-result";
 import { getActionContext, NOT_ALLOWED } from "@/lib/auth";
-import { PAPERS_BUCKET } from "@/lib/papers";
+import { addDays, PAPERS_BUCKET, PART_LABEL } from "@/lib/papers";
 import {
   firstError,
   idSchema,
-  paperFileSchema,
+  paperLinksSchema,
   paperSchema,
+  paperFileSchema,
   paperStageUpdateSchema,
+  stageLinkSchema,
   type PaperFileInput,
   type PaperInput,
 } from "@/lib/validation";
@@ -21,7 +23,11 @@ function revalidatePapers(id?: string) {
   if (id) revalidatePath(`/papers/${id}`);
 }
 
-/** Admins: add a paper or tute with its stages (owners, due dates, skipped stages). */
+/**
+ * Admins: add a paper or tute with its stages (owners, work days, skipped stages).
+ * "Split over 2 weeks" adds two papers: MCQ for the exam day and SE & Essay a
+ * week later (every date moves 7 days).
+ */
 export async function createPaperAction(input: PaperInput): Promise<ActionResult<{ id: string }>> {
   const ctx = await getActionContext({ admin: true });
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
@@ -29,27 +35,55 @@ export async function createPaperAction(input: PaperInput): Promise<ActionResult
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
   const v = parsed.data;
 
-  const { data, error } = await ctx.supabase.rpc("create_paper", {
-    p_title: v.title,
-    p_kind: v.kind,
-    p_exam: v.exam_id || null,
-    p_notes: v.notes || null,
-    p_stages: v.stages.map((s) => ({
-      stage: s.stage,
-      owner_id: s.skip ? null : s.owner_id || null,
-      due_date: s.skip ? null : s.due_date || null,
-      skip: s.skip,
-    })),
-  });
-  if (error || !data) return { ok: false, error: friendlyDbError(error) };
-  revalidatePapers(data);
-  return { ok: true, message: "Paper added – the first stage has started", data: { id: data } };
+  const shift = (d: string, days: number) => (d ? addDays(d, days) : null);
+  const plan =
+    v.part === "split"
+      ? [
+          { title: `${v.title} – ${PART_LABEL.mcq}`, part: "mcq" as const, exam: v.exam_id, days: 0 },
+          { title: `${v.title} – ${PART_LABEL.essay}`, part: "essay" as const, exam: v.exam2_id || v.exam_id, days: 7 },
+        ]
+      : [{ title: v.title, part: v.part, exam: v.exam_id, days: 0 }];
+
+  const ids: string[] = [];
+  for (const p of plan) {
+    const { data, error } = await ctx.supabase.rpc("create_paper", {
+      p_title: p.title,
+      p_kind: v.kind,
+      p_exam: p.exam || null,
+      p_notes: v.notes || null,
+      p_medium: v.medium,
+      p_part: p.part,
+      p_exam_day: shift(v.exam_day, p.days),
+      p_stages: v.stages.map((s) => ({
+        stage: s.stage,
+        owner_id: s.skip ? null : s.owner_id || null,
+        start_date: s.skip ? null : shift(s.start_date, p.days),
+        due_date: s.skip ? null : shift(s.due_date, p.days),
+        skip: s.skip,
+      })),
+    });
+    if (error || !data) {
+      if (ids.length > 0) revalidatePapers();
+      return {
+        ok: false,
+        error: ids.length > 0 ? `The MCQ paper was added, but not the SE & Essay one: ${friendlyDbError(error)}` : friendlyDbError(error),
+      };
+    }
+    ids.push(data);
+  }
+  ids.forEach((id) => revalidatePapers(id));
+  return {
+    ok: true,
+    message: ids.length > 1 ? "Two papers added (MCQ and SE & Essay) – the first stages have started" : "Paper added – the first stage has started",
+    data: { id: ids[0] },
+  };
 }
 
-/** Admins: change a stage's owner / due date, skip it or mark it done. */
+/** Admins: change a stage's owner / work days, skip it or mark it done. */
 export async function updatePaperStageAction(input: {
   stage_id: string;
   owner_id: string;
+  start_date: string;
   due_date: string;
   action: "save" | "skip" | "done";
   paper_id: string;
@@ -63,6 +97,7 @@ export async function updatePaperStageAction(input: {
   const { error } = await ctx.supabase.rpc("update_paper_stage", {
     p_stage: v.stage_id,
     p_owner: v.owner_id || null,
+    p_start: v.start_date || null,
     p_due: v.due_date || null,
     p_action: v.action,
   });
@@ -72,6 +107,44 @@ export async function updatePaperStageAction(input: {
     ok: true,
     message: v.action === "skip" ? "Stage skipped" : v.action === "done" ? "Stage marked as done" : "Stage saved",
   };
+}
+
+/** The stage owner (or an admin) saves the link to their work, e.g. a Google Drive file. */
+export async function setStageLinkAction(input: { stage_id: string; link: string; paper_id: string }): Promise<ActionResult> {
+  const ctx = await getActionContext();
+  if (!ctx) return { ok: false, error: NOT_ALLOWED };
+  const parsed = stageLinkSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
+
+  const { error } = await ctx.supabase.rpc("set_stage_link", {
+    p_stage: parsed.data.stage_id,
+    p_link: parsed.data.link || null,
+  });
+  if (error) return { ok: false, error: friendlyDbError(error) };
+  revalidatePapers(input.paper_id);
+  return { ok: true, message: parsed.data.link ? "Link saved" : "Link removed" };
+}
+
+/** Admins: the WhatsApp hand-over links (LMS group and physical coordinator group). */
+export async function setPaperLinksAction(input: {
+  paper_id: string;
+  lms_link: string;
+  physical_link: string;
+}): Promise<ActionResult> {
+  const ctx = await getActionContext({ admin: true });
+  if (!ctx) return { ok: false, error: NOT_ALLOWED };
+  const parsed = paperLinksSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
+  const v = parsed.data;
+
+  const { error } = await ctx.supabase.rpc("set_paper_links", {
+    p_paper: v.paper_id,
+    p_lms: v.lms_link || null,
+    p_physical: v.physical_link || null,
+  });
+  if (error) return { ok: false, error: friendlyDbError(error) };
+  revalidatePapers(v.paper_id);
+  return { ok: true, message: v.lms_link && v.physical_link ? "Hand-over links saved" : "Links saved" };
 }
 
 /** Admins: cancel, restart or delete a paper. */

@@ -58,10 +58,10 @@ function StepCircle({ state, index, size }: { state: StepState; index: number; s
   );
 }
 
-function Connector({ filled }: { filled: boolean }) {
+function Connector({ filled, compact = false }: { filled: boolean; compact?: boolean }) {
   const reduce = useReducedMotion();
   return (
-    <span className="bg-border relative h-0.5 min-w-3 flex-1 overflow-hidden rounded-full">
+    <span className={cn("bg-border relative h-0.5 flex-1 overflow-hidden rounded-full", compact ? "min-w-1" : "min-w-3")}>
       <motion.span
         className="bg-success absolute inset-y-0 left-0"
         initial={false}
@@ -76,18 +76,18 @@ function Connector({ filled }: { filled: boolean }) {
 export default function Stepper({ steps, compact = false }: { steps: Step[]; compact?: boolean }) {
   if (compact) {
     return (
-      <div className="flex items-center gap-1" aria-label={steps.map((s) => `${s.label}: ${s.state}`).join(", ")}>
+      <div className="flex items-center gap-0.5" aria-label={steps.map((s) => `${s.label}: ${s.state}`).join(", ")}>
         {steps.map((s, i) => (
-          <div key={s.key} className="flex flex-1 items-center gap-1 last:flex-none" title={`${s.label}${s.hint ? ` – ${s.hint}` : ""}`}>
+          <div key={s.key} className="flex flex-1 items-center gap-0.5 last:flex-none" title={`${s.label}${s.hint ? ` – ${s.hint}` : ""}`}>
             <StepCircle state={s.state} index={i} size="sm" />
-            {i < steps.length - 1 && <Connector filled={s.state === "done" || s.state === "skipped"} />}
+            {i < steps.length - 1 && <Connector compact filled={s.state === "done" || s.state === "skipped"} />}
           </div>
         ))}
       </div>
     );
   }
   return (
-    <ol className="flex items-start" aria-label="Stages">
+    <ol className="flex min-w-[680px] items-start xl:min-w-0" aria-label="Stages">
       {steps.map((s, i) => (
         <li key={s.key} className="flex flex-1 flex-col items-center gap-2 text-center">
           <div className="flex w-full items-center gap-1">

@@ -364,38 +364,74 @@ export const taskStatusSchema = z.object({
 });
 
 // ---------------------------------------------------------------- papers
-export const PAPER_STAGES = ["created", "typeset", "converted", "marked"] as const;
+export const PAPER_STAGES = [
+  "create_si",
+  "typeset_si",
+  "convert",
+  "typeset_en",
+  "review_si",
+  "review_en",
+  "handover",
+  "mark",
+] as const;
 
-export const paperSchema = z.object({
-  title: trimmed(2, 150, "Title"),
-  kind: z.enum(["paper", "tute"]),
-  exam_id: optionalUuid,
-  notes: optionalText(1000, "Notes"),
-  stages: z
-    .array(
-      z.object({
-        stage: z.enum(PAPER_STAGES),
-        owner_id: optionalUuid,
-        due_date: z.union([isoDate, z.literal("")]),
-        skip: z.boolean(),
-      }),
-    )
-    .length(4),
-});
+const optionalDate = z.union([isoDate, z.literal("")]);
+const optionalLink = z.union([
+  z.literal(""),
+  z.url({ protocol: /^https?$/, error: "Paste a full link starting with https://" }).max(500, "That link is too long"),
+]);
+
+export const paperSchema = z
+  .object({
+    title: trimmed(2, 140, "Title"),
+    kind: z.enum(["paper", "tute"]),
+    medium: z.enum(["si", "both"]),
+    /** "split" = a full paper over two weeks: MCQ this week, SE & Essay the next. */
+    part: z.enum(["mcq", "essay", "full", "split"]),
+    exam_id: optionalUuid,
+    /** Exam for the SE & Essay part when split. */
+    exam2_id: optionalUuid,
+    exam_day: optionalDate,
+    notes: optionalText(1000, "Notes"),
+    stages: z
+      .array(
+        z.object({
+          stage: z.enum(PAPER_STAGES),
+          owner_id: optionalUuid,
+          start_date: optionalDate,
+          due_date: optionalDate,
+          skip: z.boolean(),
+        }),
+      )
+      .length(PAPER_STAGES.length),
+  })
+  .refine((v) => v.stages.every((s) => s.skip || !s.start_date || !s.due_date || s.start_date <= s.due_date), {
+    message: "A stage starts after its due date. Check the dates.",
+    path: ["stages"],
+  });
 export type PaperInput = z.input<typeof paperSchema>;
 
-export const paperStageUpdateSchema = z.object({
-  stage_id: uuid,
-  owner_id: optionalUuid,
-  due_date: z.union([isoDate, z.literal("")]),
-  action: z.enum(["save", "skip", "done"]),
-});
+export const paperStageUpdateSchema = z
+  .object({
+    stage_id: uuid,
+    owner_id: optionalUuid,
+    start_date: optionalDate,
+    due_date: optionalDate,
+    action: z.enum(["save", "skip", "done"]),
+  })
+  .refine((v) => !v.start_date || !v.due_date || v.start_date <= v.due_date, {
+    message: "The start date is after the due date.",
+    path: ["start_date"],
+  });
+
+/** Files can be shared between members only in these early stages. From review on, use WhatsApp. */
+export const UPLOAD_STAGES = ["create_si", "typeset_si", "convert", "typeset_en"] as const;
 
 export const MAX_PAPER_FILE_BYTES = 25 * 1024 * 1024; // 25 MB
 
 export const paperFileSchema = z.object({
   paper_id: uuid,
-  stage: z.enum(PAPER_STAGES),
+  stage: z.enum(UPLOAD_STAGES, "Files can only be added up to English type setting"),
   storage_path: z.string().min(3).max(400),
   file_name: z.string().trim().min(1).max(200),
   mime_type: z.string().max(150).nullable(),
@@ -403,3 +439,8 @@ export const paperFileSchema = z.object({
   note: optionalText(300, "Note"),
 });
 export type PaperFileInput = z.input<typeof paperFileSchema>;
+
+export const stageLinkSchema = z.object({ stage_id: uuid, link: optionalLink });
+
+export const paperLinksSchema = z.object({ paper_id: uuid, lms_link: optionalLink, physical_link: optionalLink });
+

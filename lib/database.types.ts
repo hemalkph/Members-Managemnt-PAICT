@@ -8,7 +8,15 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type SubmissionStatus = "pending" | "approved" | "rejected";
 export type PayoutStatus = "unpaid" | "paid";
 export type TaskStatus = "waiting" | "open" | "done" | "cancelled";
-export type PaperStageName = "created" | "typeset" | "converted" | "marked";
+export type PaperStageName =
+  | "create_si"
+  | "typeset_si"
+  | "convert"
+  | "typeset_en"
+  | "review_si"
+  | "review_en"
+  | "handover"
+  | "mark";
 
 export type Database = {
   __InternalSupabase: {
@@ -382,6 +390,12 @@ export type Database = {
           exam_id: string | null;
           notes: string | null;
           status: "in_progress" | "done" | "cancelled";
+          medium: "si" | "both";
+          part: "mcq" | "essay" | "full";
+          exam_day: string | null;
+          lms_link: string | null;
+          physical_link: string | null;
+          handed_over_at: string | null;
           created_by: string | null;
           created_at: string;
           updated_at: string;
@@ -413,7 +427,9 @@ export type Database = {
           stage: PaperStageName;
           position: number;
           owner_id: string | null;
+          start_date: string | null;
           due_date: string | null;
+          link: string | null;
           status: "waiting" | "in_progress" | "done" | "skipped";
           completed_at: string | null;
         };
@@ -907,12 +923,27 @@ export type Database = {
       set_month_deadline: { Args: { p_month: string; p_last_day: string | null }; Returns: undefined };
       send_deadline_reminders: { Args: Record<PropertyKey, never>; Returns: number };
       create_paper: {
-        Args: { p_title: string; p_kind: string; p_exam: string | null; p_notes: string | null; p_stages: Json };
+        Args: {
+          p_title: string;
+          p_kind: string;
+          p_exam: string | null;
+          p_notes: string | null;
+          p_stages: Json;
+          p_medium?: string;
+          p_part?: string;
+          p_exam_day?: string | null;
+        };
         Returns: string;
       };
       update_paper_stage: {
-        Args: { p_stage: string; p_owner: string | null; p_due: string | null; p_action?: string };
+        Args: { p_stage: string; p_owner: string | null; p_start: string | null; p_due: string | null; p_action?: string };
         Returns: undefined;
+      };
+      set_stage_link: { Args: { p_stage: string; p_link: string | null }; Returns: undefined };
+      set_paper_links: { Args: { p_paper: string; p_lms: string | null; p_physical: string | null }; Returns: undefined };
+      paper_contacts: {
+        Args: { p_paper: string };
+        Returns: { stage: string; user_id: string; full_name: string; whatsapp: string | null }[];
       };
       set_paper_status: { Args: { p_paper: string; p_status: string }; Returns: undefined };
       set_payouts_paid: {
