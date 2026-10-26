@@ -32,6 +32,28 @@ join public.sections s on lower(s.name) = lower(r.section_name)
 on conflict (section_id, lower(name)) do nothing;
 
 -- -----------------------------------------------------------------------------
+-- Pay rates: prices start at Rs. 0 — set them in the app (Admin > Rates & budget).
+-- WhatsApp Admin and LMS Admin are paid a fixed salary.
+-- -----------------------------------------------------------------------------
+update public.roles set is_salaried = true where name in ('WhatsApp Admin', 'LMS Admin');
+
+insert into public.rate_items (role_id, name, unit, price, sort_order)
+select r.id, v.item, v.unit, 0, v.sort_order
+from (values
+  ('Type Setting',          'Page',                                  'page',   1),
+  ('Graphic Design',        'Thumbnail',                             'design', 1),
+  ('Graphic Design',        'Flyer',                                 'design', 2),
+  ('Graphic Design',        'Banner',                                'design', 3),
+  ('Graphic Design',        'Template',                              'design', 4),
+  ('Paper Creating Team',   'Paper',                                 'paper',  1),
+  ('Paper Creating Team',   'Marking scheme',                        'scheme', 2),
+  ('Paper Converting Team', 'Paper translation (Sinhala → English)', 'page',   1),
+  ('Paper Converting Team', 'Tute translation (Sinhala → English)',  'page',   2)
+) as v(role_name, item, unit, sort_order)
+join public.roles r on r.name = v.role_name
+on conflict (role_id, lower(name)) do nothing;
+
+-- -----------------------------------------------------------------------------
 -- Sample members (auth users). The on_auth_user_created trigger creates profiles.
 -- -----------------------------------------------------------------------------
 insert into auth.users (
@@ -73,15 +95,17 @@ and not exists (
   select 1 from auth.identities i where i.user_id = u.id and i.provider = 'email'
 );
 
+-- NIC numbers fill in date_of_birth automatically (profiles_birth_date_from_nic trigger).
 update public.profiles p set
   phone = v.phone,
-  whatsapp = v.whatsapp
+  whatsapp = v.whatsapp,
+  nic = v.nic
 from (values
-  ('11111111-1111-4111-8111-111111111111'::uuid, '0771234567', '0771234567'),
-  ('22222222-2222-4222-8222-222222222222'::uuid, '0712345678', '0712345678'),
-  ('33333333-3333-4333-8333-333333333333'::uuid, '0763456789', '0763456789'),
-  ('44444444-4444-4444-8444-444444444444'::uuid, '0754567890', '0754567890')
-) as v(id, phone, whatsapp)
+  ('11111111-1111-4111-8111-111111111111'::uuid, '0771234567', '0771234567', '200512345678'),
+  ('22222222-2222-4222-8222-222222222222'::uuid, '0712345678', '0712345678', '200680012345'),
+  ('33333333-3333-4333-8333-333333333333'::uuid, '0763456789', '0763456789', '200402512345'),
+  ('44444444-4444-4444-8444-444444444444'::uuid, '0754567890', '0754567890', '200575512345')
+) as v(id, phone, whatsapp, nic)
 where p.id = v.id;
 
 insert into public.bank_details (user_id, bank_name, branch, account_holder, account_number) values
