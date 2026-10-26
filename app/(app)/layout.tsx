@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { AppSidebar } from "@/components/app-sidebar";
 import { BirthdayCelebration } from "@/components/birthday-celebration";
+import { CommandMenu } from "@/components/command-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -33,6 +34,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           email: profile.email,
           avatarUrl,
           isAdmin: profile.is_admin,
+          isMainAdmin: profile.is_main_admin,
         }}
         pendingReviews={pending.count ?? 0}
       />
@@ -41,9 +43,11 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-1 data-[orientation=vertical]:h-4" />
           <span className="text-muted-foreground truncate text-sm">
-            {profile.is_admin ? "Admin" : "Member"} · {profile.full_name || profile.email}
+            {profile.is_main_admin ? "Main admin" : profile.is_admin ? "Admin" : "Member"} ·{" "}
+            {profile.full_name || profile.email}
           </span>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-1.5">
+            <CommandMenu isAdmin={profile.is_admin} isMainAdmin={profile.is_main_admin} />
             <ThemeToggle />
           </div>
         </header>
