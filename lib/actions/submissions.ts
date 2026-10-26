@@ -33,6 +33,15 @@ async function hasRole(ctx: Ctx, roleId: string) {
   return Boolean(data);
 }
 
+/** The role's work types: one must be chosen when the role has any. */
+async function checkWorkType(ctx: Ctx, roleId: string, rateItemId: string): Promise<string | null> {
+  const { data } = await ctx.supabase.from("rate_items").select("id").eq("role_id", roleId);
+  const ids = (data ?? []).map((r) => r.id);
+  if (ids.length === 0) return null;
+  if (!rateItemId) return "Choose the type of work.";
+  return ids.includes(rateItemId) ? null : "That work type doesn't belong to the chosen role.";
+}
+
 async function insertAttachments(ctx: Ctx, submissionId: string, attachments: AttachmentInput[]) {
   if (attachments.length === 0) return null;
   const { error } = await ctx.supabase.from("submission_attachments").insert(
@@ -61,12 +70,15 @@ export async function createSubmissionAction(input: SubmissionActionInput): Prom
   }
   if (!(await hasRole(ctx, v.role_id))) return { ok: false, error: "You can only log work for your own roles." };
   if (!ownAttachments(ctx, v.attachments)) return { ok: false, error: "Invalid attachment." };
+  const typeError = await checkWorkType(ctx, v.role_id, v.rate_item_id);
+  if (typeError) return { ok: false, error: typeError, fieldErrors: { rate_item_id: [typeError] } };
 
   const { data: created, error } = await ctx.supabase
     .from("submissions")
     .insert({
       user_id: ctx.profile.id,
       role_id: v.role_id,
+      rate_item_id: v.rate_item_id || null,
       work_month: monthKeyToDate(v.work_month),
       title: v.title,
       description: v.description || null,
@@ -114,6 +126,8 @@ export async function updateSubmissionAction(
   if (existing.status !== "pending") return { ok: false, error: "Only pending submissions can be edited." };
   if (!(await hasRole(ctx, v.role_id))) return { ok: false, error: "You can only log work for your own roles." };
   if (!ownAttachments(ctx, v.attachments)) return { ok: false, error: "Invalid attachment." };
+  const typeError = await checkWorkType(ctx, v.role_id, v.rate_item_id);
+  if (typeError) return { ok: false, error: typeError, fieldErrors: { rate_item_id: [typeError] } };
 
   const kept = existing.submission_attachments.filter((a) => !v.removed_attachment_ids.includes(a.id)).length;
   if (kept + v.attachments.length > 10) return { ok: false, error: "Up to 10 files per submission." };
@@ -122,6 +136,7 @@ export async function updateSubmissionAction(
     .from("submissions")
     .update({
       role_id: v.role_id,
+      rate_item_id: v.rate_item_id || null,
       work_month: monthKeyToDate(v.work_month),
       title: v.title,
       description: v.description || null,

@@ -13,7 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { reviewSubmissionsAction } from "@/lib/actions/admin";
 import type { SubmissionStatus } from "@/lib/database.types";
-import { formatBytes, formatDate, formatDateTime } from "@/lib/format";
+import { formatBytes, formatDate, formatDateTime, formatLKR } from "@/lib/format";
 import { monthLabel } from "@/lib/month";
 
 export type ReviewRow = {
@@ -33,6 +33,10 @@ export type ReviewRow = {
   roleName: string;
   sectionName: string;
   reviewerName: string | null;
+  workType: string | null;
+  unit: string | null;
+  unitPrice: number | null;
+  amount: number | null;
   attachments: { id: string; file_name: string; size_bytes: number }[];
 };
 
@@ -101,6 +105,28 @@ export function ReviewDialog({
             <dt className="text-muted-foreground text-xs">Submitted</dt>
             <dd>{formatDateTime(row.created_at)}</dd>
           </div>
+          {row.workType && (
+            <div>
+              <dt className="text-muted-foreground text-xs">Type of work</dt>
+              <dd>{row.workType}</dd>
+            </div>
+          )}
+          {row.unitPrice !== null && (
+            <div>
+              <dt className="text-muted-foreground text-xs">Rate</dt>
+              <dd>
+                {formatLKR(row.unitPrice)} / {row.unit ?? "unit"}
+              </dd>
+            </div>
+          )}
+          {row.amount !== null && (
+            <div className="col-span-2">
+              <dt className="text-muted-foreground text-xs">
+                Amount {row.status === "approved" ? "(locked at approval)" : "(estimate)"}
+              </dt>
+              <dd className="text-base font-semibold">{formatLKR(row.amount)}</dd>
+            </div>
+          )}
         </dl>
 
         {row.description && <p className="bg-muted/50 rounded-lg p-3 text-sm whitespace-pre-line">{row.description}</p>}

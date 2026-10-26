@@ -106,6 +106,8 @@ export type AttachmentInput = z.infer<typeof attachmentInputSchema>;
 export const submissionSchema = z.object({
   work_month: monthKey,
   role_id: z.uuid("Choose one of your roles"),
+  /** Work type (rate category). Required when the role has rates; "" = none. */
+  rate_item_id: z.union([z.uuid(), z.literal("")]),
   title: trimmed(2, 150, "Title"),
   description: optionalText(2000, "Description"),
   quantity: z
@@ -236,3 +238,13 @@ export function fieldErrorsOf(error: z.ZodError): Record<string, string[]> {
 export function firstError(error: z.ZodError): string {
   return error.issues[0]?.message ?? "Please check the form.";
 }
+
+// ---------------------------------------------------------------- notice board (admin)
+export const announcementSchema = z.object({
+  id: uuid.optional(),
+  title: trimmed(2, 120, "Title"),
+  body: optionalText(2000, "Message"),
+  pinned: z.boolean(),
+  expires_on: z.union([isoDate, z.literal("")]),
+});
+export type AnnouncementInput = z.input<typeof announcementSchema>;

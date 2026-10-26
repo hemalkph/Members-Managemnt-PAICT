@@ -78,3 +78,20 @@ export async function getMemberRoles(supabase: Client, userId: string): Promise<
     }))
     .sort(sortRoles);
 }
+
+export type RoleRate = { id: string; name: string; unit: string; price: number };
+
+/** Rate categories for the given roles (members only see their own roles' rates). */
+export async function getRatesForRoles(supabase: Client, roleIds: string[]): Promise<Map<string, RoleRate[]>> {
+  const map = new Map<string, RoleRate[]>();
+  if (roleIds.length === 0) return map;
+  const { data } = await supabase
+    .from("rate_items")
+    .select("id, role_id, name, unit, price, sort_order")
+    .in("role_id", roleIds)
+    .order("sort_order");
+  for (const r of data ?? []) {
+    map.set(r.role_id, [...(map.get(r.role_id) ?? []), { id: r.id, name: r.name, unit: r.unit, price: Number(r.price) }]);
+  }
+  return map;
+}

@@ -8,6 +8,7 @@ import { MonthSelect } from "@/components/month-select";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { requireCompleteProfile } from "@/lib/auth";
+import { SHOW_MEMBERS_THEIR_EARNINGS } from "@/lib/config";
 import { getSubmissionsForMonth, summarise } from "@/lib/member-queries";
 import { monthLabel, parseMonthParam } from "@/lib/month";
 import { createClient } from "@/lib/supabase/server";
@@ -37,7 +38,7 @@ export default async function MyWorkPage({ searchParams }: PageProps<"/work">) {
           </>
         }
       />
-      <MonthlySummary month={month} {...summary} />
+      <MonthlySummary month={month} {...summary} showMoney={SHOW_MEMBERS_THEIR_EARNINGS} />
       {submissions.length === 0 ? (
         <EmptyState
           icon={InboxIcon}
@@ -54,7 +55,7 @@ export default async function MyWorkPage({ searchParams }: PageProps<"/work">) {
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {submissions.map((s) => (
-            <SubmissionCard key={s.id} submission={s} />
+            <SubmissionCard key={s.id} submission={s} showMoney={SHOW_MEMBERS_THEIR_EARNINGS} />
           ))}
         </div>
       )}
