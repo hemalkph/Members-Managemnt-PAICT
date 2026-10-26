@@ -41,3 +41,9 @@ export function formatBytes(bytes: number): string {
 export function formatNumber(value: number): string {
   return new Intl.NumberFormat("en-GB").format(value);
 }
+
+/** Sri Lankan rupees, e.g. "Rs. 1,500.00". */
+export function formatLKR(value: number): string {
+  const safe = Number.isFinite(value) ? value : 0;
+  return `Rs. ${new Intl.NumberFormat("en-LK", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(safe)}`;
+}
