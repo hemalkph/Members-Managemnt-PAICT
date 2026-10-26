@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { LockIcon, UserRoundXIcon } from "lucide-react";
+import { CalendarClockIcon, LockIcon, UserRoundXIcon } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { SubmissionForm } from "@/components/member/submission-form";
 import { PageHeader } from "@/components/page-header";
@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { requireCompleteProfile } from "@/lib/auth";
 import { SHOW_MEMBERS_THEIR_EARNINGS } from "@/lib/config";
 import { monthLabel, parseMonthParam, recentMonths, todayISO } from "@/lib/month";
+import { getDeadlines } from "@/lib/deadlines";
 import { getClosedMonthKeys } from "@/lib/payments";
 import { getMemberRoles, getRatesForRoles } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
@@ -39,11 +40,16 @@ export default async function NewWorkPage({ searchParams }: PageProps<"/work/new
     getClosedMonthKeys(supabase),
   ]);
 
-  // Closed months (already paid out) can't take new work.
+  // Closed months (already paid out) can't take new work, and members can't
+  // log work after a month's deadline (admins can).
   const closed = new Set(closedMonths);
-  const months = recentMonths(12, true).filter((m) => !closed.has(m));
-  const workMonth = closed.has(month) ? (months.find((m) => m <= month) ?? months[0]) : month;
-  if (!months.includes(workMonth)) months.push(workMonth);
+  const candidates = recentMonths(12, true);
+  if (!candidates.includes(month)) candidates.push(month);
+  const deadlines = profile.is_admin ? new Map() : await getDeadlines(supabase, candidates);
+  const isLocked = (m: string) => closed.has(m) || Boolean(deadlines.get(m)?.passed);
+  const months = candidates.filter((m) => !isLocked(m)).sort().reverse();
+  const workMonth = isLocked(month) ? (months.find((m) => m <= month) ?? months[0]) : month;
+  const requestedDeadline = deadlines.get(month);
   const roleOptions = roles.map((r) => ({ ...r, rates: rates.get(r.id) ?? [] }));
   const copyRole = from && roles.some((r) => r.id === from.role_id) ? from.role_id : null;
   const defaultRole = copyRole ?? (roles.length === 1 ? roles[0].id : "");
@@ -63,6 +69,16 @@ export default async function NewWorkPage({ searchParams }: PageProps<"/work/new
           from ? "Copied from an earlier submission. Check the details and submit." : "Log a task you finished. An admin will review it."
         }
       />
+      {!closed.has(month) && requestedDeadline?.passed && (
+        <Alert variant="warning">
+          <CalendarClockIcon />
+          <AlertTitle>The {monthLabel(month)} deadline has passed</AlertTitle>
+          <AlertDescription>
+            Work for {monthLabel(month)} had to be logged by {requestedDeadline.lastDayLabel}. If you missed something,
+            ask an admin.
+          </AlertDescription>
+        </Alert>
+      )}
       {closed.has(month) && (
         <Alert variant="warning">
           <LockIcon />

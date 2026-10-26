@@ -23,6 +23,7 @@ import { getBirthdays } from "@/lib/birthday-queries";
 import { getCurrentNotices } from "@/lib/notices";
 import { formatDateTime } from "@/lib/format";
 import { currentMonthKey, monthKeyToDate, monthLabel, todayISO } from "@/lib/month";
+import { sendDueReminders } from "@/lib/deadlines";
 import { getStructure } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
 
@@ -32,6 +33,8 @@ export default async function AdminDashboardPage() {
   const profile = await requireAdmin();
   const supabase = await createClient();
   const month = currentMonthKey();
+  // Reminders are also sent by a daily job; this catches up when an admin opens the app.
+  await sendDueReminders(supabase);
 
   const [members, monthRows, pendingAll, recent, structure, birthdays, notices] = await Promise.all([
     supabase.from("profiles").select("id", { count: "exact", head: true }).eq("is_active", true),

@@ -2,7 +2,7 @@
 
 export const ACTIVITY_CATEGORIES = {
   reviews: { label: "Work reviews", prefixes: ["submission."] },
-  payments: { label: "Payments", prefixes: ["month.", "payout.", "payroll."] },
+  payments: { label: "Payments & deadlines", prefixes: ["month.", "payout.", "payroll.", "deadline."] },
   money: { label: "Rates, salaries & budget", prefixes: ["rate.", "salary.", "budget.", "role.salary_type_changed"] },
   members: { label: "Members & roles", prefixes: ["member.", "role.assigned", "role.removed"] },
   bank: { label: "Bank details", prefixes: ["bank."] },
@@ -20,7 +20,7 @@ export function activityTone(action: string): "success" | "danger" | "warning" |
   if (/\.(approved|paid|activated|enabled|closed)$/.test(action)) return "success";
   if (/\.(rejected|deleted|deactivated|removed|disabled|reset|admin_removed|main_admin_removed)$/.test(action))
     return "danger";
-  if (/^(salary|rate|budget|bank|payroll|member\.password_reset|member\.(main_)?admin_granted|month\.reopened|payout\.unpaid)/.test(action))
+  if (/^(salary|rate|budget|bank|payroll|member\.password_reset|member\.(main_)?admin_granted|month\.reopened|payout\.unpaid|deadline\.)/.test(action))
     return "warning";
   if (action.startsWith("submission.")) return "info";
   return "neutral";
@@ -34,6 +34,8 @@ export function activityGroupLabel(action: string): string {
     case "month":
     case "payout":
       return "Payment";
+    case "deadline":
+      return "Deadline";
     case "payroll":
       return "Payroll";
     case "rate":
