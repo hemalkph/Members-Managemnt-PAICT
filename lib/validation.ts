@@ -218,6 +218,20 @@ export const roleRatesSchema = z
     role_id: uuid,
     is_salaried: z.boolean(),
     items: z.array(rateItemSchema).max(50, "Up to 50 items per role"),
+    /** Monthly salaries for members of a salaried role. */
+    salaries: z
+      .array(
+        z.object({
+          user_id: uuid,
+          amount: z
+            .number({ error: "Enter a salary" })
+            .min(0, "Salary can't be negative")
+            .max(MAX_RATE, "That salary is too large")
+            .refine((v) => Math.round(v * 100) === v * 100, "Use at most 2 decimal places"),
+        }),
+      )
+      .max(200)
+      .default([]),
   })
   .refine((v) => new Set(v.items.map((i) => i.name.trim().toLowerCase())).size === v.items.length, {
     message: "Each item in a role needs a different name",
