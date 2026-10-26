@@ -163,7 +163,20 @@ where not exists (
   select 1 from public.submissions x where x.user_id = s.user_id and x.title = s.title
 );
 
+-- Work types for the sample submissions (amount = quantity × rate).
+update public.submissions s set rate_item_id = i.id
+from public.rate_items i
+where i.role_id = s.role_id and s.rate_item_id is null
+  and (s.title, i.name) in (
+    ('Created MCQ paper on networking', 'Paper'),
+    ('Class poster designs', 'Flyer'),
+    ('Social media banners', 'Banner'),
+    ('Typeset tute: Databases', 'Page'),
+    ('Converted papers to Google Forms', 'Paper translation (Sinhala → English)')
+  );
+
 -- -----------------------------------------------------------------------------
 -- First admin: sign up / invite yourself, then run (with your own email):
---   update public.profiles set is_admin = true where email = 'you@example.com';
+--   update public.profiles set is_admin = true, is_main_admin = true where email = 'you@example.com';
+-- (Main admins also see Analytics and can change pay rates.)
 -- -----------------------------------------------------------------------------
