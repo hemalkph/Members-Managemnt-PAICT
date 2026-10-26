@@ -15,10 +15,12 @@ type CountUpProps = {
   duration?: number;
   /** Seconds before it starts. */
   delay?: number;
+  /** Digits after the decimal point (e.g. 2 for rupees and cents). */
+  decimals?: number;
   className?: string;
 };
 
-export default function CountUp({ to, from = 0, duration = 1.2, delay = 0, className }: CountUpProps) {
+export default function CountUp({ to, from = 0, duration = 1.2, delay = 0, decimals = 0, className }: CountUpProps) {
   const ref = useRef<HTMLSpanElement>(null);
   const reduceMotion = useReducedMotion();
   const motionValue = useMotionValue(from);
@@ -28,7 +30,13 @@ export default function CountUp({ to, from = 0, duration = 1.2, delay = 0, class
   });
   const inView = useInView(ref, { once: true });
 
-  const format = useCallback((value: number) => new Intl.NumberFormat("en-GB").format(Math.round(value)), []);
+  const format = useCallback(
+    (value: number) =>
+      new Intl.NumberFormat("en-GB", { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(
+        decimals > 0 ? value : Math.round(value),
+      ),
+    [decimals],
+  );
 
   // Set the starting text before paint.
   useLayoutEffect(() => {

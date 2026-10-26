@@ -5,6 +5,7 @@ import BlurText from "@/components/reactbits/blur-text";
 import { DeadlineCard } from "@/components/deadline/deadline-card";
 import { EmptyState } from "@/components/empty-state";
 import { MonthlySummary } from "@/components/member/monthly-summary";
+import { PayPhone } from "@/components/member/pay-phone";
 import { RolesList } from "@/components/member/roles-list";
 import { NoticeBoard } from "@/components/notice-board";
 import { SubmissionCard } from "@/components/member/submission-card";
@@ -15,11 +16,12 @@ import { requireCompleteProfile } from "@/lib/auth";
 import { SHOW_MEMBERS_THEIR_EARNINGS } from "@/lib/config";
 import { getMySalary, getSubmissionsForMonth, summarise } from "@/lib/member-queries";
 import { getDeadlines, sendDueRemindersLater } from "@/lib/deadlines";
-import { currentMonthKey, monthLabel, shiftMonth } from "@/lib/month";
+import { currentMonthKey, monthLabel, shiftMonth, todayISO } from "@/lib/month";
 import { getClosedMonthKeys } from "@/lib/payments";
 import { getTasks } from "@/lib/task-queries";
 import { getCurrentNotices } from "@/lib/notices";
 import { getMemberRoles } from "@/lib/queries";
+import { signedAvatarUrl } from "@/lib/storage";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Dashboard" };
@@ -41,7 +43,7 @@ export default async function DashboardPage() {
   const previous = shiftMonth(month, -1);
   // Reminders: also sent by a daily job; this catches up after the page is sent.
   await sendDueRemindersLater(supabase);
-  const [submissions, roles, { data: bank }, notices, salary, deadlines, closedMonths, myTasks] = await Promise.all([
+  const [submissions, roles, { data: bank }, notices, salary, deadlines, closedMonths, myTasks, avatarUrl] = await Promise.all([
     getSubmissionsForMonth(supabase, profile.id, month),
     getMemberRoles(supabase, profile.id),
     supabase.from("bank_details").select("user_id").eq("user_id", profile.id).maybeSingle(),
@@ -50,6 +52,7 @@ export default async function DashboardPage() {
     getDeadlines(supabase, [previous, month]),
     getClosedMonthKeys(supabase),
     getTasks(supabase, { assigneeId: profile.id, statuses: ["open"], limit: 20 }),
+    SHOW_MEMBERS_THEIR_EARNINGS ? signedAvatarUrl(supabase, profile.avatar_path) : Promise.resolve(null),
   ]);
   // The next deadline: last month's if it is still open, otherwise this month's.
   const prevDeadline = deadlines.get(previous);
@@ -62,6 +65,16 @@ export default async function DashboardPage() {
     : 0;
   const summary = summarise(submissions);
   const firstName = (profile.full_name || "there").split(" ")[0];
+
+  // Pay phone: fixed salary grows day by day (day 1 → 1/30th … last day → all of it).
+  const day = Number(todayISO().slice(8, 10));
+  const [year, monthNo] = month.split("-").map(Number);
+  const daysInMonth = new Date(Date.UTC(year, monthNo, 0)).getUTCDate();
+  const salaryEarned = Math.round(((salary * Math.min(day, daysInMonth)) / daysInMonth) * 100) / 100;
+  const dueTasks = [...myTasks].sort(
+    (a, b) => Number(b.overdue) - Number(a.overdue) || (a.dueDate ?? "9999").localeCompare(b.dueDate ?? "9999"),
+  );
+  const approvedWork = submissions.filter((s) => s.status === "approved");
 
   return (
     <div className="space-y-6">
@@ -92,8 +105,38 @@ export default async function DashboardPage() {
         </Link>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-        <section className="space-y-3">
+      {/* Phones: pay phone first. Desktop: work on the left, phone + cards on the right. */}
+      <div className="grid gap-6 lg:grid-cols-[1fr_320px] lg:grid-rows-[auto_auto_auto_1fr]">
+        {SHOW_MEMBERS_THEIR_EARNINGS && (
+          <div className="lg:col-start-2 lg:row-start-1">
+            <PayPhone
+              userId={profile.id}
+              name={profile.full_name || profile.email}
+              avatarUrl={avatarUrl}
+              month={month}
+              monthName={monthLabel(month)}
+              day={day}
+              daysInMonth={daysInMonth}
+              salary={salary}
+              salaryEarned={salaryEarned}
+              workApproved={summary.earnedApproved}
+              workPending={summary.earnedPending}
+              doneCount={summary.approved}
+              dueCount={dueTasks.length}
+              overdueCount={dueTasks.filter((t) => t.overdue).length}
+              due={dueTasks.slice(0, 2).map((t) => ({
+                id: t.id,
+                title: t.title,
+                dueLabel: t.dueLabel,
+                overdue: t.overdue,
+                high: t.priority === "high",
+                href: t.paperId ? `/papers/${t.paperId}` : `/work/new?task=${t.id}`,
+              }))}
+              done={approvedWork.slice(0, 2).map((s) => ({ id: s.id, title: s.title, amount: Number(s.amount ?? 0) || 0 }))}
+            />
+          </div>
+        )}
+        <section className="min-w-0 space-y-3 lg:col-start-1 lg:row-span-4 lg:row-start-1">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold">This month</h2>
             <Button asChild variant="ghost" size="sm">
@@ -116,19 +159,25 @@ export default async function DashboardPage() {
             </div>
           )}
         </section>
-        <div className="grid h-fit gap-6">
-          <MyTasksCard tasks={myTasks} />
-          <NoticeBoard notices={notices} />
-          <Card className="h-fit">
-            <CardHeader>
-              <CardTitle>My roles</CardTitle>
-              <CardDescription>You can log work for these roles.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <RolesList roles={roles} emptyText="No roles yet. Ask an admin to assign your roles." />
-            </CardContent>
-          </Card>
-        </div>
+        {myTasks.length > 0 && (
+          <div className="h-fit lg:col-start-2">
+            <MyTasksCard tasks={myTasks} />
+          </div>
+        )}
+        {notices.length > 0 && (
+          <div className="h-fit lg:col-start-2">
+            <NoticeBoard notices={notices} />
+          </div>
+        )}
+        <Card className="h-fit lg:col-start-2">
+          <CardHeader>
+            <CardTitle>My roles</CardTitle>
+            <CardDescription>You can log work for these roles.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <RolesList roles={roles} emptyText="No roles yet. Ask an admin to assign your roles." />
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
