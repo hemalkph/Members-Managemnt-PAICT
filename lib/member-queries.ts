@@ -36,3 +36,15 @@ export function summarise(rows: { status: string; amount?: number | string | nul
     earnedPending: sum("pending"),
   };
 }
+
+/** The member's own fixed monthly salary (salaried roles they still hold). */
+export async function getMySalary(supabase: SupabaseClient<Database>, userId: string): Promise<number> {
+  const [{ data: salaries }, { data: held }] = await Promise.all([
+    supabase.from("member_salaries").select("role_id, monthly_amount, roles(is_salaried)").eq("user_id", userId),
+    supabase.from("member_roles").select("role_id").eq("user_id", userId),
+  ]);
+  const heldIds = new Set((held ?? []).map((r) => r.role_id));
+  return (salaries ?? [])
+    .filter((s) => s.roles?.is_salaried && heldIds.has(s.role_id))
+    .reduce((sum, s) => sum + (Number(s.monthly_amount) || 0), 0);
+}

@@ -27,7 +27,7 @@ export function SpendRadar({
     <Card>
       <CardHeader className="items-center text-center">
         <CardTitle>Monthly spending</CardTitle>
-        <CardDescription>Approved work paid per month, last {data.length} months</CardDescription>
+        <CardDescription>Salaries + approved work, last {data.length} months</CardDescription>
       </CardHeader>
       <CardContent className="pb-0">
         <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[260px]">

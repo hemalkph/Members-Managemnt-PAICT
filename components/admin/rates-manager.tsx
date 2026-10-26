@@ -1,7 +1,16 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { BriefcaseIcon, Loader2Icon, PlusIcon, RotateCcwIcon, SaveIcon, Trash2Icon, WalletIcon } from "lucide-react";
+import {
+  BriefcaseIcon,
+  Loader2Icon,
+  PlusIcon,
+  RotateCcwIcon,
+  SaveIcon,
+  Trash2Icon,
+  UserRoundIcon,
+  WalletIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { BrandLogo } from "@/components/brand-logo";
@@ -23,10 +32,12 @@ export type RatesRole = {
   sectionName: string;
   is_salaried: boolean;
   items: { id: string; name: string; unit: string; price: number }[];
+  /** Active members who hold this role, with their monthly salary (salaried roles). */
+  members: { id: string; name: string; salary: number }[];
 };
 
 type DraftItem = { key: string; id?: string; name: string; unit: string; price: string };
-type DraftRole = Omit<RatesRole, "items"> & { items: DraftItem[]; dirty: boolean };
+type DraftRole = Omit<RatesRole, "items"> & { items: DraftItem[]; salaries: Record<string, string>; dirty: boolean };
 
 const UNIT_SUGGESTIONS = ["page", "design", "paper", "scheme", "item"];
 
@@ -35,6 +46,7 @@ function toDraft(role: RatesRole): DraftRole {
     ...role,
     dirty: false,
     items: role.items.map((i) => ({ key: i.id, id: i.id, name: i.name, unit: i.unit, price: String(i.price) })),
+    salaries: Object.fromEntries(role.members.map((m) => [m.id, String(m.salary)])),
   };
 }
 
@@ -77,6 +89,12 @@ export function RatesManager({ roles: initialRoles }: { roles: RatesRole[] }) {
         return toast.error(`${role.name}: “${item.name}” needs a valid price.`);
       }
     }
+    for (const member of role.members) {
+      const salary = Number(role.salaries[member.id] ?? 0);
+      if (!Number.isFinite(salary) || salary < 0 || salary > MAX_RATE) {
+        return toast.error(`${role.name}: ${member.name} needs a valid salary.`);
+      }
+    }
     setSavingId(role.id);
     startTransition(async () => {
       const result = await saveRoleRatesAction({
@@ -88,6 +106,12 @@ export function RatesManager({ roles: initialRoles }: { roles: RatesRole[] }) {
           unit: i.unit.trim() || "item",
           price: Math.round(Number(i.price) * 100) / 100,
         })),
+        salaries: role.is_salaried
+          ? role.members.map((m) => ({
+              user_id: m.id,
+              amount: Math.round(Number(role.salaries[m.id] || 0) * 100) / 100,
+            }))
+          : [],
       });
       setSavingId(null);
       if (!result.ok || !result.data) {
@@ -114,6 +138,10 @@ export function RatesManager({ roles: initialRoles }: { roles: RatesRole[] }) {
                 ...r,
                 dirty: false,
                 items: saved.map((s) => ({ key: s.id, id: s.id, name: s.name, unit: s.unit, price: String(s.price) })),
+                salaries: {
+                  ...r.salaries,
+                  ...Object.fromEntries((result.data?.salaries ?? []).map((x) => [x.user_id, String(x.amount)])),
+                },
               }
             : r,
         ),
@@ -131,13 +159,39 @@ export function RatesManager({ roles: initialRoles }: { roles: RatesRole[] }) {
           .map((i) => {
             const quantity = quantityOf(qty[i.key]);
             const price = priceOf(i.price);
-            return { key: i.key, name: i.name || "Untitled item", unit: i.unit || "item", quantity, price, total: quantity * price };
+            return {
+              key: i.key,
+              name: i.name || "Untitled item",
+              unit: i.unit || "item",
+              quantity,
+              price,
+              total: quantity * price,
+            };
           })
           .filter((l) => l.quantity > 0);
         return { role: r, lines, subtotal: lines.reduce((s, l) => s + l.total, 0) };
       })
       .filter((g) => g.lines.length > 0);
-    return { groups, total: groups.reduce((s, g) => s + g.subtotal, 0), units: groups.reduce((s, g) => s + g.lines.reduce((a, l) => a + l.quantity, 0), 0) };
+    const salaryLines = roles
+      .filter((r) => r.is_salaried)
+      .flatMap((r) =>
+        r.members.map((m) => ({
+          key: `${r.id}:${m.id}`,
+          name: m.name,
+          role: r.name,
+          amount: priceOf(r.salaries[m.id] ?? "0"),
+        })),
+      )
+      .filter((l) => l.amount > 0);
+    const salaryTotal = salaryLines.reduce((s, l) => s + l.amount, 0);
+    const workTotal = groups.reduce((s, g) => s + g.subtotal, 0);
+    return {
+      groups,
+      salaryLines,
+      salaryTotal,
+      total: workTotal + salaryTotal,
+      units: groups.reduce((s, g) => s + g.lines.reduce((a, l) => a + l.quantity, 0), 0),
+    };
   }, [roles, qty]);
 
   const sections = useMemo(() => {
@@ -176,9 +230,47 @@ export function RatesManager({ roles: initialRoles }: { roles: RatesRole[] }) {
 
                 <div className="p-4">
                   {role.is_salaried ? (
-                    <p className="text-muted-foreground flex items-center gap-2 text-sm">
-                      <BriefcaseIcon className="size-4" /> Paid a fixed salary. No per-unit rates.
-                    </p>
+                    <div className="space-y-3">
+                      <p className="text-muted-foreground flex items-center gap-2 text-sm">
+                        <BriefcaseIcon className="size-4" /> Paid a fixed monthly salary. Enter each member&apos;s
+                        amount.
+                      </p>
+                      {role.members.length === 0 ? (
+                        <p className="text-muted-foreground text-sm">
+                          No active members have this role yet. Assign it under Members.
+                        </p>
+                      ) : (
+                        <ul className="divide-y rounded-lg border">
+                          {role.members.map((m) => (
+                            <li key={m.id} className="flex flex-wrap items-center gap-3 px-3 py-2">
+                              <UserRoundIcon className="text-muted-foreground size-4 shrink-0" />
+                              <span className="min-w-0 flex-1 truncate text-sm font-medium">{m.name}</span>
+                              <div className="relative w-44">
+                                <span className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-xs">
+                                  Rs.
+                                </span>
+                                <Input
+                                  aria-label={`Monthly salary for ${m.name}`}
+                                  type="number"
+                                  inputMode="decimal"
+                                  min={0}
+                                  step="0.01"
+                                  className="pl-9 tabular-nums"
+                                  value={role.salaries[m.id] ?? ""}
+                                  onChange={(e) =>
+                                    updateRole(role.id, (r) => ({
+                                      ...r,
+                                      salaries: { ...r.salaries, [m.id]: e.target.value },
+                                    }))
+                                  }
+                                />
+                              </div>
+                              <span className="text-muted-foreground text-xs">/ month</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
                   ) : (
                     <div className="space-y-3">
                       {role.items.length === 0 && (
@@ -301,10 +393,31 @@ export function RatesManager({ roles: initialRoles }: { roles: RatesRole[] }) {
               <p className="text-[11px] opacity-90">
                 {preview.units} unit{preview.units === 1 ? "" : "s"} · {preview.groups.length} role
                 {preview.groups.length === 1 ? "" : "s"}
+                {preview.salaryTotal > 0 && ` · salaries ${formatLKR(preview.salaryTotal)}`}
               </p>
             </div>
 
-            {preview.groups.length === 0 ? (
+            {preview.salaryLines.length > 0 && (
+              <div className="bg-card rounded-xl border p-3 shadow-xs">
+                <div className="mb-2 flex items-baseline justify-between gap-2">
+                  <p className="truncate text-xs font-semibold">Fixed salaries</p>
+                  <p className="text-xs font-semibold tabular-nums">{formatLKR(preview.salaryTotal)}</p>
+                </div>
+                <ul className="space-y-1.5">
+                  {preview.salaryLines.map((l) => (
+                    <li key={l.key} className="flex items-start justify-between gap-2 text-[11px]">
+                      <div className="min-w-0">
+                        <p className="truncate">{l.name}</p>
+                        <p className="text-muted-foreground">{l.role}</p>
+                      </div>
+                      <span className="shrink-0 tabular-nums">{formatLKR(l.amount)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {preview.groups.length === 0 && preview.salaryLines.length === 0 ? (
               <div className="text-muted-foreground flex flex-1 flex-col items-center justify-center gap-2 py-8 text-center text-xs">
                 <WalletIcon className="size-8 opacity-50" />
                 Enter a quantity next to any category to see the cost here.
