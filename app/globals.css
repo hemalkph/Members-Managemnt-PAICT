@@ -123,6 +123,11 @@
   * {
     @apply border-border outline-ring/50;
   }
+  /* No rubber-band bounce or pull-to-refresh when scrolling past the top or bottom. */
+  html,
+  body {
+    overscroll-behavior: none;
+  }
   body {
     @apply bg-background text-foreground antialiased;
   }
