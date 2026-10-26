@@ -23,7 +23,7 @@ function AnimatedItem({ children, index }: { children: ReactNode; index: number 
       initial={{ scale: 0.96, opacity: 0, y: 8 }}
       animate={reduce || inView ? { scale: 1, opacity: 1, y: 0 } : undefined}
       transition={reduce ? { duration: 0 } : { duration: 0.22, delay: Math.min(index, 8) * 0.03 }}
-      className="list-none"
+      className="min-w-0 list-none"
     >
       {children}
     </motion.li>
