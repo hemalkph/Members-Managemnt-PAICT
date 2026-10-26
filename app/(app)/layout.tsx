@@ -1,9 +1,12 @@
 import { cookies } from "next/headers";
 import { AppSidebar } from "@/components/app-sidebar";
+import { BirthdayCelebration } from "@/components/birthday-celebration";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { requireUser } from "@/lib/auth";
+import { ageOn, isBirthdayToday } from "@/lib/birthday";
+import { todayISO } from "@/lib/month";
 import { signedAvatarUrl } from "@/lib/storage";
 import { createClient } from "@/lib/supabase/server";
 
@@ -12,6 +15,8 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   const supabase = await createClient();
   const cookieStore = await cookies();
   const defaultOpen = cookieStore.get("sidebar_state")?.value !== "false";
+  const today = todayISO();
+  const birthdayToday = isBirthdayToday(profile.date_of_birth, today);
 
   const [avatarUrl, pending] = await Promise.all([
     signedAvatarUrl(supabase, profile.avatar_path),
@@ -44,6 +49,14 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         </header>
         <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-5 sm:px-6 sm:py-8">{children}</div>
       </SidebarInset>
+      {birthdayToday && profile.date_of_birth && (
+        <BirthdayCelebration
+          userId={profile.id}
+          firstName={(profile.full_name || "friend").split(" ")[0]}
+          age={ageOn(profile.date_of_birth, today)}
+          today={today}
+        />
+      )}
     </SidebarProvider>
   );
 }

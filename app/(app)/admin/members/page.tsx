@@ -14,7 +14,9 @@ import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getAllMemberRoles, roleOptionsFrom } from "@/lib/admin-queries";
 import { requireAdmin } from "@/lib/auth";
+import { isBirthdayToday } from "@/lib/birthday";
 import { initials } from "@/lib/format";
+import { todayISO } from "@/lib/month";
 import { flattenRoles, getStructure } from "@/lib/queries";
 import { signedAvatarUrls } from "@/lib/storage";
 import { hasServiceRoleKey } from "@/lib/supabase/admin";
@@ -57,6 +59,7 @@ export default async function MembersPage({ searchParams }: PageProps<"/admin/me
 
   const avatars = await signedAvatarUrls(supabase, members.map((m) => m.avatar_path));
   const canManageAuth = hasServiceRoleKey();
+  const today = todayISO();
   const everyone = profiles ?? [];
   const activeCount = everyone.filter((p) => p.is_active).length;
 
@@ -133,6 +136,11 @@ export default async function MembersPage({ searchParams }: PageProps<"/admin/me
                             {m.full_name || "—"}
                             {m.is_admin && <Badge variant="outline" className="text-[10px]">Admin</Badge>}
                             {m.id === me.id && <Badge className="text-[10px]">You</Badge>}
+                            {isBirthdayToday(m.date_of_birth, today) && (
+                              <span title="Birthday today" aria-label="Birthday today">
+                                🎂
+                              </span>
+                            )}
                           </p>
                           <p className="text-muted-foreground max-w-[200px] truncate text-xs sm:max-w-none">{m.email}</p>
                           <p className="text-muted-foreground max-w-[200px] truncate text-xs md:hidden">
