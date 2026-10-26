@@ -17,6 +17,7 @@ export function StatCard({
   hint,
   tone = "primary",
   delay = 0,
+  prefix,
 }: {
   label: string;
   value: number;
@@ -24,6 +25,8 @@ export function StatCard({
   hint?: string;
   tone?: keyof typeof TONES;
   delay?: number;
+  /** Shown before the number, e.g. "Rs. ". */
+  prefix?: string;
 }) {
   return (
     <SpotlightCard className="p-3 sm:p-5">
@@ -31,6 +34,7 @@ export function StatCard({
         <div className="min-w-0 space-y-1">
           <p className="text-muted-foreground line-clamp-2 text-xs leading-tight font-medium sm:text-sm">{label}</p>
           <p className="text-2xl font-semibold tracking-tight sm:text-3xl">
+            {prefix && <span className="text-muted-foreground mr-0.5 text-base font-medium sm:text-lg">{prefix}</span>}
             <CountUp key={value} to={value} delay={delay} />
           </p>
           {hint && <p className="text-muted-foreground truncate text-xs">{hint}</p>}
