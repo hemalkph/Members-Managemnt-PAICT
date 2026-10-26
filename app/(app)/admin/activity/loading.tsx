@@ -1,6 +1,7 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { RouteLoadingSignal } from "@/components/route-loading";
 
-export default function Loading() {
+function LoadingView() {
   return (
     <div className="space-y-6" aria-busy="true" aria-label="Loading">
       <Skeleton className="h-9 w-48" />
@@ -12,5 +13,14 @@ export default function Loading() {
       <Skeleton className="h-28 rounded-xl" />
       <Skeleton className="h-80 rounded-xl" />
     </div>
+  );
+}
+
+export default function Loading() {
+  return (
+    <>
+      <RouteLoadingSignal />
+      <LoadingView />
+    </>
   );
 }

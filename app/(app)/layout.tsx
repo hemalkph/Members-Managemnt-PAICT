@@ -1,8 +1,10 @@
+import { Suspense } from "react";
 import { cookies } from "next/headers";
 import { AppSidebar } from "@/components/app-sidebar";
 import { BirthdayCelebration } from "@/components/birthday-celebration";
 import { CommandMenu } from "@/components/command-menu";
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import { RouteTransition } from "@/components/route-transition";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -57,6 +59,9 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         </header>
         <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-5 sm:px-6 sm:py-8">{children}</div>
       </SidebarInset>
+      <Suspense fallback={null}>
+        <RouteTransition />
+      </Suspense>
       {birthdayToday && profile.date_of_birth && (
         <BirthdayCelebration
           userId={profile.id}

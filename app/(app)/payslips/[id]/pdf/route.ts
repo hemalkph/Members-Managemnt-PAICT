@@ -6,7 +6,7 @@ import { uuid } from "@/lib/validation";
 
 async function loadLogo(request: NextRequest): Promise<Uint8Array | null> {
   try {
-    const res = await fetch(new URL("/logo.png", request.nextUrl.origin), { cache: "force-cache" });
+    const res = await fetch(new URL("/logo-256.png", request.nextUrl.origin), { cache: "force-cache" });
     return res.ok ? new Uint8Array(await res.arrayBuffer()) : null;
   } catch {
     return null;

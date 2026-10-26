@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { requireCompleteProfile } from "@/lib/auth";
 import { SHOW_MEMBERS_THEIR_EARNINGS } from "@/lib/config";
 import { getMySalary, getSubmissionsForMonth, summarise } from "@/lib/member-queries";
-import { getDeadlines, sendDueReminders } from "@/lib/deadlines";
+import { getDeadlines, sendDueRemindersLater } from "@/lib/deadlines";
 import { currentMonthKey, monthLabel, shiftMonth } from "@/lib/month";
 import { getClosedMonthKeys } from "@/lib/payments";
 import { getTasks } from "@/lib/task-queries";
@@ -39,8 +39,8 @@ export default async function DashboardPage() {
   const month = currentMonthKey();
 
   const previous = shiftMonth(month, -1);
-  // Reminders are also sent by a daily job; this catches up when someone opens the app.
-  await sendDueReminders(supabase);
+  // Reminders: also sent by a daily job; this catches up after the page is sent.
+  await sendDueRemindersLater(supabase);
   const [submissions, roles, { data: bank }, notices, salary, deadlines, closedMonths, myTasks] = await Promise.all([
     getSubmissionsForMonth(supabase, profile.id, month),
     getMemberRoles(supabase, profile.id),
