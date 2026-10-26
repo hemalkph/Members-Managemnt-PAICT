@@ -9,11 +9,11 @@ export type SavedRateItem = { id: string; name: string; unit: string; price: num
 
 /**
  * Save one role's pay settings: salaried or not, and its rate items
- * (items missing from the list are deleted). Admins only.
+ * (items missing from the list are deleted). Main admins only.
  * Returns the saved items in order so new rows get their ids.
  */
 export async function saveRoleRatesAction(input: RoleRatesInput): Promise<ActionResult<{ items: SavedRateItem[] }>> {
-  const ctx = await getActionContext({ admin: true });
+  const ctx = await getActionContext({ mainAdmin: true });
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
 
   const parsed = roleRatesSchema.safeParse(input);

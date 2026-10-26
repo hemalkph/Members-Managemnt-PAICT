@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import { RatesManager, type RatesRole } from "@/components/admin/rates-manager";
 import { PageHeader } from "@/components/page-header";
-import { requireAdmin } from "@/lib/auth";
+import { requireMainAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Rates & budget" };
 
 export default async function RatesPage() {
-  await requireAdmin();
+  await requireMainAdmin();
   const supabase = await createClient();
   const [{ data: sections }, { data: items }] = await Promise.all([
     supabase

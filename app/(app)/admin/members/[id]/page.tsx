@@ -17,7 +17,7 @@ import { roleOptionsFrom } from "@/lib/admin-queries";
 import { requireAdmin } from "@/lib/auth";
 import { ADMINS_CAN_REVEAL_ACCOUNT_NUMBER } from "@/lib/config";
 import { ageOn, formatBirthday, isBirthdayToday } from "@/lib/birthday";
-import { formatDate, initials } from "@/lib/format";
+import { formatDate, formatLKR, initials } from "@/lib/format";
 import { dateToMonthKey, monthLabel, todayISO } from "@/lib/month";
 import { getMemberRoles, getStructure } from "@/lib/queries";
 import { signedAvatarUrl } from "@/lib/storage";
@@ -47,7 +47,9 @@ export default async function MemberDetailPage({ params }: PageProps<"/admin/mem
       .maybeSingle(),
     supabase
       .from("submissions")
-      .select("id, title, quantity, date_done, status, work_month, admin_comment, roles(name)")
+      .select(
+        "id, title, quantity, date_done, status, work_month, admin_comment, amount, roles(name), rate_items(name)",
+      )
       .eq("user_id", id)
       .order("work_month", { ascending: false })
       .order("date_done", { ascending: false }),
@@ -78,8 +80,12 @@ export default async function MemberDetailPage({ params }: PageProps<"/admin/mem
           <div className="min-w-0 space-y-1">
             <h1 className="flex flex-wrap items-center gap-2 text-2xl font-semibold tracking-tight">
               {member.full_name || member.email}
-              {member.is_admin && <Badge variant="outline">Admin</Badge>}
-              {member.is_active ? <Badge variant="success">Active</Badge> : <Badge variant="destructive">Inactive</Badge>}
+              {member.is_admin && <Badge variant="outline">{member.is_main_admin ? "Main admin" : "Admin"}</Badge>}
+              {member.is_active ? (
+                <Badge variant="success">Active</Badge>
+              ) : (
+                <Badge variant="destructive">Inactive</Badge>
+              )}
             </h1>
             <p className="text-muted-foreground text-sm">Joined {formatDate(member.created_at)}</p>
           </div>
@@ -198,7 +204,8 @@ export default async function MemberDetailPage({ params }: PageProps<"/admin/mem
                     <CardTitle>{monthLabel(month)}</CardTitle>
                     <CardDescription>
                       {rows.length} submitted · {approved.length} approved · approved quantity{" "}
-                      {approved.reduce((sum, r) => sum + r.quantity, 0)}
+                      {approved.reduce((sum, r) => sum + r.quantity, 0)} · earned{" "}
+                      {formatLKR(approved.reduce((sum, r) => sum + Number(r.amount ?? 0), 0))}
                     </CardDescription>
                   </div>
                   <Button asChild variant="outline" size="sm">
@@ -214,6 +221,7 @@ export default async function MemberDetailPage({ params }: PageProps<"/admin/mem
                         <TableHead className="pl-4">Title</TableHead>
                         <TableHead className="hidden sm:table-cell">Role</TableHead>
                         <TableHead className="text-right">Qty</TableHead>
+                        <TableHead className="hidden text-right md:table-cell">Amount</TableHead>
                         <TableHead className="hidden sm:table-cell">Date</TableHead>
                         <TableHead className="pr-4">Status</TableHead>
                       </TableRow>
@@ -222,8 +230,14 @@ export default async function MemberDetailPage({ params }: PageProps<"/admin/mem
                       {rows.map((r) => (
                         <TableRow key={r.id}>
                           <TableCell className="max-w-[200px] truncate pl-4 sm:max-w-[320px]">{r.title}</TableCell>
-                          <TableCell className="hidden sm:table-cell">{r.roles?.name}</TableCell>
+                          <TableCell className="hidden sm:table-cell">
+                            {r.roles?.name}
+                            {r.rate_items && <span className="text-muted-foreground"> · {r.rate_items.name}</span>}
+                          </TableCell>
                           <TableCell className="text-right tabular-nums">{r.quantity}</TableCell>
+                          <TableCell className="hidden text-right tabular-nums md:table-cell">
+                            {r.amount === null ? "—" : formatLKR(Number(r.amount))}
+                          </TableCell>
                           <TableCell className="hidden sm:table-cell">{formatDate(r.date_done)}</TableCell>
                           <TableCell className="pr-4">
                             <StatusBadge status={r.status} />

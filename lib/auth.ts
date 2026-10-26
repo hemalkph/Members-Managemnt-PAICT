@@ -46,14 +46,22 @@ export async function requireAdmin(): Promise<Profile> {
   return profile;
 }
 
+/** For main-admin pages (Analytics, Rates): other admins go to the admin overview. */
+export async function requireMainAdmin(): Promise<Profile> {
+  const profile = await requireAdmin();
+  if (!profile.is_main_admin) redirect("/admin");
+  return profile;
+}
+
 /**
  * For Server Actions and Route Handlers: never trust the client, re-check here.
  * Returns null instead of redirecting so the action can return an error.
  */
-export async function getActionContext(options: { admin?: boolean } = {}) {
+export async function getActionContext(options: { admin?: boolean; mainAdmin?: boolean } = {}) {
   const profile = await getCurrentProfile();
   if (!profile || !profile.is_active) return null;
-  if (options.admin && !profile.is_admin) return null;
+  if ((options.admin || options.mainAdmin) && !profile.is_admin) return null;
+  if (options.mainAdmin && !profile.is_main_admin) return null;
   const supabase = await createClient();
   return { profile, supabase };
 }

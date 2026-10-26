@@ -2,22 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  BarChart3Icon,
-  BriefcaseBusinessIcon,
-  CalculatorIcon,
-  ChevronsUpDownIcon,
-  ClipboardCheckIcon,
-  FilePlus2Icon,
-  LandmarkIcon,
-  LayoutDashboardIcon,
-  ListChecksIcon,
-  LogOutIcon,
-  Settings2Icon,
-  UserIcon,
-  UsersIcon,
-  type LucideIcon,
-} from "lucide-react";
+import { ChevronsUpDownIcon, LandmarkIcon, LogOutIcon, UserIcon } from "lucide-react";
 
 import { BrandLogo } from "@/components/brand-logo";
 import ShinyText from "@/components/reactbits/shiny-text";
@@ -46,36 +31,25 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { initials } from "@/lib/format";
+import { adminNav as getAdminNav, MEMBER_NAV, type NavItem as BaseNavItem } from "@/lib/navigation";
 
-type NavItem = { title: string; href: string; icon: LucideIcon; badge?: number; exact?: boolean };
-
-const MEMBER_NAV: NavItem[] = [
-  { title: "Dashboard", href: "/dashboard", icon: LayoutDashboardIcon },
-  { title: "Submit work", href: "/work/new", icon: FilePlus2Icon },
-  { title: "My work", href: "/work", icon: ListChecksIcon },
-  { title: "Profile", href: "/profile", icon: UserIcon },
-  { title: "Bank details", href: "/bank", icon: LandmarkIcon },
-];
+type NavItem = BaseNavItem & { badge?: number };
 
 export type SidebarUser = {
   name: string;
   email: string;
   avatarUrl: string | null;
   isAdmin: boolean;
+  isMainAdmin: boolean;
 };
 
 export function AppSidebar({ user, pendingReviews }: { user: SidebarUser; pendingReviews: number }) {
   const pathname = usePathname();
   const { setOpenMobile } = useSidebar();
 
-  const adminNav: NavItem[] = [
-    { title: "Overview", href: "/admin", icon: BarChart3Icon, exact: true },
-    { title: "Work review", href: "/admin/review", icon: ClipboardCheckIcon, badge: pendingReviews },
-    { title: "Members", href: "/admin/members", icon: UsersIcon },
-    { title: "Monthly report", href: "/admin/reports", icon: BriefcaseBusinessIcon },
-    { title: "Rates & budget", href: "/admin/rates", icon: CalculatorIcon },
-    { title: "Sections & roles", href: "/admin/structure", icon: Settings2Icon },
-  ];
+  const adminNav: NavItem[] = getAdminNav(user.isMainAdmin).map((item) =>
+    item.href === "/admin/review" ? { ...item, badge: pendingReviews } : item,
+  );
 
   const isActive = (item: NavItem) => {
     // "/work/new" has its own item, so "My work" only matches the list and edit pages.
