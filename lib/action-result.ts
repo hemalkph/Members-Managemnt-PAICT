@@ -16,6 +16,9 @@ export function friendlyDbError(error: { code?: string; message?: string } | nul
         : "You don't have permission to do that.";
     case "23514":
       return "Some values are not allowed. Please check the form.";
+    case "P0001":
+      // Messages raised by our own database functions (e.g. "Review the 3 pending submissions first.").
+      return error.message || "Something went wrong. Please try again.";
     case "PGRST116":
       return "Not found, or you don't have access to it.";
     default:

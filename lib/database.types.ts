@@ -6,6 +6,7 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type SubmissionStatus = "pending" | "approved" | "rejected";
+export type PayoutStatus = "unpaid" | "paid";
 
 export type Database = {
   __InternalSupabase: {
@@ -202,6 +203,99 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "roles";
             referencedColumns: ["id"];
+          },
+        ];
+      };
+      activity_log: {
+        Row: {
+          id: number;
+          created_at: string;
+          actor_id: string | null;
+          actor_name: string;
+          action: string;
+          entity_type: string;
+          entity_id: string | null;
+          target_user_id: string | null;
+          target_name: string | null;
+          summary: string;
+          details: Json;
+        };
+        // Written only by database functions.
+        Insert: { [_ in never]: never };
+        Update: { [_ in never]: never };
+        Relationships: [];
+      };
+      pay_months: {
+        Row: {
+          month: string;
+          closed_at: string;
+          closed_by: string | null;
+          note: string | null;
+        };
+        Insert: { [_ in never]: never };
+        Update: { [_ in never]: never };
+        Relationships: [
+          {
+            foreignKeyName: "pay_months_closed_by_fkey";
+            columns: ["closed_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      payouts: {
+        Row: {
+          id: string;
+          month: string;
+          payslip_no: string;
+          user_id: string | null;
+          member_name: string;
+          member_email: string;
+          member_phone: string | null;
+          member_nic: string | null;
+          bank_name: string | null;
+          bank_branch: string | null;
+          account_holder: string | null;
+          account_last4: string | null;
+          salary_amount: number;
+          work_amount: number;
+          total_amount: number;
+          approved_items: number;
+          approved_units: number;
+          salary_lines: Json;
+          work_lines: Json;
+          status: PayoutStatus;
+          paid_on: string | null;
+          paid_at: string | null;
+          paid_by: string | null;
+          payment_reference: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: { [_ in never]: never };
+        Update: { [_ in never]: never };
+        Relationships: [
+          {
+            foreignKeyName: "payouts_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "payouts_paid_by_fkey";
+            columns: ["paid_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "payouts_month_fkey";
+            columns: ["month"];
+            isOneToOne: false;
+            referencedRelation: "pay_months";
+            referencedColumns: ["month"];
           },
         ];
       };
@@ -495,6 +589,13 @@ export type Database = {
       is_active_member: { Args: Record<PropertyKey, never>; Returns: boolean };
       nic_birth_date: { Args: { nic: string }; Returns: string | null };
       is_main_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
+      log_event: { Args: { p_action: string; p_target?: string | null; p_details?: Json }; Returns: undefined };
+      close_pay_month: { Args: { p_month: string; p_note?: string | null }; Returns: number };
+      reopen_pay_month: { Args: { p_month: string }; Returns: undefined };
+      set_payouts_paid: {
+        Args: { p_ids: string[]; p_paid: boolean; p_paid_on?: string | null; p_reference?: string | null };
+        Returns: number;
+      };
     };
     Enums: {
       submission_status: SubmissionStatus;
@@ -517,3 +618,5 @@ export type Submission = Tables<"submissions">;
 export type SubmissionAttachment = Tables<"submission_attachments">;
 export type RateItem = Tables<"rate_items">;
 export type Announcement = Tables<"announcements">;
+export type Payout = Tables<"payouts">;
+export type ActivityEntry = Tables<"activity_log">;
