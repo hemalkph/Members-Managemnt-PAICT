@@ -115,6 +115,7 @@ export async function createMemberAction(input: MemberCreateInput): Promise<Acti
   const rolesError = await syncRoles(ctx, userId, v.role_ids);
   if (rolesError) return { ok: false, error: "Member created, but roles could not be saved." };
 
+  await ctx.supabase.rpc("log_event", { p_action: "member.created", p_target: userId });
   revalidateMembers();
   return {
     ok: true,
@@ -196,6 +197,9 @@ export async function resetMemberPasswordAction(input: AdminResetPasswordInput):
 
   const { error } = await createAdminClient().auth.admin.updateUserById(id, { password });
   if (error) return { ok: false, error: "Could not reset the password. Please try again." };
+
+  // Recorded in the activity log (the password itself is never stored there).
+  await ctx.supabase.rpc("log_event", { p_action: "member.password_reset", p_target: id });
 
   return { ok: true, message: `Password reset for ${target.full_name || "the member"}` };
 }

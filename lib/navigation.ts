@@ -2,6 +2,10 @@ import {
   BarChart3Icon,
   BriefcaseBusinessIcon,
   CalculatorIcon,
+  BanknoteIcon,
+  FileTextIcon,
+  HistoryIcon,
+  ShieldCheckIcon,
   ClipboardCheckIcon,
   FilePlus2Icon,
   LandmarkIcon,
@@ -23,6 +27,8 @@ export const MEMBER_NAV: NavItem[] = [
   { title: "My work", href: "/work", icon: ListChecksIcon, keywords: "submissions history" },
   { title: "Profile", href: "/profile", icon: UserIcon, keywords: "account phone nic photo" },
   { title: "Bank details", href: "/bank", icon: LandmarkIcon, keywords: "payment account" },
+  { title: "My payslips", href: "/payslips", icon: FileTextIcon, keywords: "salary paid pdf payment" },
+  { title: "Two-step login", href: "/security", icon: ShieldCheckIcon, keywords: "security 2fa authenticator otp" },
 ];
 
 /** Admin menu. Items marked mainOnly are only for main admins. */
@@ -36,6 +42,13 @@ export function adminNav(isMainAdmin: boolean): NavItem[] {
       mainOnly: true,
       keywords: "spending money budget payouts charts",
     },
+    {
+      title: "Payments",
+      href: "/admin/payments",
+      icon: BanknoteIcon,
+      mainOnly: true,
+      keywords: "close month paid salary payslips",
+    },
     { title: "Work review", href: "/admin/review", icon: ClipboardCheckIcon, keywords: "approve reject pending" },
     { title: "Members", href: "/admin/members", icon: UsersIcon, keywords: "people team users" },
     { title: "Monthly report", href: "/admin/reports", icon: BriefcaseBusinessIcon, keywords: "csv export" },
@@ -48,6 +61,13 @@ export function adminNav(isMainAdmin: boolean): NavItem[] {
       keywords: "prices pay rate",
     },
     { title: "Sections & roles", href: "/admin/structure", icon: Settings2Icon, keywords: "teams structure" },
+    {
+      title: "Activity log",
+      href: "/admin/activity",
+      icon: HistoryIcon,
+      mainOnly: true,
+      keywords: "audit history who changed approved",
+    },
   ];
   return items.filter((i) => isMainAdmin || !i.mainOnly);
 }
