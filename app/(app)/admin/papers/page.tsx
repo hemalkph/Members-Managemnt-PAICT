@@ -53,11 +53,13 @@ export default async function PapersPage({ searchParams }: PageProps<"/admin/pap
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-1">
           <BlurText as="h1" text="Papers" className="text-2xl font-semibold tracking-tight sm:text-3xl" />
-          <p className="text-muted-foreground text-sm">Create → Type set → Convert to English → Mark, for every paper and tute.</p>
+          <p className="text-muted-foreground text-sm">
+            Create → Type set + Convert → Type set (English) → Review → Hand over, ready for the Wednesday exam.
+          </p>
         </div>
         <NewPaperDialog
           members={(profiles ?? []).map((p) => ({ id: p.id, name: p.full_name || p.email }))}
-          exams={tags.exams.map((e) => ({ id: e.id, label: e.label }))}
+          exams={tags.exams.map((e) => ({ id: e.id, label: e.label, examDate: e.examDate }))}
           defaultExam={exam || undefined}
           today={todayISO()}
         />

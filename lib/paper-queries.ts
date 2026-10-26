@@ -8,12 +8,18 @@ import type { PaperView, StageView } from "@/lib/papers";
 type Client = SupabaseClient<Database>;
 
 const PAPER_SELECT =
-  "id, title, kind, exam_id, notes, status, created_at, completed_at, exam:exams(name, batch:batches(name)), paper_stages(id, stage, position, owner_id, due_date, status, completed_at, owner:profiles!paper_stages_owner_id_fkey(full_name, email)), paper_files(count)";
+  "id, title, kind, medium, part, exam_day, lms_link, physical_link, handed_over_at, exam_id, notes, status, created_at, completed_at, exam:exams(name, batch:batches(name)), paper_stages(id, stage, position, owner_id, start_date, due_date, link, status, completed_at, owner:profiles!paper_stages_owner_id_fkey(full_name, email))";
 
 type Row = {
   id: string;
   title: string;
   kind: "paper" | "tute";
+  medium: "si" | "both";
+  part: "mcq" | "essay" | "full";
+  exam_day: string | null;
+  lms_link: string | null;
+  physical_link: string | null;
+  handed_over_at: string | null;
   exam_id: string | null;
   notes: string | null;
   status: "in_progress" | "done" | "cancelled";
@@ -25,12 +31,13 @@ type Row = {
     stage: StageView["stage"];
     position: number;
     owner_id: string | null;
+    start_date: string | null;
     due_date: string | null;
+    link: string | null;
     status: StageView["status"];
     completed_at: string | null;
     owner: { full_name: string; email: string } | null;
   }[];
-  paper_files: { count: number }[];
 };
 
 function toView(row: Row, today: string): PaperView {
@@ -38,13 +45,19 @@ function toView(row: Row, today: string): PaperView {
     id: row.id,
     title: row.title,
     kind: row.kind,
+    medium: row.medium,
+    part: row.part,
+    examDay: row.exam_day,
+    lmsLink: row.lms_link,
+    physicalLink: row.physical_link,
+    handedOverAt: row.handed_over_at,
     examId: row.exam_id,
     examLabel: row.exam ? `${row.exam.batch?.name ? `${row.exam.batch.name} – ` : ""}${row.exam.name}` : null,
     notes: row.notes,
     status: row.status,
     createdAt: row.created_at,
     completedAt: row.completed_at,
-    fileCount: row.paper_files?.[0]?.count ?? 0,
+    linkCount: row.paper_stages.filter((s) => s.link).length,
     stages: [...row.paper_stages]
       .sort((a, b) => a.position - b.position)
       .map((s) => ({
@@ -53,7 +66,9 @@ function toView(row: Row, today: string): PaperView {
         position: s.position,
         ownerId: s.owner_id,
         ownerName: s.owner ? s.owner.full_name || s.owner.email : null,
+        startDate: s.start_date,
         dueDate: s.due_date,
+        link: s.link,
         status: s.status,
         completedAt: s.completed_at,
         overdue: s.status === "in_progress" && Boolean(s.due_date && s.due_date < today),

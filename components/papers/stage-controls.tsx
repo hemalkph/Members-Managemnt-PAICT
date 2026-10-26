@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { CheckIcon, Loader2Icon, PencilIcon, SkipForwardIcon } from "lucide-react";
+import { CheckIcon, LinkIcon, Loader2Icon, PencilIcon, SkipForwardIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { updatePaperStageAction } from "@/lib/actions/papers";
+import { setPaperLinksAction, setStageLinkAction, updatePaperStageAction } from "@/lib/actions/papers";
 import { setTaskStatusAction } from "@/lib/actions/tasks";
 import type { ActionResult } from "@/lib/action-result";
 
@@ -50,12 +50,13 @@ export function FinishStageButton({ taskId, label }: { taskId: string; label: st
   );
 }
 
-/** Admins: change owner / due date, skip, or mark a stage done. */
+/** Admins: change owner / work days, skip, or mark a stage done. */
 export function EditStageDialog({
   paperId,
   stageId,
   label,
   ownerId,
+  startDate,
   dueDate,
   status,
   members,
@@ -64,6 +65,7 @@ export function EditStageDialog({
   stageId: string;
   label: string;
   ownerId: string | null;
+  startDate: string | null;
   dueDate: string | null;
   status: "waiting" | "in_progress" | "done" | "skipped";
   members: { id: string; name: string }[];
@@ -71,6 +73,7 @@ export function EditStageDialog({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [owner, setOwner] = useState(ownerId ?? "");
+  const [start, setStart] = useState(startDate ?? "");
   const [due, setDue] = useState(dueDate ?? "");
   const [pending, startTransition] = useTransition();
 
@@ -80,6 +83,7 @@ export function EditStageDialog({
         stage_id: stageId,
         paper_id: paperId,
         owner_id: owner,
+        start_date: start,
         due_date: due,
         action,
       });
@@ -98,6 +102,7 @@ export function EditStageDialog({
       onOpenChange={(next) => {
         if (next) {
           setOwner(ownerId ?? "");
+          setStart(startDate ?? "");
           setDue(dueDate ?? "");
         }
         setOpen(next);
@@ -140,9 +145,21 @@ export function EditStageDialog({
               </SelectContent>
             </Select>
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor={`due-${stageId}`}>Due date</Label>
-            <Input id={`due-${stageId}`} type="date" value={due} onChange={(e) => setDue(e.target.value)} />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-2">
+              <Label htmlFor={`start-${stageId}`}>Starts</Label>
+              <Input id={`start-${stageId}`} type="date" value={start} onChange={(e) => setStart(e.target.value)} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor={`due-${stageId}`}>Due</Label>
+              <Input
+                id={`due-${stageId}`}
+                type="date"
+                value={due}
+                min={start || undefined}
+                onChange={(e) => setDue(e.target.value)}
+              />
+            </div>
           </div>
           <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
             <div className="flex gap-2">
@@ -165,5 +182,156 @@ export function EditStageDialog({
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** The stage owner (or an admin) adds the link to their work, e.g. a Google Drive file. */
+export function StageLinkDialog({
+  paperId,
+  stageId,
+  label,
+  link,
+}: {
+  paperId: string;
+  stageId: string;
+  label: string;
+  link: string | null;
+}) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState(link ?? "");
+  const [pending, startTransition] = useTransition();
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (next) setValue(link ?? "");
+        setOpen(next);
+      }}
+    >
+      <DialogTrigger asChild>
+        <Button size="sm" variant={link ? "ghost" : "outline"}>
+          <LinkIcon /> {link ? "Change link" : "Add link"}
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Link for {label}</DialogTitle>
+          <DialogDescription>
+            Paste a share link to your file (Google Drive, OneDrive…). Files aren&apos;t uploaded here, so make sure the
+            team can open the link.
+          </DialogDescription>
+        </DialogHeader>
+        <form
+          className="grid gap-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            startTransition(async () => {
+              const result = await setStageLinkAction({ stage_id: stageId, link: value.trim(), paper_id: paperId });
+              if (!result.ok) {
+                toast.error(result.error);
+                return;
+              }
+              toast.success(result.message);
+              setOpen(false);
+              router.refresh();
+            });
+          }}
+        >
+          <div className="grid gap-2">
+            <Label htmlFor={`link-${stageId}`}>Link</Label>
+            <Input
+              id={`link-${stageId}`}
+              type="url"
+              inputMode="url"
+              placeholder="https://drive.google.com/…"
+              value={value}
+              maxLength={500}
+              onChange={(e) => setValue(e.target.value)}
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            {link && (
+              <Button type="button" variant="ghost" disabled={pending} onClick={() => setValue("")}>
+                Clear
+              </Button>
+            )}
+            <Button type="submit" disabled={pending}>
+              {pending && <Loader2Icon className="animate-spin" />}
+              Save link
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Admins: the WhatsApp message links for the LMS admin and physical coordinator groups. */
+export function HandoverLinksForm({
+  paperId,
+  lmsLink,
+  physicalLink,
+}: {
+  paperId: string;
+  lmsLink: string | null;
+  physicalLink: string | null;
+}) {
+  const router = useRouter();
+  const [lms, setLms] = useState(lmsLink ?? "");
+  const [physical, setPhysical] = useState(physicalLink ?? "");
+  const [pending, startTransition] = useTransition();
+  const changed = lms.trim() !== (lmsLink ?? "") || physical.trim() !== (physicalLink ?? "");
+
+  return (
+    <form
+      className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
+      onSubmit={(e) => {
+        e.preventDefault();
+        startTransition(async () => {
+          const result = await setPaperLinksAction({
+            paper_id: paperId,
+            lms_link: lms.trim(),
+            physical_link: physical.trim(),
+          });
+          if (!result.ok) {
+            toast.error(result.error);
+            return;
+          }
+          toast.success(result.message);
+          router.refresh();
+        });
+      }}
+    >
+      <div className="grid gap-2">
+        <Label htmlFor="lms-link">LMS admin group</Label>
+        <Input
+          id="lms-link"
+          type="url"
+          inputMode="url"
+          placeholder="https://…"
+          value={lms}
+          maxLength={500}
+          onChange={(e) => setLms(e.target.value)}
+        />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="physical-link">Physical coordinator group</Label>
+        <Input
+          id="physical-link"
+          type="url"
+          inputMode="url"
+          placeholder="https://…"
+          value={physical}
+          maxLength={500}
+          onChange={(e) => setPhysical(e.target.value)}
+        />
+      </div>
+      <Button type="submit" disabled={pending || !changed}>
+        {pending && <Loader2Icon className="animate-spin" />}
+        Save links
+      </Button>
+    </form>
   );
 }
