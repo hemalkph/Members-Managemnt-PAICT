@@ -7,6 +7,8 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 
 export type SubmissionStatus = "pending" | "approved" | "rejected";
 export type PayoutStatus = "unpaid" | "paid";
+export type TaskStatus = "waiting" | "open" | "done" | "cancelled";
+export type PaperStageName = "created" | "typeset" | "converted" | "marked";
 
 export type Database = {
   __InternalSupabase: {
@@ -327,6 +329,247 @@ export type Database = {
         Update: { [_ in never]: never };
         Relationships: [];
       };
+      batches: {
+        Row: {
+          id: string;
+          name: string;
+          is_active: boolean;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: { id?: string; name: string; is_active?: boolean; sort_order?: number };
+        Update: { name?: string; is_active?: boolean; sort_order?: number };
+        Relationships: [];
+      };
+      exams: {
+        Row: {
+          id: string;
+          batch_id: string;
+          name: string;
+          exam_date: string | null;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: { id?: string; batch_id: string; name: string; exam_date?: string | null; is_active?: boolean };
+        Update: { batch_id?: string; name?: string; exam_date?: string | null; is_active?: boolean };
+        Relationships: [
+          {
+            foreignKeyName: "exams_batch_id_fkey";
+            columns: ["batch_id"];
+            isOneToOne: false;
+            referencedRelation: "batches";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      centres: {
+        Row: {
+          id: string;
+          name: string;
+          is_active: boolean;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: { id?: string; name: string; is_active?: boolean; sort_order?: number };
+        Update: { name?: string; is_active?: boolean; sort_order?: number };
+        Relationships: [];
+      };
+      papers: {
+        Row: {
+          id: string;
+          title: string;
+          kind: "paper" | "tute";
+          exam_id: string | null;
+          notes: string | null;
+          status: "in_progress" | "done" | "cancelled";
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+          completed_at: string | null;
+        };
+        Insert: { [_ in never]: never };
+        Update: { [_ in never]: never };
+        Relationships: [
+          {
+            foreignKeyName: "papers_exam_id_fkey";
+            columns: ["exam_id"];
+            isOneToOne: false;
+            referencedRelation: "exams";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "papers_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      paper_stages: {
+        Row: {
+          id: string;
+          paper_id: string;
+          stage: PaperStageName;
+          position: number;
+          owner_id: string | null;
+          due_date: string | null;
+          status: "waiting" | "in_progress" | "done" | "skipped";
+          completed_at: string | null;
+        };
+        Insert: { [_ in never]: never };
+        Update: { [_ in never]: never };
+        Relationships: [
+          {
+            foreignKeyName: "paper_stages_paper_id_fkey";
+            columns: ["paper_id"];
+            isOneToOne: false;
+            referencedRelation: "papers";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "paper_stages_owner_id_fkey";
+            columns: ["owner_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      paper_files: {
+        Row: {
+          id: string;
+          paper_id: string;
+          stage: PaperStageName;
+          version: number;
+          storage_path: string;
+          file_name: string;
+          mime_type: string | null;
+          size_bytes: number;
+          note: string | null;
+          uploaded_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          paper_id: string;
+          stage: PaperStageName;
+          version: number;
+          storage_path: string;
+          file_name: string;
+          mime_type?: string | null;
+          size_bytes: number;
+          note?: string | null;
+          uploaded_by: string;
+        };
+        Update: { [_ in never]: never };
+        Relationships: [
+          {
+            foreignKeyName: "paper_files_paper_id_fkey";
+            columns: ["paper_id"];
+            isOneToOne: false;
+            referencedRelation: "papers";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "paper_files_uploaded_by_fkey";
+            columns: ["uploaded_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      tasks: {
+        Row: {
+          id: string;
+          title: string;
+          description: string | null;
+          assignee_id: string;
+          role_id: string | null;
+          exam_id: string | null;
+          centre_id: string | null;
+          quantity: number | null;
+          due_date: string | null;
+          priority: "normal" | "high";
+          status: TaskStatus;
+          paper_stage_id: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+          completed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          description?: string | null;
+          assignee_id: string;
+          role_id?: string | null;
+          exam_id?: string | null;
+          centre_id?: string | null;
+          quantity?: number | null;
+          due_date?: string | null;
+          priority?: "normal" | "high";
+          status?: TaskStatus;
+          created_by?: string | null;
+        };
+        Update: {
+          title?: string;
+          description?: string | null;
+          assignee_id?: string;
+          role_id?: string | null;
+          exam_id?: string | null;
+          centre_id?: string | null;
+          quantity?: number | null;
+          due_date?: string | null;
+          priority?: "normal" | "high";
+          status?: TaskStatus;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "tasks_assignee_id_fkey";
+            columns: ["assignee_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tasks_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tasks_role_id_fkey";
+            columns: ["role_id"];
+            isOneToOne: false;
+            referencedRelation: "roles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tasks_exam_id_fkey";
+            columns: ["exam_id"];
+            isOneToOne: false;
+            referencedRelation: "exams";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tasks_centre_id_fkey";
+            columns: ["centre_id"];
+            isOneToOne: false;
+            referencedRelation: "centres";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tasks_paper_stage_id_fkey";
+            columns: ["paper_stage_id"];
+            isOneToOne: false;
+            referencedRelation: "paper_stages";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       app_settings: {
         Row: {
           id: boolean;
@@ -488,6 +731,9 @@ export type Database = {
           reviewed_by: string | null;
           reviewed_at: string | null;
           rate_item_id: string | null;
+          exam_id: string | null;
+          centre_id: string | null;
+          task_id: string | null;
           unit_price: number | null;
           amount: number | null;
           created_at: string;
@@ -508,6 +754,9 @@ export type Database = {
           reviewed_by?: string | null;
           reviewed_at?: string | null;
           rate_item_id?: string | null;
+          exam_id?: string | null;
+          centre_id?: string | null;
+          task_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -526,10 +775,34 @@ export type Database = {
           reviewed_by?: string | null;
           reviewed_at?: string | null;
           rate_item_id?: string | null;
+          exam_id?: string | null;
+          centre_id?: string | null;
+          task_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "submissions_exam_id_fkey";
+            columns: ["exam_id"];
+            isOneToOne: false;
+            referencedRelation: "exams";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "submissions_centre_id_fkey";
+            columns: ["centre_id"];
+            isOneToOne: false;
+            referencedRelation: "centres";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "submissions_task_id_fkey";
+            columns: ["task_id"];
+            isOneToOne: false;
+            referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "submissions_user_id_fkey";
             columns: ["user_id"];
@@ -633,6 +906,15 @@ export type Database = {
       work_deadlines: { Args: { p_months: string[] }; Returns: { month: string; deadline: string | null }[] };
       set_month_deadline: { Args: { p_month: string; p_last_day: string | null }; Returns: undefined };
       send_deadline_reminders: { Args: Record<PropertyKey, never>; Returns: number };
+      create_paper: {
+        Args: { p_title: string; p_kind: string; p_exam: string | null; p_notes: string | null; p_stages: Json };
+        Returns: string;
+      };
+      update_paper_stage: {
+        Args: { p_stage: string; p_owner: string | null; p_due: string | null; p_action?: string };
+        Returns: undefined;
+      };
+      set_paper_status: { Args: { p_paper: string; p_status: string }; Returns: undefined };
       set_payouts_paid: {
         Args: { p_ids: string[]; p_paid: boolean; p_paid_on?: string | null; p_reference?: string | null };
         Returns: number;
@@ -662,3 +944,7 @@ export type Announcement = Tables<"announcements">;
 export type Payout = Tables<"payouts">;
 export type ActivityEntry = Tables<"activity_log">;
 export type AppNotification = Tables<"notifications">;
+export type Task = Tables<"tasks">;
+export type Exam = Tables<"exams">;
+export type Paper = Tables<"papers">;
+export type PaperStage = Tables<"paper_stages">;

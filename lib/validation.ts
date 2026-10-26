@@ -119,6 +119,10 @@ export const submissionSchema = z.object({
   links: z
     .array(z.object({ url: z.url({ protocol: /^https?$/, error: "Enter a full link starting with https://" }) }))
     .max(MAX_LINKS, `Up to ${MAX_LINKS} links`),
+  /** Optional tags: which exam/test and class centre, and the task it was for. */
+  exam_id: z.union([z.uuid(), z.literal("")]).default(""),
+  centre_id: z.union([z.uuid(), z.literal("")]).default(""),
+  task_id: z.union([z.uuid(), z.literal("")]).default(""),
 });
 export type SubmissionInput = z.input<typeof submissionSchema>;
 
@@ -312,3 +316,90 @@ export type MonthDeadlineInput = z.input<typeof monthDeadlineSchema>;
 export const notificationIdsSchema = z.object({
   ids: z.array(z.number().int().positive()).max(200).optional(),
 });
+
+// ---------------------------------------------------------------- batches, exams, centres (admins)
+export const batchSchema = z.object({
+  id: uuid.optional(),
+  name: trimmed(2, 60, "Batch name"),
+  is_active: z.boolean(),
+});
+export type BatchInput = z.input<typeof batchSchema>;
+
+export const examSchema = z.object({
+  id: uuid.optional(),
+  batch_id: z.uuid("Choose a batch"),
+  name: trimmed(2, 80, "Exam name"),
+  exam_date: z.union([isoDate, z.literal("")]),
+  is_active: z.boolean(),
+});
+export type ExamInput = z.input<typeof examSchema>;
+
+export const centreSchema = z.object({
+  id: uuid.optional(),
+  name: trimmed(2, 60, "Centre name"),
+  is_active: z.boolean(),
+});
+export type CentreInput = z.input<typeof centreSchema>;
+
+const optionalUuid = z.union([z.uuid(), z.literal("")]);
+
+// ---------------------------------------------------------------- tasks
+export const taskSchema = z.object({
+  id: uuid.optional(),
+  title: trimmed(2, 150, "Title"),
+  description: optionalText(2000, "Details"),
+  assignee_id: z.uuid("Choose a member"),
+  role_id: optionalUuid,
+  exam_id: optionalUuid,
+  centre_id: optionalUuid,
+  quantity: z.number().int().min(1, "At least 1").max(100000, "Too large").nullable(),
+  due_date: z.union([isoDate, z.literal("")]),
+  priority: z.enum(["normal", "high"]),
+});
+export type TaskInput = z.input<typeof taskSchema>;
+
+export const taskStatusSchema = z.object({
+  id: uuid,
+  status: z.enum(["open", "done", "cancelled"]),
+});
+
+// ---------------------------------------------------------------- papers
+export const PAPER_STAGES = ["created", "typeset", "converted", "marked"] as const;
+
+export const paperSchema = z.object({
+  title: trimmed(2, 150, "Title"),
+  kind: z.enum(["paper", "tute"]),
+  exam_id: optionalUuid,
+  notes: optionalText(1000, "Notes"),
+  stages: z
+    .array(
+      z.object({
+        stage: z.enum(PAPER_STAGES),
+        owner_id: optionalUuid,
+        due_date: z.union([isoDate, z.literal("")]),
+        skip: z.boolean(),
+      }),
+    )
+    .length(4),
+});
+export type PaperInput = z.input<typeof paperSchema>;
+
+export const paperStageUpdateSchema = z.object({
+  stage_id: uuid,
+  owner_id: optionalUuid,
+  due_date: z.union([isoDate, z.literal("")]),
+  action: z.enum(["save", "skip", "done"]),
+});
+
+export const MAX_PAPER_FILE_BYTES = 25 * 1024 * 1024; // 25 MB
+
+export const paperFileSchema = z.object({
+  paper_id: uuid,
+  stage: z.enum(PAPER_STAGES),
+  storage_path: z.string().min(3).max(400),
+  file_name: z.string().trim().min(1).max(200),
+  mime_type: z.string().max(150).nullable(),
+  size_bytes: z.number().int().min(1).max(MAX_PAPER_FILE_BYTES, "Each file must be 25 MB or smaller"),
+  note: optionalText(300, "Note"),
+});
+export type PaperFileInput = z.input<typeof paperFileSchema>;
