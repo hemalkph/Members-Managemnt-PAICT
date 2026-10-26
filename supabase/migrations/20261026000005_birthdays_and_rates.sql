@@ -57,8 +57,8 @@ begin
 end;
 $$;
 
-drop trigger if exists profiles_birth_date_from_nic on public.profiles;
-create trigger profiles_birth_date_from_nic
+-- "create or replace" (not drop + create) so nothing destructive runs.
+create or replace trigger profiles_birth_date_from_nic
   before insert or update of nic on public.profiles
   for each row execute function public.set_birth_date_from_nic();
 
@@ -85,8 +85,7 @@ create table if not exists public.rate_items (
 create unique index if not exists rate_items_role_name_unique on public.rate_items (role_id, lower(name));
 create index if not exists rate_items_role_id_idx on public.rate_items (role_id);
 
-drop trigger if exists rate_items_set_updated_at on public.rate_items;
-create trigger rate_items_set_updated_at
+create or replace trigger rate_items_set_updated_at
   before update on public.rate_items
   for each row execute function public.set_updated_at();
 

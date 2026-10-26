@@ -16,8 +16,9 @@ import { adminRevealAccountNumberAction } from "@/lib/actions/bank";
 import { roleOptionsFrom } from "@/lib/admin-queries";
 import { requireAdmin } from "@/lib/auth";
 import { ADMINS_CAN_REVEAL_ACCOUNT_NUMBER } from "@/lib/config";
+import { ageOn, formatBirthday, isBirthdayToday } from "@/lib/birthday";
 import { formatDate, initials } from "@/lib/format";
-import { dateToMonthKey, monthLabel } from "@/lib/month";
+import { dateToMonthKey, monthLabel, todayISO } from "@/lib/month";
 import { getMemberRoles, getStructure } from "@/lib/queries";
 import { signedAvatarUrl } from "@/lib/storage";
 import { hasServiceRoleKey } from "@/lib/supabase/admin";
@@ -127,6 +128,15 @@ export default async function MemberDetailPage({ params }: PageProps<"/admin/mem
               <div>
                 <dt className="text-muted-foreground text-xs">NIC</dt>
                 <dd>{member.nic ?? "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground text-xs">Birthday</dt>
+                <dd>
+                  {member.date_of_birth
+                    ? `${formatBirthday(member.date_of_birth)} · ${ageOn(member.date_of_birth, todayISO())} years`
+                    : "—"}
+                  {isBirthdayToday(member.date_of_birth, todayISO()) && " 🎂 Today!"}
+                </dd>
               </div>
             </dl>
           </CardContent>

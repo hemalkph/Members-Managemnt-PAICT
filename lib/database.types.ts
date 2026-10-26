@@ -22,6 +22,7 @@ export type Database = {
           whatsapp: string | null;
           nic: string | null;
           avatar_path: string | null;
+          date_of_birth: string | null;
           is_admin: boolean;
           is_active: boolean;
           created_at: string;
@@ -127,6 +128,7 @@ export type Database = {
           section_id: string;
           name: string;
           description: string | null;
+          is_salaried: boolean;
           sort_order: number;
           created_at: string;
           updated_at: string;
@@ -136,6 +138,7 @@ export type Database = {
           section_id: string;
           name: string;
           description?: string | null;
+          is_salaried?: boolean;
           sort_order?: number;
           created_at?: string;
           updated_at?: string;
@@ -145,6 +148,7 @@ export type Database = {
           section_id?: string;
           name?: string;
           description?: string | null;
+          is_salaried?: boolean;
           sort_order?: number;
           created_at?: string;
           updated_at?: string;
@@ -155,6 +159,47 @@ export type Database = {
             columns: ["section_id"];
             isOneToOne: false;
             referencedRelation: "sections";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      rate_items: {
+        Row: {
+          id: string;
+          role_id: string;
+          name: string;
+          unit: string;
+          price: number;
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          role_id: string;
+          name: string;
+          unit?: string;
+          price?: number;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          role_id?: string;
+          name?: string;
+          unit?: string;
+          price?: number;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "rate_items_role_id_fkey";
+            columns: ["role_id"];
+            isOneToOne: false;
+            referencedRelation: "roles";
             referencedColumns: ["id"];
           },
         ];
@@ -332,6 +377,7 @@ export type Database = {
     Functions: {
       is_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
       is_active_member: { Args: Record<PropertyKey, never>; Returns: boolean };
+      nic_birth_date: { Args: { nic: string }; Returns: string | null };
     };
     Enums: {
       submission_status: SubmissionStatus;
@@ -352,3 +398,4 @@ export type Section = Tables<"sections">;
 export type Role = Tables<"roles">;
 export type Submission = Tables<"submissions">;
 export type SubmissionAttachment = Tables<"submission_attachments">;
+export type RateItem = Tables<"rate_items">;

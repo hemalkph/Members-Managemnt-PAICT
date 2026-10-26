@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { friendlyDbError, type ActionResult } from "@/lib/action-result";
 import { getActionContext, NOT_ALLOWED } from "@/lib/auth";
 import { monthKeyToDate } from "@/lib/month";
+import { isProfileComplete } from "@/lib/profile-completion";
 import { ATTACHMENTS_BUCKET } from "@/lib/storage";
 import { fieldErrorsOf, firstError, idSchema, submissionActionSchema, type AttachmentInput } from "@/lib/validation";
 import type { z } from "zod";
@@ -55,6 +56,9 @@ export async function createSubmissionAction(input: SubmissionActionInput): Prom
   if (!parsed.success) return { ok: false, error: firstError(parsed.error), fieldErrors: fieldErrorsOf(parsed.error) };
   const v = parsed.data;
 
+  if (!ctx.profile.is_admin && !isProfileComplete(ctx.profile)) {
+    return { ok: false, error: "Please complete your profile before submitting work." };
+  }
   if (!(await hasRole(ctx, v.role_id))) return { ok: false, error: "You can only log work for your own roles." };
   if (!ownAttachments(ctx, v.attachments)) return { ok: false, error: "Invalid attachment." };
 

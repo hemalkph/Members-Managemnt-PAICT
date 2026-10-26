@@ -7,7 +7,7 @@ import { SubmissionCard } from "@/components/member/submission-card";
 import { MonthSelect } from "@/components/month-select";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
-import { requireUser } from "@/lib/auth";
+import { requireCompleteProfile } from "@/lib/auth";
 import { getSubmissionsForMonth, summarise } from "@/lib/member-queries";
 import { monthLabel, parseMonthParam } from "@/lib/month";
 import { createClient } from "@/lib/supabase/server";
@@ -15,7 +15,7 @@ import { createClient } from "@/lib/supabase/server";
 export const metadata: Metadata = { title: "My work" };
 
 export default async function MyWorkPage({ searchParams }: PageProps<"/work">) {
-  const profile = await requireUser();
+  const profile = await requireCompleteProfile();
   const month = parseMonthParam((await searchParams).month);
   const supabase = await createClient();
   const submissions = await getSubmissionsForMonth(supabase, profile.id, month);

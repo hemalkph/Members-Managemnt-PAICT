@@ -10,7 +10,8 @@ Built with Next.js 16 (App Router) · TypeScript (strict) · Tailwind CSS v4 · 
 
 **Members**
 - Log in / log out / forgot password (email link → set a new password)
-- Profile: full name, phone, WhatsApp, NIC (optional), profile photo, assigned roles (read-only)
+- Profile: full name, phone, WhatsApp, NIC, profile photo, assigned roles (read-only). **The profile must be complete** (name, phone, WhatsApp, valid NIC) before a member can log work
+- Birthday: read automatically from the NIC (old `991234567V` and new `200212345678` formats). On their birthday, members get a confetti celebration when they open the app
 - Bank details in a separate, protected table. The account number is always masked (`****1234`); only the owner gets a **Show** button
 - Submit work: month, one of their own roles, title, description, quantity, date done, links and file attachments (max 10 MB each, private storage)
 - My work: submissions per month with a Pending / Approved / Rejected badge and the admin's comment. Edit or delete while still Pending
@@ -23,6 +24,8 @@ Built with Next.js 16 (App Router) · TypeScript (strict) · Tailwind CSS v4 · 
 - Work review: filter by month, section, role, member and status; open a submission to see details and attachments; approve or reject with a comment; bulk approve
 - Monthly report: approved count and quantity per member per role, with CSV export
 - Sections & roles: create, rename and delete (stored in the database, not hard-coded)
+- Rates & budget: set per-unit prices for each role (per page for Type Setting and Converting, per design category such as Thumbnail / Flyer / Banner / Template for Graphic Design, per paper and per marking scheme for Paper Creating). Categories can be added or removed; roles like WhatsApp Admin and LMS Admin can be marked **Fixed salary**. A **live budget preview in a phone mock-up** calculates the cost as you type prices and quantities
+- Birthdays: a banner on admin pages on the day, an "Upcoming birthdays" card on the overview, and a 🎂 next to the member's name
 
 **UI**: sidebar layout (different menus for members and admins), light/dark/system theme, works on phones, loading skeletons, empty states and toast messages.
 
@@ -45,11 +48,13 @@ The schema lives in [`supabase/migrations`](supabase/migrations) and the starter
 | `20261026000001_schema.sql` | Tables, triggers, helper functions, report view |
 | `20261026000002_rls.sql` | Row Level Security on every table |
 | `20261026000003_storage.sql` | Private `attachments` and `avatars` buckets + storage policies |
+| `20261026000004_harden_functions.sql` | Stops anonymous visitors calling helper functions |
+| `20261026000005_birthdays_and_rates.sql` | Date of birth from NIC, salaried roles, `rate_items` table |
 | `seed.sql` | Sections & roles, 4 sample members, sample submissions |
 
 **Option A: Supabase SQL editor (no tools needed)**
 
-Open **SQL Editor → New query**, paste each migration file **in order** (01, 02, 03) and press **Run**. Then do the same with `seed.sql`.
+Open **SQL Editor → New query**, paste each migration file **in order** (01 to 05) and press **Run**. Then do the same with `seed.sql`.
 
 **Option B: Supabase CLI**
 

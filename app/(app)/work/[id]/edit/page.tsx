@@ -7,7 +7,7 @@ import { SubmissionForm } from "@/components/member/submission-form";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { requireUser } from "@/lib/auth";
+import { requireCompleteProfile } from "@/lib/auth";
 import { dateToMonthKey, recentMonths, todayISO } from "@/lib/month";
 import { getMemberRoles } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
@@ -19,7 +19,7 @@ export default async function EditWorkPage({ params }: PageProps<"/work/[id]/edi
   const { id } = await params;
   if (!uuid.safeParse(id).success) notFound();
 
-  const profile = await requireUser();
+  const profile = await requireCompleteProfile();
   const supabase = await createClient();
   const [{ data: submission }, roles] = await Promise.all([
     supabase

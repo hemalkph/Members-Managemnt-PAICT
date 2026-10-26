@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3Icon,
   BriefcaseBusinessIcon,
+  CalculatorIcon,
   ChevronsUpDownIcon,
   ClipboardCheckIcon,
   FilePlus2Icon,
@@ -72,6 +73,7 @@ export function AppSidebar({ user, pendingReviews }: { user: SidebarUser; pendin
     { title: "Work review", href: "/admin/review", icon: ClipboardCheckIcon, badge: pendingReviews },
     { title: "Members", href: "/admin/members", icon: UsersIcon },
     { title: "Monthly report", href: "/admin/reports", icon: BriefcaseBusinessIcon },
+    { title: "Rates & budget", href: "/admin/rates", icon: CalculatorIcon },
     { title: "Sections & roles", href: "/admin/structure", icon: Settings2Icon },
   ];
 

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { parseNic } from "@/lib/nic";
 
 // Shared by client forms (react-hook-form) and Server Actions.
 // The server ALWAYS re-validates with these schemas.
@@ -24,11 +25,22 @@ const phone = (label: string) =>
     .trim()
     .refine((v) => v === "" || /^\+?[0-9][0-9 -]{7,17}$/.test(v), `Enter a valid ${label}`);
 
+const NIC_MESSAGE = "Enter a valid NIC (e.g. 200212345678 or 991234567V)";
+
 const nic = z
   .string()
   .trim()
   .toUpperCase()
-  .refine((v) => v === "" || /^([0-9]{9}[VX]|[0-9]{12})$/.test(v), "Enter a valid NIC (e.g. 200212345678 or 991234567V)");
+  .refine((v) => v === "" || parseNic(v) !== null, NIC_MESSAGE);
+
+const requiredNic = z.string().trim().toUpperCase().min(1, "NIC is required").refine((v) => parseNic(v) !== null, NIC_MESSAGE);
+
+const requiredPhone = (label: string) =>
+  z
+    .string()
+    .trim()
+    .min(1, `${label} is required`)
+    .refine((v) => /^\+?[0-9][0-9 -]{7,17}$/.test(v), `Enter a valid ${label.toLowerCase()}`);
 
 export const uuid = z.uuid("Invalid id");
 export const monthKey = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Choose a month");
@@ -55,11 +67,12 @@ export const resetPasswordSchema = z
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 
 // ---------------------------------------------------------------- profile
+// Members must fill in every field (a complete profile is required to log work).
 export const profileSchema = z.object({
   full_name: trimmed(2, 120, "Full name"),
-  phone: phone("phone number"),
-  whatsapp: phone("WhatsApp number"),
-  nic,
+  phone: requiredPhone("Phone number"),
+  whatsapp: requiredPhone("WhatsApp number"),
+  nic: requiredNic,
 });
 export type ProfileInput = z.input<typeof profileSchema>;
 
@@ -183,6 +196,32 @@ export const roleSchema = z.object({
 export type RoleInput = z.input<typeof roleSchema>;
 
 export const idSchema = z.object({ id: uuid });
+
+// ---------------------------------------------------------------- pay rates (admin)
+export const MAX_RATE = 10_000_000;
+
+export const rateItemSchema = z.object({
+  id: uuid.optional(),
+  name: trimmed(1, 60, "Item name"),
+  unit: trimmed(1, 20, "Unit"),
+  price: z
+    .number({ error: "Enter a price" })
+    .min(0, "Price can't be negative")
+    .max(MAX_RATE, "That price is too large")
+    .refine((v) => Math.round(v * 100) === v * 100, "Use at most 2 decimal places"),
+});
+
+export const roleRatesSchema = z
+  .object({
+    role_id: uuid,
+    is_salaried: z.boolean(),
+    items: z.array(rateItemSchema).max(50, "Up to 50 items per role"),
+  })
+  .refine((v) => new Set(v.items.map((i) => i.name.trim().toLowerCase())).size === v.items.length, {
+    message: "Each item in a role needs a different name",
+    path: ["items"],
+  });
+export type RoleRatesInput = z.input<typeof roleRatesSchema>;
 
 /** Flatten Zod errors for ActionResult.fieldErrors. */
 export function fieldErrorsOf(error: z.ZodError): Record<string, string[]> {

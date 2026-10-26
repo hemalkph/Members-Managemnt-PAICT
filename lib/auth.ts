@@ -3,6 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import type { Profile } from "@/lib/database.types";
+import { isProfileComplete } from "@/lib/profile-completion";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -25,6 +26,16 @@ export async function requireUser(): Promise<Profile> {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login");
   if (!profile.is_active) redirect("/auth/signout?reason=inactive");
+  return profile;
+}
+
+/**
+ * For member pages: members must complete their profile (name, phone,
+ * WhatsApp, NIC) before using the app. Admins are not blocked.
+ */
+export async function requireCompleteProfile(): Promise<Profile> {
+  const profile = await requireUser();
+  if (!profile.is_admin && !isProfileComplete(profile)) redirect("/profile?complete=1");
   return profile;
 }
 
