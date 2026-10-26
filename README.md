@@ -240,6 +240,13 @@ supabase/
   seed.sql           starter data
 ```
 
+## Speed
+
+- **Server region:** `vercel.json` runs the app's server code in Singapore (`sin1`), next to the Supabase project (ap-southeast-1). Every page makes several database queries, so keeping them close saves a long round trip per query. If you move the Supabase project, change the region to match.
+- **Page changes:** every page has an instant loading placeholder, and the logo animation shows on top of it (blurred) until the real content arrives. Fast pages don't show it at all.
+- **Background work:** deadline and task reminders are sent after the page has been delivered (`after()`), so dashboards don't wait for them.
+- **Smaller downloads:** `optimizePackageImports` for `radix-ui` and `motion`, AVIF/WebP images, and a 16 KB logo (`public/logo-256.png`) for payslip PDFs.
+
 ## Deploying (e.g. Vercel)
 
 1. Import the repository in Vercel.

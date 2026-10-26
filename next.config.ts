@@ -1,6 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  experimental: {
+    // Only bundle the parts of these libraries that are used (lucide-react and
+    // recharts are already handled by Next.js).
+    optimizePackageImports: ["radix-ui", "motion"],
+  },
+  images: {
+    // Smaller logo/avatar images for browsers that support AVIF.
+    formats: ["image/avif", "image/webp"],
+  },
   // Every page depends on the signed-in user, so pages are rendered per
   // request (Cache Components / partial prefetching are left off on purpose).
   turbopack: {

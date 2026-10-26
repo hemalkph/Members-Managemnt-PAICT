@@ -1,7 +1,9 @@
 import "server-only";
 
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { after } from "next/server";
+import { createClient as createSupabaseClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
+import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/env";
 import { APP_TIME_ZONE, monthKeyToDate } from "@/lib/month";
 
 export type MonthDeadline = {
@@ -104,11 +106,27 @@ export async function getDeadlineSettings(supabase: SupabaseClient<Database>): P
   };
 }
 
-/** Sends any due deadline reminders (each one only once). Errors are ignored. */
-export async function sendDueReminders(supabase: SupabaseClient<Database>): Promise<void> {
-  try {
-    await supabase.rpc("send_deadline_reminders");
-  } catch {
-    // Reminders are best-effort; the daily job sends them too.
-  }
+/**
+ * Sends any due deadline and task reminders (each one only once) AFTER the
+ * page has been sent, so dashboards don't wait for it. The daily job sends
+ * them too; this just catches up when someone opens the app.
+ */
+export async function sendDueRemindersLater(supabase: SupabaseClient<Database>): Promise<void> {
+  // Request data (the session cookie) must be read before the page finishes.
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  if (!token) return;
+  after(async () => {
+    try {
+      const client = createSupabaseClient<Database>(getSupabaseUrl(), getSupabaseAnonKey(), {
+        auth: { persistSession: false, autoRefreshToken: false },
+        global: { headers: { Authorization: `Bearer ${token}` } },
+      });
+      await client.rpc("send_deadline_reminders");
+    } catch {
+      // Best effort.
+    }
+  });
 }
