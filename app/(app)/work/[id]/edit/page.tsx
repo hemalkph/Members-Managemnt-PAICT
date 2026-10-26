@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { requireCompleteProfile } from "@/lib/auth";
 import { dateToMonthKey, monthLabel, recentMonths, todayISO } from "@/lib/month";
 import { SHOW_MEMBERS_THEIR_EARNINGS } from "@/lib/config";
+import { activeOptions, getClassOptions } from "@/lib/classes";
 import { getDeadlines } from "@/lib/deadlines";
 import { getClosedMonthKeys } from "@/lib/payments";
 import { getMemberRoles, getRatesForRoles } from "@/lib/queries";
@@ -27,7 +28,7 @@ export default async function EditWorkPage({ params }: PageProps<"/work/[id]/edi
   const [{ data: submission }, roles] = await Promise.all([
     supabase
       .from("submissions")
-      .select("id, role_id, rate_item_id, work_month, title, description, quantity, date_done, links, status, submission_attachments(id, file_name, size_bytes)")
+      .select("id, role_id, rate_item_id, work_month, title, description, quantity, date_done, links, status, exam_id, centre_id, task_id, task:tasks(title), submission_attachments(id, file_name, size_bytes)")
       .eq("id", id)
       .eq("user_id", profile.id)
       .maybeSingle(),
@@ -56,6 +57,10 @@ export default async function EditWorkPage({ params }: PageProps<"/work/[id]/edi
   }
 
   const closed = new Set(await getClosedMonthKeys(supabase));
+  const tags = activeOptions(await getClassOptions(supabase), {
+    examId: submission.exam_id,
+    centreId: submission.centre_id,
+  });
   const candidates = recentMonths(12, true);
   if (!candidates.includes(month)) candidates.push(month);
   const deadlines = profile.is_admin ? new Map() : await getDeadlines(supabase, candidates);
@@ -97,6 +102,9 @@ export default async function EditWorkPage({ params }: PageProps<"/work/[id]/edi
             months={months}
             today={todayISO()}
             existingAttachments={submission.submission_attachments}
+            exams={tags.exams.map((e) => ({ id: e.id, label: e.label }))}
+            centres={tags.centres.map((c) => ({ id: c.id, name: c.name }))}
+            taskTitle={submission.task?.title ?? null}
             defaultValues={{
               work_month: month,
               role_id: roles.some((r) => r.id === submission.role_id) ? submission.role_id : "",
@@ -106,6 +114,9 @@ export default async function EditWorkPage({ params }: PageProps<"/work/[id]/edi
               quantity: submission.quantity,
               date_done: submission.date_done,
               links: submission.links.map((url) => ({ url })),
+              exam_id: submission.exam_id ?? "",
+              centre_id: submission.centre_id ?? "",
+              task_id: submission.task_id ?? "",
             }}
           />
         </CardContent>

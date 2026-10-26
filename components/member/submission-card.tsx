@@ -8,6 +8,8 @@ import {
   MessageSquareIcon,
   PencilIcon,
   TagIcon,
+  GraduationCapIcon,
+  MapPinIcon,
   WalletIcon,
 } from "lucide-react";
 import SpotlightCard from "@/components/reactbits/spotlight-card";
@@ -30,6 +32,8 @@ export type MemberSubmission = {
   unit_price: number | null;
   amount: number | null;
   rate_items: { name: string; unit: string } | null;
+  exam?: { name: string } | null;
+  centre?: { name: string } | null;
   roles: { name: string; sections: { name: string } | null } | null;
   submission_attachments: { id: string; file_name: string; size_bytes: number }[];
 };
@@ -74,6 +78,16 @@ export function SubmissionCard({
         {s.rate_items && (
           <span className="inline-flex items-center gap-1">
             <TagIcon className="size-3.5" /> {s.rate_items.name}
+          </span>
+        )}
+        {s.exam && (
+          <span className="inline-flex items-center gap-1">
+            <GraduationCapIcon className="size-3.5" /> {s.exam.name}
+          </span>
+        )}
+        {s.centre && (
+          <span className="inline-flex items-center gap-1">
+            <MapPinIcon className="size-3.5" /> {s.centre.name}
           </span>
         )}
         {showMoney && s.amount !== null && s.status !== "rejected" && (

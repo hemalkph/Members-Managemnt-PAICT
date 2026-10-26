@@ -3,6 +3,7 @@ import { CheckCircle2Icon, DownloadIcon, FileBarChartIcon, HashIcon, UsersIcon }
 import { EmptyState } from "@/components/empty-state";
 import { MonthSelect } from "@/components/month-select";
 import { PageHeader } from "@/components/page-header";
+import { ReportTabs } from "@/components/report-tabs";
 import { StatCard } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -31,6 +32,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/admin/re
         description="Approved work per member, grouped by role."
         actions={
           <>
+            <ReportTabs value="month" />
             <MonthSelect value={month} />
             <Button asChild variant="outline" disabled={report.length === 0}>
               <a href={`/admin/reports/export?month=${month}`} download>

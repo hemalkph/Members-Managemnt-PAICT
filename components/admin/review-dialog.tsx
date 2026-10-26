@@ -34,6 +34,8 @@ export type ReviewRow = {
   sectionName: string;
   reviewerName: string | null;
   workType: string | null;
+  examLabel?: string | null;
+  centreName?: string | null;
   unit: string | null;
   unitPrice: number | null;
   amount: number | null;
@@ -109,6 +111,18 @@ export function ReviewDialog({
             <div>
               <dt className="text-muted-foreground text-xs">Type of work</dt>
               <dd>{row.workType}</dd>
+            </div>
+          )}
+          {row.examLabel && (
+            <div>
+              <dt className="text-muted-foreground text-xs">Exam / test</dt>
+              <dd>{row.examLabel}</dd>
+            </div>
+          )}
+          {row.centreName && (
+            <div>
+              <dt className="text-muted-foreground text-xs">Class centre</dt>
+              <dd>{row.centreName}</dd>
             </div>
           )}
           {row.unitPrice !== null && (
