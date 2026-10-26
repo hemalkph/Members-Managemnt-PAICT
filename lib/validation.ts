@@ -262,3 +262,33 @@ export const announcementSchema = z.object({
   expires_on: z.union([isoDate, z.literal("")]),
 });
 export type AnnouncementInput = z.input<typeof announcementSchema>;
+
+// ---------------------------------------------------------------- payments (main admins)
+export const closeMonthSchema = z.object({
+  month: monthKey,
+  note: optionalText(500, "Note"),
+});
+export type CloseMonthInput = z.input<typeof closeMonthSchema>;
+
+export const reopenMonthSchema = z.object({ month: monthKey });
+
+export const markPaidSchema = z
+  .object({
+    ids: z.array(uuid).min(1, "Choose at least one member").max(500),
+    paid: z.boolean(),
+    paid_on: z.union([isoDate, z.literal("")]),
+    reference: optionalText(100, "Reference"),
+  })
+  .refine((v) => !v.paid || v.paid_on !== "", { message: "Choose the date it was paid", path: ["paid_on"] });
+export type MarkPaidInput = z.input<typeof markPaidSchema>;
+
+// ---------------------------------------------------------------- two-step login
+export const otpCodeSchema = z.object({
+  code: z
+    .string()
+    .trim()
+    .regex(/^[0-9]{6}$/, "Enter the 6-digit code from your authenticator app"),
+});
+export type OtpCodeInput = z.input<typeof otpCodeSchema>;
+
+export const confirmTwoStepSchema = otpCodeSchema.extend({ factorId: z.string().min(1).max(100) });

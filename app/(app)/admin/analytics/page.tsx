@@ -41,6 +41,11 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
         <div className="flex flex-wrap items-center gap-2">
           <MonthSelect value={month} />
           <Button asChild variant="outline">
+            <Link href={`/admin/payments?month=${month}`}>
+              <BanknoteIcon /> Payments
+            </Link>
+          </Button>
+          <Button asChild variant="outline">
             <a href={`/admin/analytics/payouts?month=${month}`} download>
               <DownloadIcon /> Payroll CSV
             </a>

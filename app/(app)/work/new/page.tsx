@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
-import { UserRoundXIcon } from "lucide-react";
+import { LockIcon, UserRoundXIcon } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { SubmissionForm } from "@/components/member/submission-form";
 import { PageHeader } from "@/components/page-header";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
 import { requireCompleteProfile } from "@/lib/auth";
 import { SHOW_MEMBERS_THEIR_EARNINGS } from "@/lib/config";
-import { parseMonthParam, recentMonths, todayISO } from "@/lib/month";
+import { monthLabel, parseMonthParam, recentMonths, todayISO } from "@/lib/month";
+import { getClosedMonthKeys } from "@/lib/payments";
 import { getMemberRoles, getRatesForRoles } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
 import { uuid } from "@/lib/validation";
@@ -21,7 +23,7 @@ export default async function NewWorkPage({ searchParams }: PageProps<"/work/new
 
   const supabase = await createClient();
   const roles = await getMemberRoles(supabase, profile.id);
-  const [rates, { data: from }] = await Promise.all([
+  const [rates, { data: from }, closedMonths] = await Promise.all([
     getRatesForRoles(
       supabase,
       roles.map((r) => r.id),
@@ -34,10 +36,14 @@ export default async function NewWorkPage({ searchParams }: PageProps<"/work/new
           .eq("user_id", profile.id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
+    getClosedMonthKeys(supabase),
   ]);
 
-  const months = recentMonths(12, true);
-  if (!months.includes(month)) months.push(month);
+  // Closed months (already paid out) can't take new work.
+  const closed = new Set(closedMonths);
+  const months = recentMonths(12, true).filter((m) => !closed.has(m));
+  const workMonth = closed.has(month) ? (months.find((m) => m <= month) ?? months[0]) : month;
+  if (!months.includes(workMonth)) months.push(workMonth);
   const roleOptions = roles.map((r) => ({ ...r, rates: rates.get(r.id) ?? [] }));
   const copyRole = from && roles.some((r) => r.id === from.role_id) ? from.role_id : null;
   const defaultRole = copyRole ?? (roles.length === 1 ? roles[0].id : "");
@@ -57,6 +63,16 @@ export default async function NewWorkPage({ searchParams }: PageProps<"/work/new
           from ? "Copied from an earlier submission. Check the details and submit." : "Log a task you finished. An admin will review it."
         }
       />
+      {closed.has(month) && (
+        <Alert variant="warning">
+          <LockIcon />
+          <AlertTitle>{monthLabel(month)} is closed</AlertTitle>
+          <AlertDescription>
+            Payments for that month are done, so new work goes into an open month. Ask a main admin if something was
+            missed.
+          </AlertDescription>
+        </Alert>
+      )}
       {roles.length === 0 ? (
         <EmptyState
           icon={UserRoundXIcon}
@@ -73,7 +89,7 @@ export default async function NewWorkPage({ searchParams }: PageProps<"/work/new
               today={todayISO()}
               showMoney={SHOW_MEMBERS_THEIR_EARNINGS}
               defaultValues={{
-                work_month: month,
+                work_month: workMonth,
                 role_id: defaultRole,
                 rate_item_id: defaultRate,
                 title: from?.title ?? "",

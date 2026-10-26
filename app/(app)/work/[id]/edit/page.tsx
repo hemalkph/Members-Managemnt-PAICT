@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { requireCompleteProfile } from "@/lib/auth";
 import { dateToMonthKey, recentMonths, todayISO } from "@/lib/month";
 import { SHOW_MEMBERS_THEIR_EARNINGS } from "@/lib/config";
+import { getClosedMonthKeys } from "@/lib/payments";
 import { getMemberRoles, getRatesForRoles } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
 import { uuid } from "@/lib/validation";
@@ -53,7 +54,8 @@ export default async function EditWorkPage({ params }: PageProps<"/work/[id]/edi
     );
   }
 
-  const months = recentMonths(12, true);
+  const closed = new Set(await getClosedMonthKeys(supabase));
+  const months = recentMonths(12, true).filter((m) => !closed.has(m));
   if (!months.includes(month)) months.push(month);
   const rates = await getRatesForRoles(
     supabase,
