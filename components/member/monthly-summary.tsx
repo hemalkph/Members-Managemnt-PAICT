@@ -10,6 +10,7 @@ export function MonthlySummary({
   pending,
   earnedApproved = 0,
   earnedPending = 0,
+  salary = 0,
   showMoney = false,
 }: {
   month: string;
@@ -18,6 +19,8 @@ export function MonthlySummary({
   pending: number;
   earnedApproved?: number;
   earnedPending?: number;
+  /** Fixed monthly salary. */
+  salary?: number;
   showMoney?: boolean;
 }) {
   const label = monthLabel(month, "short");
@@ -28,14 +31,21 @@ export function MonthlySummary({
         <StatCard label="Approved" value={approved} icon={CheckCircle2Icon} tone="success" hint={label} delay={0.1} />
         <StatCard label="Pending" value={pending} icon={ClockIcon} tone="warning" hint={label} delay={0.2} />
       </div>
-      {showMoney && (earnedApproved > 0 || earnedPending > 0) && (
+      {showMoney && (earnedApproved > 0 || earnedPending > 0 || salary > 0) && (
         <div className="from-primary/10 to-chart-2/10 flex flex-wrap items-center gap-x-6 gap-y-1 rounded-xl border bg-gradient-to-r px-4 py-3 text-sm">
           <span className="flex items-center gap-2 font-medium">
             <WalletIcon className="text-primary size-4" /> Earnings for {label}
           </span>
-          <span>
-            Approved <span className="font-semibold tabular-nums">{formatLKR(earnedApproved)}</span>
-          </span>
+          {salary > 0 && (
+            <span>
+              Salary <span className="font-semibold tabular-nums">{formatLKR(salary)}</span>
+            </span>
+          )}
+          {(earnedApproved > 0 || salary === 0) && (
+            <span>
+              Approved work <span className="font-semibold tabular-nums">{formatLKR(earnedApproved)}</span>
+            </span>
+          )}
           {earnedPending > 0 && (
             <span className="text-muted-foreground">+ {formatLKR(earnedPending)} waiting for review</span>
           )}

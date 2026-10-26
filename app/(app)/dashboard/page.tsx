@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireCompleteProfile } from "@/lib/auth";
 import { SHOW_MEMBERS_THEIR_EARNINGS } from "@/lib/config";
-import { getSubmissionsForMonth, summarise } from "@/lib/member-queries";
+import { getMySalary, getSubmissionsForMonth, summarise } from "@/lib/member-queries";
 import { currentMonthKey, monthLabel } from "@/lib/month";
 import { getCurrentNotices } from "@/lib/notices";
 import { getMemberRoles } from "@/lib/queries";
@@ -24,11 +24,12 @@ export default async function DashboardPage() {
   const supabase = await createClient();
   const month = currentMonthKey();
 
-  const [submissions, roles, { data: bank }, notices] = await Promise.all([
+  const [submissions, roles, { data: bank }, notices, salary] = await Promise.all([
     getSubmissionsForMonth(supabase, profile.id, month),
     getMemberRoles(supabase, profile.id),
     supabase.from("bank_details").select("user_id").eq("user_id", profile.id).maybeSingle(),
     getCurrentNotices(supabase, 5),
+    SHOW_MEMBERS_THEIR_EARNINGS ? getMySalary(supabase, profile.id) : Promise.resolve(0),
   ]);
   const summary = summarise(submissions);
   const firstName = (profile.full_name || "there").split(" ")[0];
@@ -47,7 +48,7 @@ export default async function DashboardPage() {
         </Button>
       </div>
 
-      <MonthlySummary month={month} {...summary} showMoney={SHOW_MEMBERS_THEIR_EARNINGS} />
+      <MonthlySummary month={month} {...summary} salary={salary} showMoney={SHOW_MEMBERS_THEIR_EARNINGS} />
 
       {!bank && (
         <Link

@@ -9,7 +9,7 @@ import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { requireCompleteProfile } from "@/lib/auth";
 import { SHOW_MEMBERS_THEIR_EARNINGS } from "@/lib/config";
-import { getSubmissionsForMonth, summarise } from "@/lib/member-queries";
+import { getMySalary, getSubmissionsForMonth, summarise } from "@/lib/member-queries";
 import { monthLabel, parseMonthParam } from "@/lib/month";
 import { createClient } from "@/lib/supabase/server";
 
@@ -19,7 +19,10 @@ export default async function MyWorkPage({ searchParams }: PageProps<"/work">) {
   const profile = await requireCompleteProfile();
   const month = parseMonthParam((await searchParams).month);
   const supabase = await createClient();
-  const submissions = await getSubmissionsForMonth(supabase, profile.id, month);
+  const [submissions, salary] = await Promise.all([
+    getSubmissionsForMonth(supabase, profile.id, month),
+    SHOW_MEMBERS_THEIR_EARNINGS ? getMySalary(supabase, profile.id) : Promise.resolve(0),
+  ]);
   const summary = summarise(submissions);
 
   return (
@@ -38,7 +41,7 @@ export default async function MyWorkPage({ searchParams }: PageProps<"/work">) {
           </>
         }
       />
-      <MonthlySummary month={month} {...summary} showMoney={SHOW_MEMBERS_THEIR_EARNINGS} />
+      <MonthlySummary month={month} {...summary} salary={salary} showMoney={SHOW_MEMBERS_THEIR_EARNINGS} />
       {submissions.length === 0 ? (
         <EmptyState
           icon={InboxIcon}
