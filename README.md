@@ -32,6 +32,8 @@ Built with Next.js 16 (App Router) · TypeScript (strict) · Tailwind CSS v4 · 
 - **Payslips:** members open and download their own payslips as PDF in **My payslips** (salary lines, work lines with quantity × rate, total, paid date and reference, masked bank account). Main admins can open anyone's payslip from Payments. Turn off member access with `MEMBERS_CAN_SEE_PAYSLIPS` in `lib/config.ts`
 - **Activity log (main admins only):** every approval and rejection, rate, salary, budget and role change, bank detail change, member activation/deactivation, admin change, password reset, month close/reopen, payment and payroll CSV download is recorded with who did it and when. The database writes the log itself (triggers), so it can't be skipped, edited or deleted from the app. Search and filter by type, person and month
 - **Two-step login:** anyone can turn on an authenticator app (Google Authenticator, Microsoft Authenticator…) in **Two-step login**. It is **required for main admins**: Analytics, Payments, Rates & budget, the Activity log and the payroll CSV only open after the 6-digit code was entered, and the database enforces this too. Main admins can reset another person's two-step login if they lose their phone
+- **Notifications:** a bell in the top bar (live updates) and a Notifications page. Members are told when their work is approved or rejected, when their payslip is ready and when they are paid, about new notices, new roles and salary changes, and about deadlines. Admins get one grouped "N submissions waiting for review" message and a note when a month's deadline has passed. The database creates the messages itself
+- **Monthly work deadline:** members must log a month's work by a set day of the next month (default: the 3rd). Reminders start a few days before (default 3) and a countdown card shows on the member dashboard. After the deadline members can't add or change that month's work; admins still can. Main admins change the rule in **Payments → Deadline** and can give a single month more time with **Change deadline**
 - **Notice board:** admins post notices (pinned / with an end date); members see them on their dashboard
 - **Quick search:** press Ctrl/⌘ + K anywhere to jump to a page or switch the theme
 - **Work types and amounts:** when a role has rates, members pick the type of work (e.g. Flyer); amount = quantity × rate. The price is locked when the work is approved, so later price changes don't rewrite history. Members see their own estimated earnings (turn off with `SHOW_MEMBERS_THEIR_EARNINGS` in `lib/config.ts`)
@@ -64,11 +66,12 @@ The schema lives in [`supabase/migrations`](supabase/migrations) and the starter
 | `20261026000006_analytics_payouts_notices.sql` | Main admins, work type + amount on submissions, monthly budget, notice board |
 | `20261026000007_member_salaries.sql` | Fixed monthly salaries per member for salaried roles |
 | `20261026000008_payments_activity_two_step.sql` | Closed months, payouts/payslips, activity log, two-step login for main admins |
+| `20261026000009_notifications_deadlines.sql` | Notifications, monthly work deadline and daily reminders |
 | `seed.sql` | Sections & roles, 4 sample members, sample submissions |
 
 **Option A: Supabase SQL editor (no tools needed)**
 
-Open **SQL Editor → New query**, paste each migration file **in order** (01 to 08) and press **Run**. Then do the same with `seed.sql`.
+Open **SQL Editor → New query**, paste each migration file **in order** (01 to 09) and press **Run**. Then do the same with `seed.sql`.
 
 **Option B: Supabase CLI**
 
@@ -163,6 +166,10 @@ Supabase turns on authenticator apps (TOTP) by default. If setting it up says it
 ```sql
 delete from auth.mfa_factors where user_id = (select id from auth.users where email = 'you@example.com');
 ```
+
+### Deadline reminders
+
+Migration 09 schedules a daily job at 9:00 Sri Lanka time with **pg_cron** (Supabase → **Integrations → Cron** shows it as `team-deadline-reminders`). If pg_cron isn't available the reminders are still sent whenever someone opens their dashboard. Live updates for the bell use Supabase **Realtime**, which the migration turns on for the `notifications` table.
 
 ### Monthly payments
 
