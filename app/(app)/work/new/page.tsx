@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { requireCompleteProfile } from "@/lib/auth";
 import { SHOW_MEMBERS_THEIR_EARNINGS } from "@/lib/config";
 import { monthLabel, parseMonthParam, recentMonths, todayISO } from "@/lib/month";
+import { activeOptions, getClassOptions } from "@/lib/classes";
 import { getDeadlines } from "@/lib/deadlines";
 import { getClosedMonthKeys } from "@/lib/payments";
 import { getMemberRoles, getRatesForRoles } from "@/lib/queries";
@@ -21,10 +22,11 @@ export default async function NewWorkPage({ searchParams }: PageProps<"/work/new
   const sp = await searchParams;
   const month = parseMonthParam(sp.month);
   const fromId = typeof sp.from === "string" && uuid.safeParse(sp.from).success ? sp.from : null;
+  const taskId = typeof sp.task === "string" && uuid.safeParse(sp.task).success ? sp.task : null;
 
   const supabase = await createClient();
   const roles = await getMemberRoles(supabase, profile.id);
-  const [rates, { data: from }, closedMonths] = await Promise.all([
+  const [rates, { data: from }, closedMonths, classOptions, { data: task }] = await Promise.all([
     getRatesForRoles(
       supabase,
       roles.map((r) => r.id),
@@ -38,7 +40,17 @@ export default async function NewWorkPage({ searchParams }: PageProps<"/work/new
           .maybeSingle()
       : Promise.resolve({ data: null }),
     getClosedMonthKeys(supabase),
+    getClassOptions(supabase),
+    taskId
+      ? supabase
+          .from("tasks")
+          .select("id, title, description, role_id, exam_id, centre_id, quantity, status")
+          .eq("id", taskId)
+          .eq("assignee_id", profile.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
+  const tags = activeOptions(classOptions, { examId: task?.exam_id });
 
   // Closed months (already paid out) can't take new work, and members can't
   // log work after a month's deadline (admins can).
@@ -51,7 +63,8 @@ export default async function NewWorkPage({ searchParams }: PageProps<"/work/new
   const workMonth = isLocked(month) ? (months.find((m) => m <= month) ?? months[0]) : month;
   const requestedDeadline = deadlines.get(month);
   const roleOptions = roles.map((r) => ({ ...r, rates: rates.get(r.id) ?? [] }));
-  const copyRole = from && roles.some((r) => r.id === from.role_id) ? from.role_id : null;
+  const taskRole = task?.role_id && roles.some((r) => r.id === task.role_id) ? task.role_id : null;
+  const copyRole = taskRole ?? (from && roles.some((r) => r.id === from.role_id) ? from.role_id : null);
   const defaultRole = copyRole ?? (roles.length === 1 ? roles[0].id : "");
   const defaultRates = rates.get(defaultRole) ?? [];
   const defaultRate =
@@ -104,13 +117,19 @@ export default async function NewWorkPage({ searchParams }: PageProps<"/work/new
               months={months}
               today={todayISO()}
               showMoney={SHOW_MEMBERS_THEIR_EARNINGS}
+              exams={tags.exams.map((e) => ({ id: e.id, label: e.label }))}
+              centres={tags.centres.map((c) => ({ id: c.id, name: c.name }))}
+              taskTitle={task?.title ?? null}
               defaultValues={{
                 work_month: workMonth,
                 role_id: defaultRole,
                 rate_item_id: defaultRate,
-                title: from?.title ?? "",
+                title: task?.title ?? from?.title ?? "",
                 description: from?.description ?? "",
-                quantity: from?.quantity ?? 1,
+                quantity: task?.quantity ?? from?.quantity ?? 1,
+                exam_id: task?.exam_id ?? "",
+                centre_id: task?.centre_id ?? "",
+                task_id: task?.id ?? "",
                 date_done: todayISO(),
                 links: (from?.links ?? []).map((url) => ({ url })),
               }}

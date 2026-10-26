@@ -14,6 +14,7 @@ type Ctx = NonNullable<Awaited<ReturnType<typeof getActionContext>>>;
 
 function revalidateWork() {
   revalidatePath("/work");
+  revalidatePath("/tasks");
   revalidatePath("/dashboard");
   revalidatePath("/admin", "layout");
 }
@@ -85,6 +86,9 @@ export async function createSubmissionAction(input: SubmissionActionInput): Prom
       quantity: v.quantity,
       date_done: v.date_done,
       links: v.links.map((l) => l.url),
+      exam_id: v.exam_id || null,
+      centre_id: v.centre_id || null,
+      task_id: v.task_id || null,
     })
     .select("id")
     .single();
@@ -143,6 +147,9 @@ export async function updateSubmissionAction(
       quantity: v.quantity,
       date_done: v.date_done,
       links: v.links.map((l) => l.url),
+      exam_id: v.exam_id || null,
+      centre_id: v.centre_id || null,
+      task_id: v.task_id || null,
     })
     .eq("id", id)
     .eq("status", "pending");

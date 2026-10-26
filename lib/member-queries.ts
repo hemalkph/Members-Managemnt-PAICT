@@ -6,7 +6,7 @@ import type { Database } from "@/lib/database.types";
 import { monthKeyToDate } from "@/lib/month";
 
 export const MEMBER_SUBMISSION_SELECT =
-  "id, title, description, quantity, date_done, links, status, admin_comment, work_month, created_at, unit_price, amount, rate_items(name, unit), roles(name, sections(name)), submission_attachments(id, file_name, size_bytes)" as const;
+  "id, title, description, quantity, date_done, links, status, admin_comment, work_month, created_at, unit_price, amount, rate_items(name, unit), exam:exams(name), centre:centres(name), roles(name, sections(name)), submission_attachments(id, file_name, size_bytes)" as const;
 
 /** One member's submissions for a month (RLS limits members to their own). */
 export async function getSubmissionsForMonth(

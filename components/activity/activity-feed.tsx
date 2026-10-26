@@ -4,6 +4,8 @@ import {
   BadgeCheckIcon,
   BanknoteIcon,
   CalendarClockIcon,
+  FileStackIcon,
+  ListTodoIcon,
   CalculatorIcon,
   ClipboardCheckIcon,
   HistoryIcon,
@@ -44,6 +46,8 @@ const ICONS: Record<string, LucideIcon> = {
   bank: LandmarkIcon,
   two_step: ShieldCheckIcon,
   deadline: CalendarClockIcon,
+  task: ListTodoIcon,
+  paper: FileStackIcon,
 };
 
 const TONES = {

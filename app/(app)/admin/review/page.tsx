@@ -40,7 +40,7 @@ export default async function ReviewPage({ searchParams }: PageProps<"/admin/rev
   let query = supabase
     .from("submissions")
     .select(
-      "id, title, description, quantity, date_done, links, status, admin_comment, reviewed_at, created_at, work_month, member:profiles!submissions_user_id_fkey(full_name, email), reviewer:profiles!submissions_reviewed_by_fkey(full_name), roles(name, sections(name)), rate_items(name, unit), unit_price, amount, submission_attachments(id, file_name, size_bytes)",
+      "id, title, description, quantity, date_done, links, status, admin_comment, reviewed_at, created_at, work_month, member:profiles!submissions_user_id_fkey(full_name, email), reviewer:profiles!submissions_reviewed_by_fkey(full_name), roles(name, sections(name)), rate_items(name, unit), exam:exams(name, batch:batches(name)), centre:centres(name), unit_price, amount, submission_attachments(id, file_name, size_bytes)",
     )
     .eq("work_month", monthKeyToDate(month))
     .order("created_at", { ascending: false });
@@ -72,6 +72,8 @@ export default async function ReviewPage({ searchParams }: PageProps<"/admin/rev
     sectionName: s.roles?.sections?.name ?? "—",
     reviewerName: s.reviewer?.full_name ?? null,
     workType: s.rate_items?.name ?? null,
+    examLabel: s.exam ? `${s.exam.batch?.name ? `${s.exam.batch.name} – ` : ""}${s.exam.name}` : null,
+    centreName: s.centre?.name ?? null,
     unit: s.rate_items?.unit ?? null,
     unitPrice: s.unit_price === null ? null : Number(s.unit_price),
     amount: s.amount === null ? null : Number(s.amount),

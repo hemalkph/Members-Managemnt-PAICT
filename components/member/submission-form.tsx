@@ -61,6 +61,9 @@ export function SubmissionForm({
   submissionId,
   existingAttachments = [],
   showMoney = false,
+  exams = [],
+  centres = [],
+  taskTitle,
 }: {
   userId: string;
   roles: RoleOption[];
@@ -71,6 +74,11 @@ export function SubmissionForm({
   existingAttachments?: ExistingAttachment[];
   /** Show prices and the estimated amount. */
   showMoney?: boolean;
+  /** Optional tags. */
+  exams?: { id: string; label: string }[];
+  centres?: { id: string; name: string }[];
+  /** Shown when the work is logged for a task. */
+  taskTitle?: string | null;
 }) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -268,6 +276,71 @@ export function SubmissionForm({
               </FormItem>
             )}
           />
+        )}
+
+        {(exams.length > 0 || centres.length > 0) && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {exams.length > 0 && (
+              <FormField
+                control={form.control}
+                name="exam_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Exam / test (optional)</FormLabel>
+                    <Select value={field.value || "none"} onValueChange={(v) => field.onChange(v === "none" ? "" : v)}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Not for an exam" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none">Not for an exam</SelectItem>
+                        {exams.map((e) => (
+                          <SelectItem key={e.id} value={e.id}>
+                            {e.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+            {centres.length > 0 && (
+              <FormField
+                control={form.control}
+                name="centre_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Class centre (optional)</FormLabel>
+                    <Select value={field.value || "none"} onValueChange={(v) => field.onChange(v === "none" ? "" : v)}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Any centre" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none">Not for a centre</SelectItem>
+                        {centres.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+          </div>
+        )}
+
+        {taskTitle && (
+          <p className="bg-primary/5 border-primary/20 rounded-lg border px-3 py-2 text-sm">
+            For the task <strong>{taskTitle}</strong>. Mark the task as done in My tasks when you have finished it.
+          </p>
         )}
 
         <FormField

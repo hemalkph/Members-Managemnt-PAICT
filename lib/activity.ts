@@ -6,6 +6,7 @@ export const ACTIVITY_CATEGORIES = {
   money: { label: "Rates, salaries & budget", prefixes: ["rate.", "salary.", "budget.", "role.salary_type_changed"] },
   members: { label: "Members & roles", prefixes: ["member.", "role.assigned", "role.removed"] },
   bank: { label: "Bank details", prefixes: ["bank."] },
+  tasks: { label: "Tasks & papers", prefixes: ["task.", "paper."] },
   security: { label: "Security", prefixes: ["two_step.", "member.password_reset", "payroll.exported"] },
 } as const;
 
@@ -17,8 +18,8 @@ export function isActivityCategory(value: unknown): value is ActivityCategory {
 
 /** Visual tone for an action: important money/security events stand out. */
 export function activityTone(action: string): "success" | "danger" | "warning" | "info" | "neutral" {
-  if (/\.(approved|paid|activated|enabled|closed)$/.test(action)) return "success";
-  if (/\.(rejected|deleted|deactivated|removed|disabled|reset|admin_removed|main_admin_removed)$/.test(action))
+  if (/\.(approved|paid|activated|enabled|closed|done)$/.test(action)) return "success";
+  if (/\.(rejected|deleted|deactivated|removed|disabled|reset|admin_removed|main_admin_removed|cancelled)$/.test(action))
     return "danger";
   if (/^(salary|rate|budget|bank|payroll|member\.password_reset|member\.(main_)?admin_granted|month\.reopened|payout\.unpaid|deadline\.)/.test(action))
     return "warning";
@@ -36,6 +37,10 @@ export function activityGroupLabel(action: string): string {
       return "Payment";
     case "deadline":
       return "Deadline";
+    case "task":
+      return "Task";
+    case "paper":
+      return "Paper";
     case "payroll":
       return "Payroll";
     case "rate":
