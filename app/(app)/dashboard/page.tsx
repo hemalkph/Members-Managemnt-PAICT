@@ -8,7 +8,7 @@ import { RolesList } from "@/components/member/roles-list";
 import { SubmissionCard } from "@/components/member/submission-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { requireUser } from "@/lib/auth";
+import { requireCompleteProfile } from "@/lib/auth";
 import { getSubmissionsForMonth, summarise } from "@/lib/member-queries";
 import { currentMonthKey, monthLabel } from "@/lib/month";
 import { getMemberRoles } from "@/lib/queries";
@@ -17,7 +17,7 @@ import { createClient } from "@/lib/supabase/server";
 export const metadata: Metadata = { title: "Dashboard" };
 
 export default async function DashboardPage() {
-  const profile = await requireUser();
+  const profile = await requireCompleteProfile();
   const supabase = await createClient();
   const month = currentMonthKey();
 

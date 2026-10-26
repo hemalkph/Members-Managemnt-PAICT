@@ -4,7 +4,7 @@ import { MaskedAccountNumber } from "@/components/member/masked-account";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { revealMyAccountNumberAction } from "@/lib/actions/bank";
-import { requireUser } from "@/lib/auth";
+import { requireCompleteProfile } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import { BankForm } from "./bank-form";
@@ -12,7 +12,7 @@ import { BankForm } from "./bank-form";
 export const metadata: Metadata = { title: "Bank details" };
 
 export default async function BankPage() {
-  const profile = await requireUser();
+  const profile = await requireCompleteProfile();
   const supabase = await createClient();
   // Note: the full account_number is deliberately NOT selected here.
   const { data: bank } = await supabase

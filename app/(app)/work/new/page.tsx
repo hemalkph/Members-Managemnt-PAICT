@@ -4,7 +4,7 @@ import { EmptyState } from "@/components/empty-state";
 import { SubmissionForm } from "@/components/member/submission-form";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
-import { requireUser } from "@/lib/auth";
+import { requireCompleteProfile } from "@/lib/auth";
 import { parseMonthParam, recentMonths, todayISO } from "@/lib/month";
 import { getMemberRoles } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
@@ -12,7 +12,7 @@ import { createClient } from "@/lib/supabase/server";
 export const metadata: Metadata = { title: "Submit work" };
 
 export default async function NewWorkPage({ searchParams }: PageProps<"/work/new">) {
-  const profile = await requireUser();
+  const profile = await requireCompleteProfile();
   const month = parseMonthParam((await searchParams).month);
   const supabase = await createClient();
   const roles = await getMemberRoles(supabase, profile.id);

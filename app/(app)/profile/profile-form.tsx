@@ -2,19 +2,24 @@
 
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { CakeIcon } from "lucide-react";
 import { toast } from "sonner";
 import { SubmitButton } from "@/components/submit-button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { updateProfileAction } from "@/lib/actions/profile";
+import { formatDate } from "@/lib/format";
+import { parseNic } from "@/lib/nic";
 import { profileSchema, type ProfileInput } from "@/lib/validation";
 
 export function ProfileForm({ defaultValues }: { defaultValues: ProfileInput }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const form = useForm<ProfileInput>({ resolver: zodResolver(profileSchema), defaultValues });
+  const nicValue = useWatch({ control: form.control, name: "nic" });
+  const nicInfo = parseNic(nicValue);
 
   const onSubmit = (values: ProfileInput) =>
     startTransition(async () => {
@@ -75,11 +80,17 @@ export function ProfileForm({ defaultValues }: { defaultValues: ProfileInput }) 
           name="nic"
           render={({ field }) => (
             <FormItem className="sm:col-span-2">
-              <FormLabel>NIC (optional)</FormLabel>
+              <FormLabel>NIC</FormLabel>
               <FormControl>
-                <Input placeholder="200212345678 or 991234567V" {...field} />
+                <Input autoCapitalize="characters" placeholder="200212345678 or 991234567V" {...field} />
               </FormControl>
-              <FormDescription>Only you and admins can see this.</FormDescription>
+              {nicInfo ? (
+                <p className="text-primary flex items-center gap-1.5 text-sm font-medium">
+                  <CakeIcon className="size-4" /> Birthday: {formatDate(nicInfo.dateOfBirth)}
+                </p>
+              ) : (
+                <FormDescription>Your birthday is read from your NIC. Only you and admins can see it.</FormDescription>
+              )}
               <FormMessage />
             </FormItem>
           )}
