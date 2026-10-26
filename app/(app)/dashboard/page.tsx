@@ -8,6 +8,7 @@ import { MonthlySummary } from "@/components/member/monthly-summary";
 import { RolesList } from "@/components/member/roles-list";
 import { NoticeBoard } from "@/components/notice-board";
 import { SubmissionCard } from "@/components/member/submission-card";
+import { MyTasksCard } from "@/components/tasks/my-tasks-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireCompleteProfile } from "@/lib/auth";
@@ -16,6 +17,7 @@ import { getMySalary, getSubmissionsForMonth, summarise } from "@/lib/member-que
 import { getDeadlines, sendDueReminders } from "@/lib/deadlines";
 import { currentMonthKey, monthLabel, shiftMonth } from "@/lib/month";
 import { getClosedMonthKeys } from "@/lib/payments";
+import { getTasks } from "@/lib/task-queries";
 import { getCurrentNotices } from "@/lib/notices";
 import { getMemberRoles } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
@@ -39,7 +41,7 @@ export default async function DashboardPage() {
   const previous = shiftMonth(month, -1);
   // Reminders are also sent by a daily job; this catches up when someone opens the app.
   await sendDueReminders(supabase);
-  const [submissions, roles, { data: bank }, notices, salary, deadlines, closedMonths] = await Promise.all([
+  const [submissions, roles, { data: bank }, notices, salary, deadlines, closedMonths, myTasks] = await Promise.all([
     getSubmissionsForMonth(supabase, profile.id, month),
     getMemberRoles(supabase, profile.id),
     supabase.from("bank_details").select("user_id").eq("user_id", profile.id).maybeSingle(),
@@ -47,6 +49,7 @@ export default async function DashboardPage() {
     SHOW_MEMBERS_THEIR_EARNINGS ? getMySalary(supabase, profile.id) : Promise.resolve(0),
     getDeadlines(supabase, [previous, month]),
     getClosedMonthKeys(supabase),
+    getTasks(supabase, { assigneeId: profile.id, statuses: ["open"], limit: 20 }),
   ]);
   // The next deadline: last month's if it is still open, otherwise this month's.
   const prevDeadline = deadlines.get(previous);
@@ -114,6 +117,7 @@ export default async function DashboardPage() {
           )}
         </section>
         <div className="grid h-fit gap-6">
+          <MyTasksCard tasks={myTasks} />
           <NoticeBoard notices={notices} />
           <Card className="h-fit">
             <CardHeader>
