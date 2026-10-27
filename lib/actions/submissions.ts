@@ -3,10 +3,20 @@
 import { revalidatePath } from "next/cache";
 import { friendlyDbError, type ActionResult } from "@/lib/action-result";
 import { getActionContext, NOT_ALLOWED } from "@/lib/auth";
-import { monthKeyToDate } from "@/lib/month";
+import { getDeadlines } from "@/lib/deadlines";
+import { APP_TIME_ZONE, currentMonthKey, monthKeyToDate, todayISO } from "@/lib/month";
+import { getPaperDrafts } from "@/lib/paper-drafts";
+import { getClosedMonthKeys } from "@/lib/payments";
 import { isProfileComplete } from "@/lib/profile-completion";
 import { ATTACHMENTS_BUCKET } from "@/lib/storage";
-import { fieldErrorsOf, firstError, idSchema, submissionActionSchema, type AttachmentInput } from "@/lib/validation";
+import {
+  fieldErrorsOf,
+  firstError,
+  idSchema,
+  paperPagesSchema,
+  submissionActionSchema,
+  type AttachmentInput,
+} from "@/lib/validation";
 import type { z } from "zod";
 
 type SubmissionActionInput = z.input<typeof submissionActionSchema>;
@@ -199,4 +209,57 @@ export async function deleteSubmissionAction(input: { id: string }): Promise<Act
 
   revalidateWork();
   return { ok: true, message: "Submission deleted" };
+}
+
+/**
+ * A finished type setting / conversion stage becomes a work entry: the member
+ * only enters the number of pages. Role, work type, title, exam and date come
+ * from the paper.
+ */
+export async function logPaperPagesAction(input: { task_id: string; pages: number }): Promise<ActionResult> {
+  const ctx = await getActionContext();
+  if (!ctx) return { ok: false, error: NOT_ALLOWED };
+  const parsed = paperPagesSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
+  if (!ctx.profile.is_admin && !isProfileComplete(ctx.profile)) {
+    return { ok: false, error: "Please complete your profile before submitting work." };
+  }
+
+  const [draft] = await getPaperDrafts(ctx.supabase, ctx.profile.id, parsed.data.task_id);
+  if (!draft) return { ok: false, error: "This work is already logged." };
+  if (!draft.rate) return { ok: false, error: "Choose your role and work type in the full form." };
+
+  // Logged in the month it was finished, or this month if that one is closed.
+  const doneOn = draft.completedAt
+    ? new Intl.DateTimeFormat("en-CA", { timeZone: APP_TIME_ZONE }).format(new Date(draft.completedAt))
+    : todayISO();
+  let month = doneOn.slice(0, 7);
+  let dateDone = doneOn;
+  const [closed, deadlines] = await Promise.all([
+    getClosedMonthKeys(ctx.supabase),
+    ctx.profile.is_admin ? Promise.resolve(new Map()) : getDeadlines(ctx.supabase, [month]),
+  ]);
+  if (closed.includes(month) || deadlines.get(month)?.passed) {
+    month = currentMonthKey();
+    dateDone = todayISO();
+  }
+
+  const pages = parsed.data.pages;
+  const { error } = await ctx.supabase.from("submissions").insert({
+    user_id: ctx.profile.id,
+    role_id: draft.rate.roleId,
+    rate_item_id: draft.rate.rateItemId,
+    work_month: monthKeyToDate(month),
+    title: draft.title.slice(0, 150),
+    description: `${draft.stageLabel} – ${pages} page${pages === 1 ? "" : "s"}`,
+    quantity: pages,
+    date_done: dateDone,
+    links: draft.link ? [draft.link] : [],
+    exam_id: draft.examId,
+    task_id: draft.taskId,
+  });
+  if (error) return { ok: false, error: friendlyDbError(error) };
+
+  revalidateWork();
+  return { ok: true, message: `${pages} page${pages === 1 ? "" : "s"} sent for review` };
 }

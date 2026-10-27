@@ -57,14 +57,18 @@ export function NewPaperDialog({
   exams,
   defaultExam,
   today,
+  nextExamDay,
 }: {
   members: { id: string; name: string }[];
   exams: { id: string; label: string; examDate: string | null }[];
   defaultExam?: string;
   today: string;
+  /** The Wednesday after the last planned paper, so a new paper takes the next free week. */
+  nextExamDay?: string;
 }) {
   const router = useRouter();
-  const startExamDay = () => exams.find((e) => e.id === defaultExam)?.examDate ?? defaultExamDay(today);
+  const startExamDay = () =>
+    exams.find((e) => e.id === defaultExam)?.examDate ?? nextExamDay ?? defaultExamDay(today);
 
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");

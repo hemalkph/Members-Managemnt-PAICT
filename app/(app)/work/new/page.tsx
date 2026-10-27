@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { CalendarClockIcon, LockIcon, UserRoundXIcon } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
+import { PaperDraftsCard } from "@/components/member/paper-drafts-card";
 import { SubmissionForm } from "@/components/member/submission-form";
 import { PageHeader } from "@/components/page-header";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -10,6 +11,7 @@ import { SHOW_MEMBERS_THEIR_EARNINGS } from "@/lib/config";
 import { monthLabel, parseMonthParam, recentMonths, todayISO } from "@/lib/month";
 import { activeOptions, getClassOptions } from "@/lib/classes";
 import { getDeadlines } from "@/lib/deadlines";
+import { getPaperDrafts, toDraftItems } from "@/lib/paper-drafts";
 import { getClosedMonthKeys } from "@/lib/payments";
 import { getMemberRoles, getRatesForRoles } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
@@ -26,7 +28,7 @@ export default async function NewWorkPage({ searchParams }: PageProps<"/work/new
 
   const supabase = await createClient();
   const roles = await getMemberRoles(supabase, profile.id);
-  const [rates, { data: from }, closedMonths, classOptions, { data: task }] = await Promise.all([
+  const [rates, { data: from }, closedMonths, classOptions, { data: task }, drafts] = await Promise.all([
     getRatesForRoles(
       supabase,
       roles.map((r) => r.id),
@@ -49,7 +51,10 @@ export default async function NewWorkPage({ searchParams }: PageProps<"/work/new
           .eq("assignee_id", profile.id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
+    getPaperDrafts(supabase, profile.id),
   ]);
+  // A paper stage opened from "Ready to log": its role and page rate are known.
+  const taskDraft = task ? drafts.find((d) => d.taskId === task.id) : undefined;
   const tags = activeOptions(classOptions, { examId: task?.exam_id });
 
   // Closed months (already paid out) can't take new work, and members can't
@@ -59,27 +64,35 @@ export default async function NewWorkPage({ searchParams }: PageProps<"/work/new
   if (!candidates.includes(month)) candidates.push(month);
   const deadlines = profile.is_admin ? new Map() : await getDeadlines(supabase, candidates);
   const isLocked = (m: string) => closed.has(m) || Boolean(deadlines.get(m)?.passed);
-  const months = candidates.filter((m) => !isLocked(m)).sort().reverse();
+  const months = candidates
+    .filter((m) => !isLocked(m))
+    .sort()
+    .reverse();
   const workMonth = isLocked(month) ? (months.find((m) => m <= month) ?? months[0]) : month;
   const requestedDeadline = deadlines.get(month);
   const roleOptions = roles.map((r) => ({ ...r, rates: rates.get(r.id) ?? [] }));
-  const taskRole = task?.role_id && roles.some((r) => r.id === task.role_id) ? task.role_id : null;
+  const taskRole =
+    task?.role_id && roles.some((r) => r.id === task.role_id) ? task.role_id : (taskDraft?.rate?.roleId ?? null);
   const copyRole = taskRole ?? (from && roles.some((r) => r.id === from.role_id) ? from.role_id : null);
   const defaultRole = copyRole ?? (roles.length === 1 ? roles[0].id : "");
   const defaultRates = rates.get(defaultRole) ?? [];
   const defaultRate =
-    from?.rate_item_id && defaultRates.some((r) => r.id === from.rate_item_id)
-      ? from.rate_item_id
-      : defaultRates.length === 1
-        ? defaultRates[0].id
-        : "";
+    taskDraft?.rate && taskDraft.rate.roleId === defaultRole
+      ? taskDraft.rate.rateItemId
+      : from?.rate_item_id && defaultRates.some((r) => r.id === from.rate_item_id)
+        ? from.rate_item_id
+        : defaultRates.length === 1
+          ? defaultRates[0].id
+          : "";
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <PageHeader
         title={from ? "Log similar work" : "Submit work"}
         description={
-          from ? "Copied from an earlier submission. Check the details and submit." : "Log a task you finished. An admin will review it."
+          from
+            ? "Copied from an earlier submission. Check the details and submit."
+            : "Log a task you finished. An admin will review it."
         }
       />
       {!closed.has(month) && requestedDeadline?.passed && (
@@ -102,6 +115,7 @@ export default async function NewWorkPage({ searchParams }: PageProps<"/work/new
           </AlertDescription>
         </Alert>
       )}
+      {!task && !from && <PaperDraftsCard drafts={toDraftItems(drafts)} showMoney={SHOW_MEMBERS_THEIR_EARNINGS} />}
       {roles.length === 0 ? (
         <EmptyState
           icon={UserRoundXIcon}
@@ -126,7 +140,7 @@ export default async function NewWorkPage({ searchParams }: PageProps<"/work/new
                 rate_item_id: defaultRate,
                 title: task?.title ?? from?.title ?? "",
                 description: from?.description ?? "",
-                quantity: task?.quantity ?? from?.quantity ?? 1,
+                quantity: taskDraft ? 1 : (task?.quantity ?? from?.quantity ?? 1),
                 exam_id: task?.exam_id ?? "",
                 centre_id: task?.centre_id ?? "",
                 task_id: task?.id ?? "",

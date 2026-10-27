@@ -3,6 +3,7 @@ import Link from "next/link";
 import { FilePlus2Icon, InboxIcon } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { MonthlySummary } from "@/components/member/monthly-summary";
+import { PaperDraftsCard } from "@/components/member/paper-drafts-card";
 import { SubmissionCard } from "@/components/member/submission-card";
 import { MonthSelect } from "@/components/month-select";
 import { PageHeader } from "@/components/page-header";
@@ -11,6 +12,7 @@ import { requireCompleteProfile } from "@/lib/auth";
 import { SHOW_MEMBERS_THEIR_EARNINGS } from "@/lib/config";
 import { getMySalary, getSubmissionsForMonth, summarise } from "@/lib/member-queries";
 import { monthLabel, parseMonthParam } from "@/lib/month";
+import { getPaperDrafts, toDraftItems } from "@/lib/paper-drafts";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "My work" };
@@ -19,9 +21,10 @@ export default async function MyWorkPage({ searchParams }: PageProps<"/work">) {
   const profile = await requireCompleteProfile();
   const month = parseMonthParam((await searchParams).month);
   const supabase = await createClient();
-  const [submissions, salary] = await Promise.all([
+  const [submissions, salary, drafts] = await Promise.all([
     getSubmissionsForMonth(supabase, profile.id, month),
     SHOW_MEMBERS_THEIR_EARNINGS ? getMySalary(supabase, profile.id) : Promise.resolve(0),
+    getPaperDrafts(supabase, profile.id),
   ]);
   const summary = summarise(submissions);
 
@@ -41,6 +44,7 @@ export default async function MyWorkPage({ searchParams }: PageProps<"/work">) {
           </>
         }
       />
+      <PaperDraftsCard drafts={toDraftItems(drafts)} showMoney={SHOW_MEMBERS_THEIR_EARNINGS} />
       <MonthlySummary month={month} {...summary} salary={salary} showMoney={SHOW_MEMBERS_THEIR_EARNINGS} />
       {submissions.length === 0 ? (
         <EmptyState

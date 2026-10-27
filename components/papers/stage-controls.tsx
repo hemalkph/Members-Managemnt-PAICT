@@ -24,7 +24,7 @@ import type { ActionResult } from "@/lib/action-result";
 const NONE = "none";
 
 /** The stage owner finishes their stage (marks the stage task done). */
-export function FinishStageButton({ taskId, label }: { taskId: string; label: string }) {
+export function FinishStageButton({ taskId, label, logPages = false }: { taskId: string; label: string; logPages?: boolean }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   return (
@@ -39,7 +39,15 @@ export function FinishStageButton({ taskId, label }: { taskId: string; label: st
             toast.error(result.error);
             return;
           }
-          toast.success(`${label} done – the next stage has started`);
+          if (logPages) {
+            // Paid per page: a ready-made work entry is waiting in My work.
+            toast.success(`${label} done – add your page count to get paid`, {
+              action: { label: "Add pages", onClick: () => router.push("/work") },
+              duration: 10_000,
+            });
+          } else {
+            toast.success(`${label} done – the next stage has started`);
+          }
           router.refresh();
         })
       }

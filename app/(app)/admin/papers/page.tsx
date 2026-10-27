@@ -11,6 +11,7 @@ import { requireAdmin } from "@/lib/auth";
 import { activeOptions, getClassOptions } from "@/lib/classes";
 import { todayISO } from "@/lib/month";
 import { getPapers } from "@/lib/paper-queries";
+import { nextExamDay } from "@/lib/papers";
 import { createClient } from "@/lib/supabase/server";
 import { uuid } from "@/lib/validation";
 
@@ -62,6 +63,10 @@ export default async function PapersPage({ searchParams }: PageProps<"/admin/pap
           exams={tags.exams.map((e) => ({ id: e.id, label: e.label, examDate: e.examDate }))}
           defaultExam={exam || undefined}
           today={todayISO()}
+          nextExamDay={nextExamDay(
+            todayISO(),
+            allPapers.filter((p) => p.kind === "paper" && p.status !== "cancelled").map((p) => p.examDay),
+          )}
         />
       </div>
 
