@@ -6,20 +6,17 @@ import {
   CalendarClockIcon,
   CalendarDaysIcon,
   CheckIcon,
+  DownloadIcon,
   ExternalLinkIcon,
   GraduationCapIcon,
   SendIcon,
   UserIcon,
 } from "lucide-react";
+import { MyStagePanel, type MyStage } from "@/components/papers/my-stage-panel";
 import { PaperActions } from "@/components/papers/paper-actions";
 import { PaperFileList, PaperFileUploader, type FileItem } from "@/components/papers/paper-files";
 import { ReviewContacts, type PaperContact } from "@/components/papers/review-contacts";
-import {
-  EditStageDialog,
-  FinishStageButton,
-  HandoverLinksForm,
-  StageLinkDialog,
-} from "@/components/papers/stage-controls";
+import { EditStageDialog, HandoverLinksForm, StageLinkDialog } from "@/components/papers/stage-controls";
 import SpotlightCard from "@/components/reactbits/spotlight-card";
 import Stepper from "@/components/reactbits/stepper";
 import { Badge } from "@/components/ui/badge";
@@ -29,7 +26,15 @@ import { requireUser } from "@/lib/auth";
 import { getSiteUrl } from "@/lib/env";
 import { formatDate, formatDateTime, formatDay, formatDayRange } from "@/lib/format";
 import { getPaper, getPaperFiles } from "@/lib/paper-queries";
-import { MEDIUM_LABEL, onlineExamDay, PAID_PAGE_STAGES, PART_LABEL, paperSteps, STAGE_META } from "@/lib/papers";
+import {
+  MEDIUM_LABEL,
+  onlineExamDay,
+  PAID_PAGE_STAGES,
+  PART_LABEL,
+  paperSteps,
+  STAGE_INPUTS,
+  STAGE_META,
+} from "@/lib/papers";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import { UPLOAD_STAGES, uuid } from "@/lib/validation";
@@ -68,9 +73,6 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
   ]);
   const taskByStage = new Map((stageTasks ?? []).map((t) => [t.paper_stage_id, t]));
   const members = (profiles ?? []).map((p) => ({ id: p.id, name: p.full_name || p.email }));
-  const myTurn = paper.stages.filter(
-    (s) => s.ownerId === profile.id && s.status === "in_progress" && taskByStage.get(s.id),
-  );
   const handover = paper.stages.find((s) => s.stage === "handover");
 
   // Files move between members only until English type setting; from review on, WhatsApp.
@@ -118,6 +120,47 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
     when: formatDateTime(f.createdAt),
     latest: latestVersion.get(f.stage) === f.version,
   }));
+
+  // "Your part": my active stages, plus finished ones that never shared a file
+  // and can still take one (e.g. the converter marked done before uploading).
+  const latestFile = (stage: string) => fileItems.find((f) => f.stage === stage && f.latest) ?? null;
+  const openForUpload = new Set(uploadStages.map((u) => u.stage as string));
+  const myStages: MyStage[] =
+    paper.status === "in_progress"
+      ? paper.stages
+          .filter((s) => s.ownerId === profile.id)
+          .filter(
+            (s) =>
+              s.status === "in_progress" ||
+              (s.status === "done" && openForUpload.has(s.stage) && !latestFile(s.stage) && !s.link),
+          )
+          .map((s) => ({
+            stageId: s.id,
+            stage: s.stage,
+            number: s.position,
+            label: STAGE_META[s.stage].label,
+            howTo: STAGE_META[s.stage].howTo,
+            workDays: s.startDate || s.dueDate ? formatDayRange(s.startDate, s.dueDate) : null,
+            overdue: s.overdue,
+            status: s.status === "done" ? ("done" as const) : ("in_progress" as const),
+            inputs: STAGE_INPUTS[s.stage]
+              .map((from) => paper.stages.find((x) => x.stage === from))
+              .filter((x): x is NonNullable<typeof x> => Boolean(x) && x!.status !== "skipped")
+              .map((x) => ({
+                stageLabel: STAGE_META[x.stage].label,
+                ownerName: x.ownerName,
+                done: x.status === "done",
+                file: latestFile(x.stage),
+                link: x.link,
+              })),
+            uploadOpen: openForUpload.has(s.stage),
+            myFile: latestFile(s.stage),
+            myLink: s.link,
+            whatsapp: ["review_si", "review_en", "handover"].includes(s.stage),
+            taskId: s.status === "in_progress" ? (taskByStage.get(s.id)?.id ?? null) : null,
+            logPages: PAID_PAGE_STAGES.includes(s.stage),
+          }))
+      : [];
 
   // The people on this paper (not me), with what they do on it.
   const ROLE: Record<string, string> = {
@@ -200,36 +243,13 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
         </CardContent>
       </Card>
 
-      {myTurn.map((st) => {
-        const meta = STAGE_META[st.stage];
-        return (
-          <SpotlightCard
-            key={st.id}
-            className="border-primary/40 bg-primary/5 flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <div className="space-y-1">
-              <p className="font-semibold">It&apos;s your turn: {meta.label}</p>
-              <p className="text-muted-foreground text-sm">{meta.howTo}</p>
-              {(st.startDate || st.dueDate) && (
-                <p className={cn("text-sm font-medium", st.overdue && "text-destructive")}>
-                  Work {st.startDate && st.startDate !== st.dueDate ? "days" : "day"}:{" "}
-                  {formatDayRange(st.startDate, st.dueDate)}
-                </p>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {st.stage !== "handover" && (
-                <StageLinkDialog paperId={paper.id} stageId={st.id} label={meta.label} link={st.link} />
-              )}
-              <FinishStageButton
-                taskId={taskByStage.get(st.id)!.id}
-                label={meta.label}
-                logPages={PAID_PAGE_STAGES.includes(st.stage)}
-              />
-            </div>
-          </SpotlightCard>
-        );
-      })}
+      {myStages.length > 0 && (
+        <div className={cn("grid gap-4", myStages.length > 1 && "lg:grid-cols-2")}>
+          {myStages.map((st) => (
+            <MyStagePanel key={st.stageId} paperId={paper.id} stage={st} />
+          ))}
+        </div>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {paper.stages.map((s, i) => {
@@ -270,6 +290,16 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
                 )}
               </div>
               <div className="mt-auto flex flex-wrap gap-2">
+                {latestFile(s.stage) && (
+                  <Button asChild size="sm" variant="outline">
+                    <a
+                      href={`/papers/files/${latestFile(s.stage)!.id}?download=1`}
+                      title={latestFile(s.stage)!.fileName}
+                    >
+                      <DownloadIcon /> Download v{latestFile(s.stage)!.version}
+                    </a>
+                  </Button>
+                )}
                 {s.link && (
                   <Button asChild size="sm" variant="outline">
                     <a href={s.link} target="_blank" rel="noreferrer">
@@ -281,7 +311,7 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
                   s.status !== "skipped" &&
                   s.stage !== "handover" &&
                   paper.status !== "cancelled" &&
-                  !myTurn.some((t) => t.id === s.id) && (
+                  !myStages.some((t) => t.stageId === s.id) && (
                     <StageLinkDialog paperId={paper.id} stageId={s.id} label={meta.label} link={s.link} />
                   )}
                 {profile.is_admin && paper.status === "in_progress" && s.status !== "done" && (
@@ -312,12 +342,12 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
             <CardTitle>Files</CardTitle>
             <CardDescription>
               {canUpload
-                ? "Pass drafts to the next member here – e.g. the converter uploads the English draft for English type setting. Every upload is kept as a new version. Each medium's uploads stop when its review starts."
+                ? 'Every file shared on this paper, newest version first. Members upload from "Your part" above; each medium\'s uploads stop when its review starts.'
                 : "Drafts shared before the review. From the review stage on, files are sent on WhatsApp instead."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {canUpload && defaultUpload && (
+            {profile.is_admin && canUpload && defaultUpload && (
               <PaperFileUploader
                 paperId={paper.id}
                 defaultStage={defaultUpload.stage}

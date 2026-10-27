@@ -4,6 +4,16 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { CheckIcon, LinkIcon, Loader2Icon, PencilIcon, SkipForwardIcon } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,38 +33,67 @@ import type { ActionResult } from "@/lib/action-result";
 
 const NONE = "none";
 
-/** The stage owner finishes their stage (marks the stage task done). */
-export function FinishStageButton({ taskId, label, logPages = false }: { taskId: string; label: string; logPages?: boolean }) {
+/**
+ * The stage owner finishes their stage (marks the stage task done). If they
+ * haven't shared a file or link yet, they're asked first – the next member
+ * needs it.
+ */
+export function FinishStageButton({
+  taskId,
+  label,
+  logPages = false,
+  needsFile = false,
+}: {
+  taskId: string;
+  label: string;
+  logPages?: boolean;
+  needsFile?: boolean;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  return (
-    <Button
-      size="sm"
-      variant="success"
-      disabled={pending}
-      onClick={() =>
-        startTransition(async () => {
-          const result = await setTaskStatusAction({ id: taskId, status: "done" });
-          if (!result.ok) {
-            toast.error(result.error);
-            return;
-          }
-          if (logPages) {
-            // Paid per page: a ready-made work entry is waiting in My work.
-            toast.success(`${label} done – add your page count to get paid`, {
-              action: { label: "Add pages", onClick: () => router.push("/work") },
-              duration: 10_000,
-            });
-          } else {
-            toast.success(`${label} done – the next stage has started`);
-          }
-          router.refresh();
-        })
+  const [confirm, setConfirm] = useState(false);
+
+  const finish = () =>
+    startTransition(async () => {
+      const result = await setTaskStatusAction({ id: taskId, status: "done" });
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
       }
-    >
-      {pending ? <Loader2Icon className="animate-spin" /> : <CheckIcon />}
-      Mark my stage done
-    </Button>
+      if (logPages) {
+        // Paid per page: a ready-made work entry is waiting in My work.
+        toast.success(`${label} done – add your page count to get paid`, {
+          action: { label: "Add pages", onClick: () => router.push("/work") },
+          duration: 10_000,
+        });
+      } else {
+        toast.success(`${label} done – the next member has been told`);
+      }
+      router.refresh();
+    });
+
+  return (
+    <>
+      <Button size="sm" variant="success" disabled={pending} onClick={() => (needsFile ? setConfirm(true) : finish())}>
+        {pending ? <Loader2Icon className="animate-spin" /> : <CheckIcon />}
+        Mark my stage done
+      </Button>
+      <AlertDialog open={confirm} onOpenChange={setConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>You haven&apos;t shared your work yet</AlertDialogTitle>
+            <AlertDialogDescription>
+              The next member needs your file to start. Upload it (or add a link) first. You can still upload after
+              marking done, until the review starts.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Upload first</AlertDialogCancel>
+            <AlertDialogAction onClick={finish}>Mark done anyway</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 

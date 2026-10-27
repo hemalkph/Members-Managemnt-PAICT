@@ -97,6 +97,18 @@ export const STAGE_META = Object.fromEntries(STAGES.map((s) => [s.stage, s])) as
 
 export const PAPERS_BUCKET = "papers";
 
+/** Where each stage gets its work from (shown as "Get the work from the stage before"). */
+export const STAGE_INPUTS: Record<PaperStageName, PaperStageName[]> = {
+  create_si: [],
+  typeset_si: ["create_si"],
+  convert: ["create_si"],
+  typeset_en: ["convert"],
+  review_si: ["typeset_si"],
+  review_en: ["typeset_en"],
+  handover: ["typeset_si", "typeset_en"],
+  mark: [],
+};
+
 /** Paper stages paid per page: when done, the owner gets a ready-made work entry (they add the pages). */
 export const PAID_PAGE_STAGES: PaperStageName[] = ["typeset_si", "typeset_en", "convert"];
 
