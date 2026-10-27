@@ -6,20 +6,17 @@ import {
   CalendarClockIcon,
   CalendarDaysIcon,
   CheckIcon,
+  DownloadIcon,
   ExternalLinkIcon,
   GraduationCapIcon,
   SendIcon,
   UserIcon,
 } from "lucide-react";
+import { MyStagePanel, type MyStage } from "@/components/papers/my-stage-panel";
 import { PaperActions } from "@/components/papers/paper-actions";
 import { PaperFileList, PaperFileUploader, type FileItem } from "@/components/papers/paper-files";
 import { ReviewContacts, type PaperContact } from "@/components/papers/review-contacts";
-import {
-  EditStageDialog,
-  FinishStageButton,
-  HandoverLinksForm,
-  StageLinkDialog,
-} from "@/components/papers/stage-controls";
+import { EditStageDialog, HandoverLinksForm, StageLinkDialog } from "@/components/papers/stage-controls";
 import SpotlightCard from "@/components/reactbits/spotlight-card";
 import Stepper from "@/components/reactbits/stepper";
 import { Badge } from "@/components/ui/badge";
@@ -29,7 +26,15 @@ import { requireUser } from "@/lib/auth";
 import { getSiteUrl } from "@/lib/env";
 import { formatDate, formatDateTime, formatDay, formatDayRange } from "@/lib/format";
 import { getPaper, getPaperFiles } from "@/lib/paper-queries";
-import { MEDIUM_LABEL, onlineExamDay, PART_LABEL, paperSteps, STAGE_META } from "@/lib/papers";
+import {
+  MEDIUM_LABEL,
+  onlineExamDay,
+  PAID_PAGE_STAGES,
+  PART_LABEL,
+  paperSteps,
+  STAGE_INPUTS,
+  STAGE_META,
+} from "@/lib/papers";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import { UPLOAD_STAGES, uuid } from "@/lib/validation";
@@ -68,19 +73,37 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
   ]);
   const taskByStage = new Map((stageTasks ?? []).map((t) => [t.paper_stage_id, t]));
   const members = (profiles ?? []).map((p) => ({ id: p.id, name: p.full_name || p.email }));
-  const myTurn = paper.stages.filter(
-    (s) => s.ownerId === profile.id && s.status === "in_progress" && taskByStage.get(s.id),
-  );
   const handover = paper.stages.find((s) => s.stage === "handover");
 
   // Files move between members only until English type setting; from review on, WhatsApp.
   const reviewReached = paper.stages.some(
-    (s) => ["review_si", "review_en", "handover"].includes(s.stage) && (s.status === "in_progress" || s.status === "done"),
+    (s) =>
+      ["review_si", "review_en", "handover"].includes(s.stage) && (s.status === "in_progress" || s.status === "done"),
   );
+  // Each medium takes files until its own review starts: Sinhala files until the
+  // Sinhala review, the English draft and English type setting until the English review.
+  const reviewOf: Record<string, string> = {
+    create_si: "review_si",
+    typeset_si: "review_si",
+    convert: "review_en",
+    typeset_en: "review_en",
+  };
+  const reviewStarted = (stage: string) => {
+    const review = paper.stages.find((s) => s.stage === reviewOf[stage]);
+    return Boolean(review && (review.status === "in_progress" || review.status === "done"));
+  };
   const uploadStages = paper.stages
-    .filter((s) => (UPLOAD_STAGES as readonly string[]).includes(s.stage) && s.status !== "skipped")
-    .map((s) => ({ stage: s.stage, label: STAGE_META[s.stage].label, mine: s.ownerId === profile.id, active: s.status === "in_progress" }));
-  const canUpload = paper.status === "in_progress" && !reviewReached && uploadStages.length > 0;
+    .filter(
+      (s) =>
+        (UPLOAD_STAGES as readonly string[]).includes(s.stage) && s.status !== "skipped" && !reviewStarted(s.stage),
+    )
+    .map((s) => ({
+      stage: s.stage,
+      label: STAGE_META[s.stage].label,
+      mine: s.ownerId === profile.id,
+      active: s.status === "in_progress",
+    }));
+  const canUpload = paper.status === "in_progress" && uploadStages.length > 0;
   const defaultUpload =
     uploadStages.find((s) => s.mine && s.active) ?? uploadStages.find((s) => s.active) ?? uploadStages[0];
   const latestVersion = new Map<string, number>();
@@ -98,6 +121,47 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
     latest: latestVersion.get(f.stage) === f.version,
   }));
 
+  // "Your part": my active stages, plus finished ones that never shared a file
+  // and can still take one (e.g. the converter marked done before uploading).
+  const latestFile = (stage: string) => fileItems.find((f) => f.stage === stage && f.latest) ?? null;
+  const openForUpload = new Set(uploadStages.map((u) => u.stage as string));
+  const myStages: MyStage[] =
+    paper.status === "in_progress"
+      ? paper.stages
+          .filter((s) => s.ownerId === profile.id)
+          .filter(
+            (s) =>
+              s.status === "in_progress" ||
+              (s.status === "done" && openForUpload.has(s.stage) && !latestFile(s.stage) && !s.link),
+          )
+          .map((s) => ({
+            stageId: s.id,
+            stage: s.stage,
+            number: s.position,
+            label: STAGE_META[s.stage].label,
+            howTo: STAGE_META[s.stage].howTo,
+            workDays: s.startDate || s.dueDate ? formatDayRange(s.startDate, s.dueDate) : null,
+            overdue: s.overdue,
+            status: s.status === "done" ? ("done" as const) : ("in_progress" as const),
+            inputs: STAGE_INPUTS[s.stage]
+              .map((from) => paper.stages.find((x) => x.stage === from))
+              .filter((x): x is NonNullable<typeof x> => Boolean(x) && x!.status !== "skipped")
+              .map((x) => ({
+                stageLabel: STAGE_META[x.stage].label,
+                ownerName: x.ownerName,
+                done: x.status === "done",
+                file: latestFile(x.stage),
+                link: x.link,
+              })),
+            uploadOpen: openForUpload.has(s.stage),
+            myFile: latestFile(s.stage),
+            myLink: s.link,
+            whatsapp: ["review_si", "review_en", "handover"].includes(s.stage),
+            taskId: s.status === "in_progress" ? (taskByStage.get(s.id)?.id ?? null) : null,
+            logPages: PAID_PAGE_STAGES.includes(s.stage),
+          }))
+      : [];
+
   // The people on this paper (not me), with what they do on it.
   const ROLE: Record<string, string> = {
     create_si: "Paper creator",
@@ -111,7 +175,12 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
   const contactMap = new Map<string, PaperContact>();
   for (const c of contactRows ?? []) {
     if (c.user_id === profile.id || !ROLE[c.stage]) continue;
-    const entry = contactMap.get(c.user_id) ?? { userId: c.user_id, name: c.full_name, roles: [], whatsapp: c.whatsapp };
+    const entry = contactMap.get(c.user_id) ?? {
+      userId: c.user_id,
+      name: c.full_name,
+      roles: [],
+      whatsapp: c.whatsapp,
+    };
     if (!entry.roles.includes(ROLE[c.stage])) entry.roles.push(ROLE[c.stage]);
     contactMap.set(c.user_id, entry);
   }
@@ -174,31 +243,13 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
         </CardContent>
       </Card>
 
-      {myTurn.map((st) => {
-        const meta = STAGE_META[st.stage];
-        return (
-          <SpotlightCard
-            key={st.id}
-            className="border-primary/40 bg-primary/5 flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <div className="space-y-1">
-              <p className="font-semibold">It&apos;s your turn: {meta.label}</p>
-              <p className="text-muted-foreground text-sm">{meta.howTo}</p>
-              {(st.startDate || st.dueDate) && (
-                <p className={cn("text-sm font-medium", st.overdue && "text-destructive")}>
-                  Work {st.startDate && st.startDate !== st.dueDate ? "days" : "day"}: {formatDayRange(st.startDate, st.dueDate)}
-                </p>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {st.stage !== "handover" && (
-                <StageLinkDialog paperId={paper.id} stageId={st.id} label={meta.label} link={st.link} />
-              )}
-              <FinishStageButton taskId={taskByStage.get(st.id)!.id} label={meta.label} />
-            </div>
-          </SpotlightCard>
-        );
-      })}
+      {myStages.length > 0 && (
+        <div className={cn("grid gap-4", myStages.length > 1 && "lg:grid-cols-2")}>
+          {myStages.map((st) => (
+            <MyStagePanel key={st.stageId} paperId={paper.id} stage={st} />
+          ))}
+        </div>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {paper.stages.map((s, i) => {
@@ -219,7 +270,9 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
                   <p className="text-muted-foreground text-xs">Stage {i + 1}</p>
                   <p className="font-semibold">{meta.label}</p>
                 </div>
-                <Badge variant={s.overdue ? "destructive" : status.variant}>{s.overdue ? "Overdue" : status.label}</Badge>
+                <Badge variant={s.overdue ? "destructive" : status.variant}>
+                  {s.overdue ? "Overdue" : status.label}
+                </Badge>
               </div>
               <div className="text-muted-foreground space-y-1 text-sm">
                 <p className="flex items-center gap-1.5">
@@ -237,6 +290,16 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
                 )}
               </div>
               <div className="mt-auto flex flex-wrap gap-2">
+                {latestFile(s.stage) && (
+                  <Button asChild size="sm" variant="outline">
+                    <a
+                      href={`/papers/files/${latestFile(s.stage)!.id}?download=1`}
+                      title={latestFile(s.stage)!.fileName}
+                    >
+                      <DownloadIcon /> Download v{latestFile(s.stage)!.version}
+                    </a>
+                  </Button>
+                )}
                 {s.link && (
                   <Button asChild size="sm" variant="outline">
                     <a href={s.link} target="_blank" rel="noreferrer">
@@ -248,7 +311,7 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
                   s.status !== "skipped" &&
                   s.stage !== "handover" &&
                   paper.status !== "cancelled" &&
-                  !myTurn.some((t) => t.id === s.id) && (
+                  !myStages.some((t) => t.stageId === s.id) && (
                     <StageLinkDialog paperId={paper.id} stageId={s.id} label={meta.label} link={s.link} />
                   )}
                 {profile.is_admin && paper.status === "in_progress" && s.status !== "done" && (
@@ -278,13 +341,13 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
           <CardHeader>
             <CardTitle>Files</CardTitle>
             <CardDescription>
-              {reviewReached
-                ? "Drafts shared before the review. From the review stage on, files are sent on WhatsApp instead."
-                : "Pass drafts to the next member here. Every upload is kept as a new version. Uploads stop at the review stage."}
+              {canUpload
+                ? 'Every file shared on this paper, newest version first. Members upload from "Your part" above; each medium\'s uploads stop when its review starts.'
+                : "Drafts shared before the review. From the review stage on, files are sent on WhatsApp instead."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {canUpload && defaultUpload && (
+            {profile.is_admin && canUpload && defaultUpload && (
               <PaperFileUploader
                 paperId={paper.id}
                 defaultStage={defaultUpload.stage}
@@ -305,7 +368,8 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
             </CardTitle>
             <CardDescription>
               The type setter sends the corrected final PDF to the LMS admin and physical coordinator WhatsApp groups.
-              PDFs are not uploaded here, so storage stays small{profile.is_admin ? " – paste the two message links below" : ""}.
+              PDFs are not uploaded here, so storage stays small
+              {profile.is_admin ? " – paste the two message links below" : ""}.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

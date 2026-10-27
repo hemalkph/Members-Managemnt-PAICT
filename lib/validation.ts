@@ -131,6 +131,12 @@ export const submissionActionSchema = submissionSchema.extend({
   removed_attachment_ids: z.array(uuid).max(50).default([]),
 });
 
+/** Paper work draft: only the page count is entered. */
+export const paperPagesSchema = z.object({
+  task_id: uuid,
+  pages: z.number({ error: "Enter the number of pages" }).int("Use a whole number").min(1, "At least 1 page").max(2000, "That's too many pages"),
+});
+
 // ---------------------------------------------------------------- review
 export const reviewSchema = z
   .object({

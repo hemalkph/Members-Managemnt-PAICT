@@ -15,6 +15,7 @@ import type { PaperStageName } from "@/lib/database.types";
 import { formatBytes } from "@/lib/format";
 import { PAPERS_BUCKET, STAGE_LABEL, STAGES } from "@/lib/papers";
 import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
 import { MAX_PAPER_FILE_BYTES, type UPLOAD_STAGES } from "@/lib/validation";
 
 export type FileItem = {
@@ -46,12 +47,15 @@ export function PaperFileUploader({
   paperId,
   defaultStage,
   stages,
+  buttonLabel = "Upload file",
 }: {
   paperId: string;
   defaultStage: PaperStageName;
-  /** Stages that still take files (only the first four, never from review on). */
+  /** Stages that still take files (only the first four, never from review on). One = no stage menu. */
   stages: { stage: PaperStageName; label: string }[];
+  buttonLabel?: string;
 }) {
+  const single = stages.length === 1;
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [stage, setStage] = useState<PaperStageName>(defaultStage);
@@ -72,7 +76,11 @@ export function PaperFileUploader({
       .upload(path, file, { contentType: file.type || undefined, upsert: false });
     if (error) {
       setBusy(false);
-      toast.error(`Could not upload ${file.name}.`);
+      toast.error(
+        /security|policy|unauthori[sz]ed|403/i.test(error.message)
+          ? "Uploads are closed for this stage. Share a link instead, or ask an admin."
+          : `Could not upload ${file.name}. Please try again.`,
+      );
       return;
     }
     const result = await addPaperFileAction({
@@ -96,28 +104,35 @@ export function PaperFileUploader({
   };
 
   return (
-    <div className="bg-muted/30 grid gap-3 rounded-xl border border-dashed p-3 sm:grid-cols-[170px_1fr_auto] sm:items-end">
+    <div
+      className={cn(
+        "bg-muted/30 grid gap-3 rounded-xl border border-dashed p-3 sm:items-end",
+        single ? "sm:grid-cols-[1fr_auto]" : "sm:grid-cols-[170px_1fr_auto]",
+      )}
+    >
+      {!single && (
+        <div className="grid gap-1.5">
+          <Label className="text-xs">Stage</Label>
+          <Select value={stage} onValueChange={(v) => setStage(v as PaperStageName)}>
+            <SelectTrigger aria-label="Stage">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {stages.map((s) => (
+                <SelectItem key={s.stage} value={s.stage}>
+                  {s.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
       <div className="grid gap-1.5">
-        <Label className="text-xs">Stage</Label>
-        <Select value={stage} onValueChange={(v) => setStage(v as PaperStageName)}>
-          <SelectTrigger aria-label="Stage">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {stages.map((s) => (
-              <SelectItem key={s.stage} value={s.stage}>
-                {s.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="grid gap-1.5">
-        <Label htmlFor="file-note" className="text-xs">
+        <Label htmlFor={`file-note-${stage}`} className="text-xs">
           What changed? (optional)
         </Label>
         <Input
-          id="file-note"
+          id={`file-note-${stage}`}
           value={note}
           maxLength={300}
           placeholder="e.g. Fixed Q12 answer"
@@ -133,7 +148,7 @@ export function PaperFileUploader({
       />
       <Button type="button" disabled={busy} onClick={() => inputRef.current?.click()}>
         {busy ? <Loader2Icon className="animate-spin" /> : <UploadIcon />}
-        {busy ? "Uploading…" : "Upload file"}
+        {busy ? "Uploading…" : buttonLabel}
       </Button>
     </div>
   );
@@ -156,7 +171,11 @@ export function PaperFileList({ files }: { files: FileItem[] }) {
     });
 
   if (files.length === 0) {
-    return <p className="text-muted-foreground text-sm">No files yet. Share drafts here until the English type setting is done.</p>;
+    return (
+      <p className="text-muted-foreground text-sm">
+        No files yet. Share drafts here until the English type setting is done.
+      </p>
+    );
   }
 
   return (

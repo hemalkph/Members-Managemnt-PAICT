@@ -34,7 +34,7 @@ export const STAGES: StageMeta[] = [
     stage: "typeset_si",
     label: "Type set (Sinhala)",
     description: "Type and lay out the Sinhala paper",
-    howTo: "Type set the Sinhala paper and add the link to the file.",
+    howTo: "Type set the Sinhala paper and upload it here. When you mark it done, add your page count in My work.",
     startOffset: -4,
     dueOffset: -3,
   },
@@ -42,7 +42,7 @@ export const STAGES: StageMeta[] = [
     stage: "convert",
     label: "Convert to English",
     description: "Conversion team makes the English version",
-    howTo: "Convert the paper to English (2 days at most) and add the link.",
+    howTo: "Convert the paper to English (2 days at most) and upload the English draft here for English type setting. Then add your page count in My work.",
     english: true,
     startOffset: -4,
     dueOffset: -3,
@@ -51,7 +51,7 @@ export const STAGES: StageMeta[] = [
     stage: "typeset_en",
     label: "Type set (English)",
     description: "Type and lay out the English paper",
-    howTo: "Type set the English paper and add the link to the file.",
+    howTo: "Type set the English paper and upload it here. When you mark it done, add your page count in My work.",
     english: true,
     startOffset: -2,
     dueOffset: -2,
@@ -97,6 +97,21 @@ export const STAGE_META = Object.fromEntries(STAGES.map((s) => [s.stage, s])) as
 
 export const PAPERS_BUCKET = "papers";
 
+/** Where each stage gets its work from (shown as "Get the work from the stage before"). */
+export const STAGE_INPUTS: Record<PaperStageName, PaperStageName[]> = {
+  create_si: [],
+  typeset_si: ["create_si"],
+  convert: ["create_si"],
+  typeset_en: ["convert"],
+  review_si: ["typeset_si"],
+  review_en: ["typeset_en"],
+  handover: ["typeset_si", "typeset_en"],
+  mark: [],
+};
+
+/** Paper stages paid per page: when done, the owner gets a ready-made work entry (they add the pages). */
+export const PAID_PAGE_STAGES: PaperStageName[] = ["typeset_si", "typeset_en", "convert"];
+
 export type PaperMedium = "si" | "both";
 export type PaperPart = "mcq" | "essay" | "full";
 
@@ -124,6 +139,18 @@ export function defaultExamDay(today: string): string {
   const d = weekday(today);
   const monday = addDays(today, d === 0 ? -6 : 1 - d);
   return addDays(monday, d >= 1 && d <= 2 ? 9 : 16);
+}
+
+/**
+ * The exam day for the next new paper: the Wednesday after the last paper
+ * already planned (one paper a week), but never earlier than defaultExamDay.
+ */
+export function nextExamDay(today: string, plannedExamDays: (string | null)[]): string {
+  const earliest = defaultExamDay(today);
+  const latest = plannedExamDays.filter((d): d is string => Boolean(d)).sort().at(-1);
+  if (!latest) return earliest;
+  const next = addDays(latest, 7);
+  return next > earliest ? next : earliest;
 }
 
 /** Default start and due date of every stage for an exam day. */
