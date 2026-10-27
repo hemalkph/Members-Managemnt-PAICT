@@ -54,7 +54,11 @@ async function needsTwoStepCode(): Promise<boolean> {
  */
 export async function requireUser(): Promise<Profile> {
   const profile = await getCurrentProfile();
-  if (!profile) redirect("/login");
+  // The proxy only lets signed-in visitors reach pages. No profile here means
+  // the login cookie belongs to an account that is gone (deleted user, revoked
+  // session): sign out to clear it. Redirecting to /login would loop, because
+  // /login sends signed-in visitors back to "/".
+  if (!profile) redirect("/auth/signout?reason=expired");
   if (!profile.is_active) redirect("/auth/signout?reason=inactive");
   if (await needsTwoStepCode()) redirect("/login/two-step");
   return profile;

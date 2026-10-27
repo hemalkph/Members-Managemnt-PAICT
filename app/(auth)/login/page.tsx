@@ -8,6 +8,7 @@ export const metadata: Metadata = { title: "Log in" };
 
 const ERRORS: Record<string, string> = {
   inactive: "Your account is deactivated. Please contact an admin.",
+  expired: "Your login has ended. Please sign in again.",
   link: "That link is invalid or has expired. Please try again.",
 };
 

@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Two-step login" };
 
 export default async function TwoStepLoginPage() {
   const session = await getAuthSession();
-  if (!session) redirect("/login");
+  if (!session) redirect("/auth/signout?reason=expired"); // stale cookie: clear it (see requireUser)
   if (!session.hasTwoStep || session.twoStepVerified) redirect("/");
 
   return (
