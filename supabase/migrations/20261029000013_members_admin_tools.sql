@@ -39,7 +39,7 @@ begin
     end if;
     clean := clean || jsonb_build_object(k, v);
   end loop;
-  update public.app_settings set paper_default_owners = clean, updated_by = (select auth.uid()), updated_at = now();
+  update public.app_settings set paper_default_owners = clean, updated_by = (select auth.uid()), updated_at = now() where id;
   perform public.write_activity('settings.paper_team', 'settings', 'paper_default_owners', null,
     'Saved the usual paper team', jsonb_build_object('owners', clean));
 end;
