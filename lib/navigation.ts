@@ -11,6 +11,7 @@ import {
   FileTextIcon,
   HistoryIcon,
   ShieldCheckIcon,
+  TrophyIcon,
   ClipboardCheckIcon,
   FilePlus2Icon,
   LandmarkIcon,
@@ -60,6 +61,12 @@ export function adminNav(isMainAdmin: boolean): NavItem[] {
     { title: "Papers", href: "/admin/papers", icon: FileStackIcon, keywords: "paper tute typeset convert mark production" },
     { title: "Work review", href: "/admin/review", icon: ClipboardCheckIcon, keywords: "approve reject pending" },
     { title: "Members", href: "/admin/members", icon: UsersIcon, keywords: "people team users" },
+    {
+      title: "Team performance",
+      href: "/admin/team",
+      icon: TrophyIcon,
+      keywords: "on time late speed pages leaderboard recognition",
+    },
     { title: "Monthly report", href: "/admin/reports", icon: BriefcaseBusinessIcon, keywords: "csv export" },
     { title: "Notice board", href: "/admin/notices", icon: MegaphoneIcon, keywords: "announcements news" },
     {

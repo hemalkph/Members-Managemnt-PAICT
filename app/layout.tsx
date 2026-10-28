@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { ServiceWorkerRegister } from "@/components/pwa/sw-register";
 import { SmoothScroll } from "@/components/smooth-scroll";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -22,6 +23,10 @@ export const metadata: Metadata = {
     template: "%s · Team Work Tracker",
   },
   description: "Log and review monthly work for the A/L ICT class team.",
+  applicationName: "PAICT Team",
+  appleWebApp: { capable: true, title: "PAICT Team", statusBarStyle: "default" },
+  icons: { apple: "/apple-touch-icon.png" },
+  manifest: "/manifest.webmanifest",
 };
 
 export const viewport: Viewport = {
@@ -39,6 +44,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full font-sans">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <SmoothScroll />
+          <ServiceWorkerRegister />
           {children}
           <Toaster position="top-center" />
         </ThemeProvider>

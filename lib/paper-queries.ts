@@ -8,7 +8,7 @@ import type { PaperView, StageView } from "@/lib/papers";
 type Client = SupabaseClient<Database>;
 
 const PAPER_SELECT =
-  "id, title, kind, medium, part, exam_day, lms_link, physical_link, handed_over_at, exam_id, notes, status, created_at, completed_at, exam:exams(name, batch:batches(name)), paper_stages(id, stage, position, owner_id, start_date, due_date, link, status, completed_at, owner:profiles!paper_stages_owner_id_fkey(full_name, email))";
+  "id, title, kind, medium, part, exam_day, lms_link, physical_link, handed_over_at, files_cleared_at, files_cleared_count, exam_id, notes, status, created_at, completed_at, exam:exams(name, batch:batches(name)), paper_stages(id, stage, position, owner_id, start_date, due_date, link, status, completed_at, owner:profiles!paper_stages_owner_id_fkey(full_name, email))";
 
 type Row = {
   id: string;
@@ -20,6 +20,8 @@ type Row = {
   lms_link: string | null;
   physical_link: string | null;
   handed_over_at: string | null;
+  files_cleared_at: string | null;
+  files_cleared_count: number | null;
   exam_id: string | null;
   notes: string | null;
   status: "in_progress" | "done" | "cancelled";
@@ -51,6 +53,8 @@ function toView(row: Row, today: string): PaperView {
     lmsLink: row.lms_link,
     physicalLink: row.physical_link,
     handedOverAt: row.handed_over_at,
+    filesClearedAt: row.files_cleared_at,
+    filesClearedCount: row.files_cleared_count,
     examId: row.exam_id,
     examLabel: row.exam ? `${row.exam.batch?.name ? `${row.exam.batch.name} – ` : ""}${row.exam.name}` : null,
     notes: row.notes,
