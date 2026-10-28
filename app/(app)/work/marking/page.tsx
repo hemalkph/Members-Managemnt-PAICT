@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireCompleteProfile } from "@/lib/auth";
 import { formatDate, formatDay, formatNumber } from "@/lib/format";
-import { getMarkingRates, markingKind, markingParts } from "@/lib/marking";
+import { getMarkingRates, markingKind, setKey, setParts, setTitle } from "@/lib/marking";
 import { addDays, PART_LABEL } from "@/lib/papers";
 import { todayISO } from "@/lib/month";
 import { createClient } from "@/lib/supabase/server";
@@ -31,7 +31,7 @@ export default async function MarkingPage() {
       .select("id, title, part, exam_day, handed_over_at")
       .eq("kind", "paper")
       .neq("status", "cancelled")
-      .gte("exam_day", addDays(todayISO(), -120))
+      .or(`exam_day.gte.${addDays(todayISO(), -120)},exam_day.is.null`)
       .order("exam_day", { ascending: false })
       .limit(100),
     supabase.from("centres").select("id, name").eq("is_active", true).order("sort_order").order("name"),
@@ -48,23 +48,39 @@ export default async function MarkingPage() {
         }),
   ]);
 
-  // Papers that were handed over (or whose exam day is here).
+  // Paper sets: "RFP 04 - MCQ" + "RFP 04 - SE & Essay" are marked together as
+  // "RFP 04". A set shows once one of its papers was handed over (or its exam day is here).
   const today = todayISO();
-  const papers: MarkingPaper[] = (paperRows ?? [])
-    .filter((p) => p.handed_over_at || (p.exam_day && p.exam_day <= today))
-    .map((p) => ({
-      id: p.id,
-      title: p.title,
-      sub: [
-        p.title.toLowerCase().includes(PART_LABEL[markingKind(p.part, p.title)].toLowerCase())
-          ? null
-          : PART_LABEL[markingKind(p.part, p.title)],
-        p.exam_day ? formatDay(p.exam_day) : null,
-      ]
-        .filter(Boolean)
-        .join(" · "),
-      parts: markingParts(p.part, p.title),
-    }));
+  const sets = new Map<string, NonNullable<typeof paperRows>>();
+  for (const p of paperRows ?? []) sets.set(setKey(p.title), [...(sets.get(setKey(p.title)) ?? []), p]);
+  const papers: MarkingPaper[] = [...sets.values()]
+    .filter((set) => set.some((p) => p.handed_over_at || (p.exam_day && p.exam_day <= today)))
+    .map((set) => {
+      const parts = setParts(set);
+      const day = set
+        .map((p) => p.exam_day)
+        .filter((d): d is string => Boolean(d))
+        .sort()[0];
+      const single = parts.length === 1 ? PART_LABEL[markingKind(set[0].part, set[0].title)] : null;
+      return {
+        id: set.map((p) => p.id).join(","),
+        paperIds: set.map((p) => p.id),
+        title: set.length > 1 || parts.length > 1 ? setTitle(set[0].title) : set[0].title,
+        sub: [
+          parts.length > 1
+            ? set.length > 1
+              ? "MCQ + Essay"
+              : "Full paper"
+            : single && !set[0].title.toLowerCase().includes(single.toLowerCase())
+              ? single
+              : null,
+          day ? formatDay(day) : null,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+        parts,
+      };
+    });
 
   const noRates = !rates.mcq && !rates.essay && !rates.full;
 

@@ -15,7 +15,8 @@ type Part = "mcq" | "essay" | "full";
 const HEAD: Record<Part, string> = { full: "Full", mcq: "MCQ", essay: "Essay" };
 const ARIA: Record<Part, string> = { full: "full papers", mcq: "MCQ papers", essay: "Essay papers" };
 
-export type MarkingPaper = { id: string; title: string; sub: string; parts: Part[] };
+/** One paper, or a set marked together (e.g. "RFP 04" = its MCQ and SE & Essay papers). */
+export type MarkingPaper = { id: string; paperIds: string[]; title: string; sub: string; parts: Part[] };
 
 type Counts = Record<string, Partial<Record<Part, string>>>;
 
@@ -70,7 +71,7 @@ export function MarkingForm({
     e.preventDefault();
     startTransition(async () => {
       const result = await logMarkingAction({
-        paper_id: paperId,
+        paper_ids: paper?.paperIds ?? [],
         rows: centres
           .map((c) => ({
             centre_id: c.id,
@@ -93,7 +94,7 @@ export function MarkingForm({
   return (
     <form onSubmit={submit} className="space-y-5">
       <div className="grid gap-2">
-        <Label htmlFor="marking-paper">Paper</Label>
+        <Label htmlFor="marking-paper">RFP / paper</Label>
         <Select
           value={paperId}
           onValueChange={(v) => {
@@ -102,7 +103,7 @@ export function MarkingForm({
           }}
         >
           <SelectTrigger id="marking-paper" className="w-full">
-            <SelectValue placeholder="Choose the paper you marked" />
+            <SelectValue placeholder="Choose the RFP / paper you marked" />
           </SelectTrigger>
           <SelectContent>
             {papers.map((p) => (
@@ -180,8 +181,8 @@ export function MarkingForm({
       )}
       {parts.includes("full") && (
         <p className="text-muted-foreground -mt-2 text-xs">
-          <strong className="text-foreground">Full</strong> = you marked both the MCQ and Essay of a paper. For each
-          centre, enter full papers <em>or</em> MCQ / Essay – the other boxes lock.
+          <strong className="text-foreground">Full</strong> = one student&apos;s MCQ + Essay, both marked by you. For
+          each centre, enter full papers <em>or</em> MCQ / Essay – the other boxes lock.
         </p>
       )}
 
