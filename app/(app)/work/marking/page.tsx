@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireCompleteProfile } from "@/lib/auth";
 import { formatDate, formatDay, formatNumber } from "@/lib/format";
-import { getMarkingRates, markingParts } from "@/lib/marking";
+import { getMarkingRates, markingKind, markingParts } from "@/lib/marking";
 import { addDays, PART_LABEL } from "@/lib/papers";
 import { todayISO } from "@/lib/month";
 import { createClient } from "@/lib/supabase/server";
@@ -22,7 +22,9 @@ export default async function MarkingPage() {
   const supabase = await createClient();
 
   const rates = await getMarkingRates(supabase, profile.id);
-  const rateIds = [rates.mcq?.rateItemId, rates.essay?.rateItemId].filter((x): x is string => Boolean(x));
+  const rateIds = [rates.mcq?.rateItemId, rates.essay?.rateItemId, rates.full?.rateItemId].filter((x): x is string =>
+    Boolean(x),
+  );
   const [{ data: paperRows }, { data: centres }, { data: recent }] = await Promise.all([
     supabase
       .from("papers")
@@ -53,17 +55,24 @@ export default async function MarkingPage() {
     .map((p) => ({
       id: p.id,
       title: p.title,
-      sub: `${PART_LABEL[p.part]}${p.exam_day ? ` · ${formatDay(p.exam_day)}` : ""}`,
-      parts: markingParts(p.part),
+      sub: [
+        p.title.toLowerCase().includes(PART_LABEL[markingKind(p.part, p.title)].toLowerCase())
+          ? null
+          : PART_LABEL[markingKind(p.part, p.title)],
+        p.exam_day ? formatDay(p.exam_day) : null,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      parts: markingParts(p.part, p.title),
     }));
 
-  const noRates = !rates.mcq && !rates.essay;
+  const noRates = !rates.mcq && !rates.essay && !rates.full;
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <PageHeader
         title="Log marking"
-        description="Enter how many papers you marked at each centre. You're paid per marked MCQ and Essay paper."
+        description="Enter how many papers you marked at each centre. You're paid per marked paper: full, MCQ or Essay."
         actions={
           <Button asChild variant="outline">
             <Link href="/work/new">Other work</Link>
@@ -75,7 +84,7 @@ export default async function MarkingPage() {
         <EmptyState
           icon={UserRoundXIcon}
           title="No marking rate yet"
-          description='An admin needs to give your role the "MCQ paper marking" and "Essay paper marking" rates.'
+          description='An admin needs to give your role the "Full paper marking", "MCQ paper marking" and "Essay paper marking" rates.'
         />
       ) : papers.length === 0 ? (
         <EmptyState
@@ -91,6 +100,7 @@ export default async function MarkingPage() {
               centres={centres ?? []}
               canMcq={Boolean(rates.mcq)}
               canEssay={Boolean(rates.essay)}
+              canFull={Boolean(rates.full)}
             />
           </CardContent>
         </Card>

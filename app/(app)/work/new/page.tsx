@@ -99,7 +99,7 @@ export default async function NewWorkPage({ searchParams }: PageProps<"/work/new
             : "Log a task you finished. An admin will review it."
         }
         actions={
-          (marking.mcq || marking.essay) && !task && !from ? (
+          (marking.mcq || marking.essay || marking.full) && !task && !from ? (
             <Button asChild variant="outline">
               <Link href="/work/marking">
                 <ClipboardPenIcon /> Log marked papers

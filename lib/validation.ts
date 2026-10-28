@@ -499,6 +499,7 @@ export const markingLogSchema = z.object({
         centre_id: uuid,
         mcq: z.number().int().min(0).max(5000),
         essay: z.number().int().min(0).max(5000),
+        full: z.number().int().min(0).max(5000).default(0),
       }),
     )
     .min(1)

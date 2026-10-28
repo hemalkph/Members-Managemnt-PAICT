@@ -6,9 +6,11 @@ import type { PaperPart } from "@/lib/papers";
 type Client = SupabaseClient<Database>;
 
 export type MarkingRate = { roleId: string; rateItemId: string; name: string; price: number };
-export type MarkingRates = { mcq: MarkingRate | null; essay: MarkingRate | null };
+export type MarkingPart = "mcq" | "essay" | "full";
+export type MarkingRates = Record<MarkingPart, MarkingRate | null>;
+export const MARKING_LABEL: Record<MarkingPart, string> = { mcq: "MCQ", essay: "Essay", full: "Full paper" };
 
-/** The member's "MCQ paper marking" and "Essay paper marking" rates (from any of their roles). */
+/** The member's "MCQ / Essay / Full paper marking" rates (from any of their roles). */
 export async function getMarkingRates(supabase: Client, userId: string): Promise<MarkingRates> {
   const roles = await getMemberRoles(supabase, userId);
   const rates = await getRatesForRoles(
@@ -22,10 +24,24 @@ export async function getMarkingRates(supabase: Client, userId: string): Promise
     }
     return null;
   };
-  return { mcq: find(/mcq/i), essay: find(/essay/i) };
+  return { mcq: find(/mcq/i), essay: find(/essay/i), full: find(/full/i) };
 }
 
-/** Which marked-paper counts a paper takes: a full paper has both MCQ and Essay. */
-export function markingParts(part: PaperPart): ("mcq" | "essay")[] {
-  return part === "mcq" ? ["mcq"] : part === "essay" ? ["essay"] : ["mcq", "essay"];
+/**
+ * What a paper is for marking. A paper made as one of a split pair can still be
+ * saved as "full", so its title decides: "… - MCQ" is MCQ, "… SE & Essay" is Essay.
+ */
+export function markingKind(part: PaperPart, title: string): "mcq" | "essay" | "full" {
+  if (part !== "full") return part;
+  const mcq = /\bmcq\b/i.test(title);
+  const essay = /essay|\bse\b/i.test(title);
+  if (mcq && !essay) return "mcq";
+  if (essay && !mcq) return "essay";
+  return "full";
+}
+
+/** Which counts a paper takes: a full paper is marked whole ("Full paper") or by part (MCQ / Essay). */
+export function markingParts(part: PaperPart, title: string): MarkingPart[] {
+  const kind = markingKind(part, title);
+  return kind === "full" ? ["full", "mcq", "essay"] : [kind];
 }

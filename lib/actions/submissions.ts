@@ -5,7 +5,7 @@ import { friendlyDbError, type ActionResult } from "@/lib/action-result";
 import { getActionContext, NOT_ALLOWED } from "@/lib/auth";
 import { getDeadlines } from "@/lib/deadlines";
 import { APP_TIME_ZONE, currentMonthKey, monthKeyToDate, todayISO } from "@/lib/month";
-import { getMarkingRates, markingParts } from "@/lib/marking";
+import { getMarkingRates, MARKING_LABEL, markingParts } from "@/lib/marking";
 import { getPaperDrafts } from "@/lib/paper-drafts";
 import { getClosedMonthKeys } from "@/lib/payments";
 import { isProfileComplete } from "@/lib/profile-completion";
@@ -272,7 +272,7 @@ export async function logPaperPagesAction(input: { task_id: string; pages: numbe
  */
 export async function logMarkingAction(input: {
   paper_id: string;
-  rows: { centre_id: string; mcq: number; essay: number }[];
+  rows: { centre_id: string; mcq: number; essay: number; full?: number }[];
 }): Promise<ActionResult> {
   const ctx = await getActionContext();
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
@@ -295,7 +295,7 @@ export async function logMarkingAction(input: {
     getMarkingRates(ctx.supabase, ctx.profile.id),
   ]);
   if (!paper || paper.kind !== "paper" || paper.status === "cancelled") return { ok: false, error: "Paper not found." };
-  const parts = markingParts(paper.part);
+  const parts = markingParts(paper.part, paper.title);
   const centreName = new Map((centres ?? []).map((c) => [c.id, c.name]));
 
   const month = currentMonthKey();
@@ -307,17 +307,20 @@ export async function logMarkingAction(input: {
     return { ok: false, error: "This month is closed for new work. Ask an admin." };
   }
 
-  const LABEL = { mcq: "MCQ", essay: "Essay" } as const;
+  const LABEL = MARKING_LABEL;
   const rows = [];
   for (const r of v.rows) {
     const centre = centreName.get(r.centre_id);
     if (!centre) return { ok: false, error: "Choose a centre from the list." };
+    if (r.full > 0 && (r.mcq > 0 || r.essay > 0)) {
+      return { ok: false, error: `${centre}: enter full papers, or MCQ and Essay – not both.` };
+    }
     for (const part of parts) {
       const count = r[part];
       if (count <= 0) continue;
       const rate = rates[part];
       if (!rate) {
-        return { ok: false, error: `You don't have a "${LABEL[part]} paper marking" rate yet. Ask an admin.` };
+        return { ok: false, error: `You don't have a "${LABEL[part]} marking" rate yet. Ask an admin.` };
       }
       rows.push({
         user_id: ctx.profile.id,
@@ -325,7 +328,7 @@ export async function logMarkingAction(input: {
         rate_item_id: rate.rateItemId,
         work_month: monthKeyToDate(month),
         title: `${paper.title} – ${LABEL[part]} marking – ${centre}`.slice(0, 150),
-        description: `${count} ${LABEL[part]} paper${count === 1 ? "" : "s"} marked · ${centre}`,
+        description: `${count} ${part === "full" ? "full" : LABEL[part]} paper${count === 1 ? "" : "s"} marked · ${centre}`,
         quantity: count,
         date_done: todayISO(),
         links: [],
