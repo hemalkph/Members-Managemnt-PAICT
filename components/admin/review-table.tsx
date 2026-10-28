@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { CheckCheckIcon, Loader2Icon, PaperclipIcon } from "lucide-react";
+import { CheckCheckIcon, FileStackIcon, Loader2Icon, PaperclipIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { StatusBadge } from "@/components/status-badge";
@@ -11,7 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { reviewSubmissionsAction } from "@/lib/actions/admin";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatLKR } from "@/lib/format";
 import { ReviewDialog, type ReviewRow } from "./review-dialog";
 
 export function ReviewTable({ rows }: { rows: ReviewRow[] }) {
@@ -25,6 +25,8 @@ export function ReviewTable({ rows }: { rows: ReviewRow[] }) {
   const allChecked = pendingRows.length > 0 && selectedPending.length === pendingRows.length;
   const someChecked = selectedPending.length > 0 && !allChecked;
   const openRow = rows.find((r) => r.id === openId) ?? null;
+  const paperRows = pendingRows.filter((r) => r.fromPaper);
+  const selectedValue = selectedPending.reduce((sum, r) => sum + (r.amount ?? 0), 0);
 
   const toggle = (id: string, on: boolean) =>
     setSelected((prev) => {
@@ -55,13 +57,27 @@ export function ReviewTable({ rows }: { rows: ReviewRow[] }) {
       <div className="flex min-h-9 flex-wrap items-center justify-between gap-2">
         <p className="text-muted-foreground text-sm">
           {rows.length} submission{rows.length === 1 ? "" : "s"} · {pendingRows.length} pending
+          {selectedPending.length === 0 && pendingRows.length > 1 && " · tick several to approve them together"}
         </p>
-        {selectedPending.length > 0 && (
-          <Button variant="success" onClick={bulkApprove} disabled={pending}>
-            {pending ? <Loader2Icon className="animate-spin" /> : <CheckCheckIcon />}
-            Approve {selectedPending.length} selected
-          </Button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {paperRows.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSelected(new Set(paperRows.map((r) => r.id)))}
+              title="Page counts logged from finished type setting / conversion stages"
+            >
+              <FileStackIcon /> Select paper page counts ({paperRows.length})
+            </Button>
+          )}
+          {selectedPending.length > 0 && (
+            <Button variant="success" onClick={bulkApprove} disabled={pending}>
+              {pending ? <Loader2Icon className="animate-spin" /> : <CheckCheckIcon />}
+              Approve {selectedPending.length} selected
+              {selectedValue > 0 && <span className="font-normal opacity-90">· {formatLKR(selectedValue)}</span>}
+            </Button>
+          )}
+        </div>
       </div>
 
       <Card className="py-0">
@@ -127,7 +143,15 @@ export function ReviewTable({ rows }: { rows: ReviewRow[] }) {
                   <p className="max-w-[180px] truncate">{r.roleName}</p>
                   <p className="text-muted-foreground max-w-[180px] truncate text-xs">{r.sectionName}</p>
                 </TableCell>
-                <TableCell className="text-right font-medium tabular-nums">{r.quantity}</TableCell>
+                <TableCell className="text-right font-medium tabular-nums">
+                  {r.quantity}
+                  {r.unit && (
+                    <span className="text-muted-foreground block text-xs font-normal">
+                      {r.unit}
+                      {r.quantity === 1 ? "" : "s"}
+                    </span>
+                  )}
+                </TableCell>
                 <TableCell className="hidden sm:table-cell">{formatDate(r.date_done)}</TableCell>
                 <TableCell className="pr-4">
                   <StatusBadge status={r.status} />

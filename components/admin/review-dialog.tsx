@@ -40,6 +40,8 @@ export type ReviewRow = {
   unitPrice: number | null;
   amount: number | null;
   attachments: { id: string; file_name: string; size_bytes: number }[];
+  /** A page count logged from a finished paper stage ("Ready to log"). */
+  fromPaper?: boolean;
 };
 
 export function ReviewDialog({

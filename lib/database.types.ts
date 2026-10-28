@@ -613,6 +613,7 @@ export type Database = {
           deadline_day: number;
           reminder_days: number;
           paper_file_days: number;
+          paper_default_owners: Json;
           updated_by: string | null;
           updated_at: string;
         };
@@ -963,6 +964,7 @@ export type Database = {
       set_paper_links: { Args: { p_paper: string; p_lms: string | null; p_physical: string | null }; Returns: undefined };
       storage_usage: { Args: Record<PropertyKey, never>; Returns: { bucket: string; files: number; bytes: number }[] };
       set_paper_file_days: { Args: { p_days: number }; Returns: undefined };
+      set_paper_default_owners: { Args: { p_owners: Json }; Returns: undefined };
       paper_contacts: {
         Args: { p_paper: string };
         Returns: { stage: string; user_id: string; full_name: string; whatsapp: string | null }[];

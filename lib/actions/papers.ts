@@ -7,6 +7,7 @@ import { addDays, PAPERS_BUCKET, PART_LABEL } from "@/lib/papers";
 import {
   firstError,
   idSchema,
+  paperDefaultOwnersSchema,
   paperLinksSchema,
   paperSchema,
   paperFileSchema,
@@ -240,4 +241,17 @@ export async function deletePaperFileAction(input: { id: string }): Promise<Acti
   if (ctx.profile.is_admin) await ctx.supabase.storage.from(PAPERS_BUCKET).remove([file.storage_path]);
   revalidatePapers(file.paper_id);
   return { ok: true, message: "File removed" };
+}
+
+/** Admins: save the usual owner of each stage; new papers start with them filled in. */
+export async function setPaperDefaultOwnersAction(input: { owners: Record<string, string> }): Promise<ActionResult> {
+  const ctx = await getActionContext({ admin: true });
+  if (!ctx) return { ok: false, error: NOT_ALLOWED };
+  const parsed = paperDefaultOwnersSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
+  const owners = Object.fromEntries(Object.entries(parsed.data.owners).filter(([, id]) => id));
+  const { error } = await ctx.supabase.rpc("set_paper_default_owners", { p_owners: owners });
+  if (error) return { ok: false, error: friendlyDbError(error) };
+  revalidatePath("/admin/papers");
+  return { ok: true, message: "Saved – new papers will start with this team" };
 }

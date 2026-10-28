@@ -4,6 +4,8 @@ import {
   CalculatorIcon,
   BanknoteIcon,
   BellIcon,
+  CalendarDaysIcon,
+  GaugeIcon,
   ClipboardListIcon,
   FileStackIcon,
   GraduationCapIcon,
@@ -29,13 +31,15 @@ export type NavItem = { title: string; href: string; icon: LucideIcon; exact?: b
 
 export const MEMBER_NAV: NavItem[] = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboardIcon, keywords: "home" },
+  { title: "My week", href: "/week", icon: CalendarDaysIcon, keywords: "planner agenda schedule calendar upcoming" },
   { title: "Notifications", href: "/notifications", icon: BellIcon, keywords: "inbox messages alerts reminders" },
   { title: "My tasks", href: "/tasks", icon: ListTodoIcon, keywords: "todo assigned due papers stages" },
   { title: "Submit work", href: "/work/new", icon: FilePlus2Icon, keywords: "log add new task" },
   { title: "My work", href: "/work", icon: ListChecksIcon, keywords: "submissions history" },
+  { title: "My performance", href: "/performance", icon: GaugeIcon, keywords: "on time stats pages progress" },
   { title: "Profile", href: "/profile", icon: UserIcon, keywords: "account phone nic photo" },
   { title: "Bank details", href: "/bank", icon: LandmarkIcon, keywords: "payment account" },
-  { title: "My payslips", href: "/payslips", icon: FileTextIcon, keywords: "salary paid pdf payment" },
+  { title: "My earnings", href: "/payslips", icon: FileTextIcon, keywords: "payslips salary paid pdf payment history" },
   { title: "Two-step login", href: "/security", icon: ShieldCheckIcon, keywords: "security 2fa authenticator otp" },
 ];
 

@@ -21,7 +21,7 @@ export const SHOW_MEMBERS_THEIR_EARNINGS = true;
 export const PAYROLL_CSV_INCLUDES_FULL_ACCOUNT_NUMBER = true;
 
 /**
- * Members can open and download their own payslips (My payslips) once a
+ * Members can open and download their own payslips (My earnings) once a
  * month is closed. Set to false to keep payslips for main admins only.
  */
 export const MEMBERS_CAN_SEE_PAYSLIPS = true;

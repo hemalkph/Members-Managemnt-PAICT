@@ -13,7 +13,8 @@ import {
 import BlurText from "@/components/reactbits/blur-text";
 import SpotlightCard from "@/components/reactbits/spotlight-card";
 import { StatCard } from "@/components/stat-card";
-import { PagesChart } from "@/components/team/pages-chart";
+import { MonthBars } from "@/components/team/month-bars";
+import { StageSpeed } from "@/components/team/stage-speed";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,7 +26,6 @@ import { monthLabel } from "@/lib/month";
 import { getTeamPerformance, MIN_FOR_RANKING, type MemberPerformance } from "@/lib/performance";
 import { signedAvatarUrls } from "@/lib/storage";
 import { createClient } from "@/lib/supabase/server";
-import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Team performance" };
 
@@ -85,8 +85,6 @@ export default async function TeamPerformancePage({ searchParams }: PageProps<"/
     quickest && { icon: RabbitIcon, title: "Quickest", m: quickest, value: `${days(quickest.avgDays)} per task` },
   ].filter(Boolean) as { icon: typeof TrophyIcon; title: string; m: MemberPerformance; value: string }[];
 
-  const stageRows = perf.stages.filter((s) => s.done > 0);
-  const maxDays = Math.max(1, ...stageRows.map((s) => Math.max(s.avgDays ?? 0, s.plannedDays ?? 0)));
 
   return (
     <div className="space-y-6">
@@ -170,8 +168,9 @@ export default async function TeamPerformancePage({ searchParams }: PageProps<"/
             <CardDescription>Approved type setting and conversion pages · {perf.team.pages} in total</CardDescription>
           </CardHeader>
           <CardContent>
-            <PagesChart
-              data={perf.pagesByMonth.map((p) => ({ label: monthLabel(p.month, "short"), pages: p.pages }))}
+            <MonthBars
+              label="Pages"
+              data={perf.pagesByMonth.map((p) => ({ label: monthLabel(p.month, "short"), value: p.pages }))}
             />
           </CardContent>
         </Card>
@@ -182,51 +181,7 @@ export default async function TeamPerformancePage({ searchParams }: PageProps<"/
             <CardDescription>Average days each stage took. The line marks the planned work days.</CardDescription>
           </CardHeader>
           <CardContent>
-            {stageRows.length === 0 ? (
-              <p className="text-muted-foreground py-8 text-center text-sm">No paper stages finished in this period.</p>
-            ) : (
-              <ul className="space-y-3">
-                {stageRows.map((s) => {
-                  const late = s.avgDays !== null && s.plannedDays !== null && s.avgDays > s.plannedDays;
-                  return (
-                    <li
-                      key={s.stage}
-                      className="space-y-1"
-                      title={`${s.label}: ${days(s.avgDays)} on average (planned ${days(s.plannedDays)}) · ${s.done} done${s.onTimeRate !== null ? ` · ${s.onTimeRate}% on time` : ""}`}
-                    >
-                      <div className="flex items-baseline justify-between gap-2 text-sm">
-                        <span className="truncate font-medium">{s.label}</span>
-                        <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
-                          <span className={cn("text-foreground font-semibold", late && "text-destructive")}>
-                            {days(s.avgDays)}
-                          </span>
-                          {s.plannedDays !== null && ` / ${days(s.plannedDays)} planned`}
-                          {late && (
-                            <TriangleAlertIcon
-                              className="text-destructive ml-1 inline size-3.5"
-                              aria-label="slower than planned"
-                            />
-                          )}
-                        </span>
-                      </div>
-                      <div className="bg-muted relative h-2.5 rounded-full">
-                        <div
-                          className={cn("h-full rounded-full", late ? "bg-destructive" : "bg-primary")}
-                          style={{ width: `${Math.max(2, ((s.avgDays ?? 0) / maxDays) * 100)}%` }}
-                        />
-                        {s.plannedDays !== null && (
-                          <span
-                            aria-hidden
-                            className="bg-foreground absolute -top-1 h-[18px] w-0.5 rounded-full"
-                            style={{ left: `${(s.plannedDays / maxDays) * 100}%` }}
-                          />
-                        )}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
+            <StageSpeed stages={perf.stages} empty="No paper stages finished in this period." />
           </CardContent>
         </Card>
       </div>

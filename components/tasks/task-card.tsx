@@ -14,6 +14,7 @@ import {
   HourglassIcon,
   Loader2Icon,
   MapPinIcon,
+  MessageCircleIcon,
   MoreHorizontalIcon,
   PencilIcon,
   RotateCcwIcon,
@@ -48,10 +49,13 @@ export function TaskCard({
   task,
   mode,
   onEdit,
+  whatsapp,
 }: {
   task: TaskView;
   mode: "member" | "admin";
   onEdit?: (task: TaskView) => void;
+  /** Admins: the member's WhatsApp number (wa.me format), shown when the task is late. */
+  whatsapp?: string | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -193,6 +197,20 @@ export function TaskCard({
         )}
         {task.workCount > 0 && <span>{task.workCount} work logged</span>}
       </div>
+
+      {mode === "admin" && task.overdue && whatsapp && (
+        <Button asChild size="sm" className="w-fit bg-[#0f7a6e] text-white hover:bg-[#0c675d]">
+          <a
+            href={`https://wa.me/${whatsapp}?text=${encodeURIComponent(
+              `Hi ${task.assigneeName.split(" ")[0]}, "${task.title}" is ${task.dueLabel?.toLowerCase() ?? "overdue"}. Can you finish it today?`,
+            )}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            <MessageCircleIcon /> WhatsApp {task.assigneeName.split(" ")[0]}
+          </a>
+        </Button>
+      )}
 
       {mode === "member" && (task.status === "open" || task.status === "done") && (
         <div className="mt-auto flex flex-wrap gap-2 pt-1">

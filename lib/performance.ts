@@ -70,29 +70,44 @@ type TaskRow = {
  * tasks (paper stages and other tasks) done on time, how long they took, and
  * approved pages. For admins (RLS lets them read everything used here).
  */
-export async function getTeamPerformance(supabase: Client, monthCount: number): Promise<TeamPerformance> {
+export async function getTeamPerformance(
+  supabase: Client,
+  monthCount: number,
+  /** Only this member (My performance). Members can read their own rows only. */
+  onlyUserId?: string,
+): Promise<TeamPerformance> {
   const thisMonth = currentMonthKey();
   const months = Array.from({ length: monthCount }, (_, i) => shiftMonth(thisMonth, i - monthCount + 1));
   const fromDate = monthKeyToDate(months[0]);
   const today = todayISO();
 
+  let profileQuery = supabase.from("profiles").select("id, full_name, email, avatar_path").eq("is_active", true);
+  let doneQuery = supabase
+    .from("tasks")
+    .select(
+      "assignee_id, due_date, completed_at, created_at, status, stage:paper_stages(stage, started_at, start_date, due_date)",
+    )
+    .eq("status", "done")
+    .gte("completed_at", `${fromDate}T00:00:00+05:30`)
+    .limit(5000);
+  let openQuery = supabase.from("tasks").select("assignee_id, due_date").eq("status", "open").limit(5000);
+  let subsQuery = supabase
+    .from("submissions")
+    .select("user_id, quantity, work_month, rate_items(unit)")
+    .eq("status", "approved")
+    .gte("work_month", fromDate)
+    .limit(10000);
+  if (onlyUserId) {
+    profileQuery = profileQuery.eq("id", onlyUserId);
+    doneQuery = doneQuery.eq("assignee_id", onlyUserId);
+    openQuery = openQuery.eq("assignee_id", onlyUserId);
+    subsQuery = subsQuery.eq("user_id", onlyUserId);
+  }
   const [{ data: profiles }, { data: doneRows }, { data: openRows }, { data: subs }] = await Promise.all([
-    supabase.from("profiles").select("id, full_name, email, avatar_path").eq("is_active", true),
-    supabase
-      .from("tasks")
-      .select(
-        "assignee_id, due_date, completed_at, created_at, status, stage:paper_stages(stage, started_at, start_date, due_date)",
-      )
-      .eq("status", "done")
-      .gte("completed_at", `${fromDate}T00:00:00+05:30`)
-      .limit(5000),
-    supabase.from("tasks").select("assignee_id, due_date").eq("status", "open").limit(5000),
-    supabase
-      .from("submissions")
-      .select("user_id, quantity, work_month, rate_items(unit)")
-      .eq("status", "approved")
-      .gte("work_month", fromDate)
-      .limit(10000),
+    profileQuery,
+    doneQuery,
+    openQuery,
+    subsQuery,
   ]);
 
   const tasks = (doneRows ?? []) as unknown as TaskRow[];

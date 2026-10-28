@@ -9,13 +9,14 @@ import {
   DownloadIcon,
   ExternalLinkIcon,
   GraduationCapIcon,
+  MessageCircleIcon,
   SendIcon,
   UserIcon,
 } from "lucide-react";
 import { MyStagePanel, type MyStage } from "@/components/papers/my-stage-panel";
 import { PaperActions } from "@/components/papers/paper-actions";
 import { PaperFileList, PaperFileUploader, type FileItem } from "@/components/papers/paper-files";
-import { ReviewContacts, type PaperContact } from "@/components/papers/review-contacts";
+import { ReviewContacts, waNumber, type PaperContact } from "@/components/papers/review-contacts";
 import { EditStageDialog, HandoverLinksForm, StageLinkDialog } from "@/components/papers/stage-controls";
 import SpotlightCard from "@/components/reactbits/spotlight-card";
 import Stepper from "@/components/reactbits/stepper";
@@ -172,6 +173,8 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
     review_si: "Reviewer",
     review_en: "Reviewer",
   };
+  // Admins: WhatsApp for whoever owns a late stage.
+  const phoneOf = new Map((contactRows ?? []).map((c) => [c.user_id, waNumber(c.whatsapp)]));
   const contactMap = new Map<string, PaperContact>();
   for (const c of contactRows ?? []) {
     if (c.user_id === profile.id || !ROLE[c.stage]) continue;
@@ -290,6 +293,19 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
                 )}
               </div>
               <div className="mt-auto flex flex-wrap gap-2">
+                {profile.is_admin && s.overdue && s.ownerId && s.ownerId !== profile.id && phoneOf.get(s.ownerId) && (
+                  <Button asChild size="sm" className="bg-[#0f7a6e] text-white hover:bg-[#0c675d]">
+                    <a
+                      href={`https://wa.me/${phoneOf.get(s.ownerId)}?text=${encodeURIComponent(
+                        `Hi ${(s.ownerName ?? "").split(" ")[0]}, "${paper.title}" – ${meta.label} was due ${s.dueDate ? formatDay(s.dueDate) : "already"}. Can you finish it today? ${getSiteUrl()}/papers/${paper.id}`,
+                      )}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <MessageCircleIcon /> WhatsApp {(s.ownerName ?? "").split(" ")[0]}
+                    </a>
+                  </Button>
+                )}
                 {latestFile(s.stage) && (
                   <Button asChild size="sm" variant="outline">
                     <a

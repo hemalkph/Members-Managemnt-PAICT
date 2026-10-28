@@ -6,6 +6,8 @@ import { DeadlineCard } from "@/components/deadline/deadline-card";
 import { EmptyState } from "@/components/empty-state";
 import { MonthlySummary } from "@/components/member/monthly-summary";
 import { PayPhone } from "@/components/member/pay-phone";
+import { GettingStarted } from "@/components/onboarding/getting-started";
+import { WelcomeGuide } from "@/components/onboarding/welcome-guide";
 import { RolesList } from "@/components/member/roles-list";
 import { NoticeBoard } from "@/components/notice-board";
 import { SubmissionCard } from "@/components/member/submission-card";
@@ -43,7 +45,18 @@ export default async function DashboardPage() {
   const previous = shiftMonth(month, -1);
   // Reminders: also sent by a daily job; this catches up after the page is sent.
   await sendDueRemindersLater(supabase);
-  const [submissions, roles, { data: bank }, notices, salary, deadlines, closedMonths, myTasks, avatarUrl] = await Promise.all([
+  const [
+    submissions,
+    roles,
+    { data: bank },
+    notices,
+    salary,
+    deadlines,
+    closedMonths,
+    myTasks,
+    avatarUrl,
+    { count: alertDevices },
+  ] = await Promise.all([
     getSubmissionsForMonth(supabase, profile.id, month),
     getMemberRoles(supabase, profile.id),
     supabase.from("bank_details").select("user_id").eq("user_id", profile.id).maybeSingle(),
@@ -53,7 +66,32 @@ export default async function DashboardPage() {
     getClosedMonthKeys(supabase),
     getTasks(supabase, { assigneeId: profile.id, statuses: ["open"], limit: 20 }),
     SHOW_MEMBERS_THEIR_EARNINGS ? signedAvatarUrl(supabase, profile.avatar_path) : Promise.resolve(null),
+    supabase.from("push_subscriptions").select("id", { count: "exact", head: true }).eq("user_id", profile.id),
   ]);
+  const setupSteps = [
+    {
+      key: "photo",
+      label: "Add a profile picture",
+      hint: "So the team knows who's who",
+      href: "/profile",
+      done: Boolean(profile.avatar_path),
+    },
+    {
+      key: "whatsapp",
+      label: "Add your WhatsApp number",
+      hint: "Needed for paper reviews",
+      href: "/profile",
+      done: Boolean(profile.whatsapp),
+    },
+    { key: "bank", label: "Add your bank details", hint: "So you can be paid", href: "/bank", done: Boolean(bank) },
+    {
+      key: "alerts",
+      label: "Turn on phone alerts",
+      hint: "Get “Your turn” on your phone",
+      href: "/notifications",
+      done: (alertDevices ?? 0) > 0,
+    },
+  ];
   // The next deadline: last month's if it is still open, otherwise this month's.
   const prevDeadline = deadlines.get(previous);
   const nextDeadline =
@@ -89,6 +127,9 @@ export default async function DashboardPage() {
           </Link>
         </Button>
       </div>
+
+      <WelcomeGuide userId={profile.id} firstName={firstName} />
+      <GettingStarted userId={profile.id} steps={setupSteps} />
 
       {roles.length > 0 && nextDeadline && <DeadlineCard deadline={nextDeadline} progress={deadlineProgress} />}
 
@@ -132,7 +173,9 @@ export default async function DashboardPage() {
                 high: t.priority === "high",
                 href: t.paperId ? `/papers/${t.paperId}` : `/work/new?task=${t.id}`,
               }))}
-              done={approvedWork.slice(0, 2).map((s) => ({ id: s.id, title: s.title, amount: Number(s.amount ?? 0) || 0 }))}
+              done={approvedWork
+                .slice(0, 2)
+                .map((s) => ({ id: s.id, title: s.title, amount: Number(s.amount ?? 0) || 0 }))}
             />
           </div>
         )}

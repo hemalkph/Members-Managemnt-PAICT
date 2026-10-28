@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
-import { CalendarDaysIcon, FilePlus2Icon, Loader2Icon, RotateCcwIcon } from "lucide-react";
+import { CalendarDaysIcon, FilePlus2Icon, Loader2Icon, RotateCcwIcon, UsersRoundIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { createPaperAction } from "@/lib/actions/papers";
+import { createPaperAction, setPaperDefaultOwnersAction } from "@/lib/actions/papers";
 import type { PaperStageName } from "@/lib/database.types";
 import { formatDay as day } from "@/lib/format";
 import { addDays, defaultExamDay, defaultSchedule, onlineExamDay, STAGES, type PaperMedium } from "@/lib/papers";
@@ -38,11 +38,13 @@ const FOLLOWS: Partial<Record<PaperStageName, PaperStageName>> = {
   handover: "typeset_si", // the type setter fixes it and sends the PDFs
 };
 
-function planStages(examDay: string): StageState[] {
+type Owners = Partial<Record<PaperStageName, string>>;
+
+function planStages(examDay: string, owners: Owners = {}): StageState[] {
   const schedule = examDay ? defaultSchedule(examDay) : null;
   return STAGES.map((s) => ({
     stage: s.stage,
-    owner_id: "",
+    owner_id: owners[s.stage] ?? "",
     start_date: schedule?.[s.stage].start ?? "",
     due_date: schedule?.[s.stage].due ?? "",
     skip: false,
@@ -58,17 +60,20 @@ export function NewPaperDialog({
   defaultExam,
   today,
   nextExamDay,
+  defaultOwners = {},
 }: {
-  members: { id: string; name: string }[];
+  /** busy = due dates of the member's open and upcoming tasks (for the workload check). */
+  members: { id: string; name: string; busy: string[] }[];
   exams: { id: string; label: string; examDate: string | null }[];
   defaultExam?: string;
   today: string;
   /** The Wednesday after the last planned paper, so a new paper takes the next free week. */
   nextExamDay?: string;
+  /** The usual paper team (filled in on every new paper). */
+  defaultOwners?: Owners;
 }) {
   const router = useRouter();
-  const startExamDay = () =>
-    exams.find((e) => e.id === defaultExam)?.examDate ?? nextExamDay ?? defaultExamDay(today);
+  const startExamDay = () => exams.find((e) => e.id === defaultExam)?.examDate ?? nextExamDay ?? defaultExamDay(today);
 
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
@@ -79,7 +84,12 @@ export function NewPaperDialog({
   const [exam2Id, setExam2Id] = useState("");
   const [examDay, setExamDay] = useState(startExamDay);
   const [notes, setNotes] = useState("");
-  const [stages, setStages] = useState<StageState[]>(() => planStages(startExamDay()));
+  const usualTeam = (): Owners =>
+    Object.fromEntries(
+      Object.entries(defaultOwners).filter(([, id]) => id && members.some((m) => m.id === id)),
+    ) as Owners;
+  const [stages, setStages] = useState<StageState[]>(() => planStages(startExamDay(), usualTeam()));
+  const [savingTeam, startSavingTeam] = useTransition();
   const [pending, startTransition] = useTransition();
   // Things the admin changed by hand are never overwritten automatically.
   const touched = useRef({ medium: false, owners: new Set<PaperStageName>() });
@@ -107,7 +117,9 @@ export function NewPaperDialog({
     setExamDay(value);
     if (!value) return;
     const schedule = defaultSchedule(value);
-    setStages((prev) => prev.map((s) => ({ ...s, start_date: schedule[s.stage].start, due_date: schedule[s.stage].due })));
+    setStages((prev) =>
+      prev.map((s) => ({ ...s, start_date: schedule[s.stage].start, due_date: schedule[s.stage].due })),
+    );
   };
 
   const autoMedium = (text: string) => {
@@ -125,8 +137,29 @@ export function NewPaperDialog({
     setExam2Id("");
     setExamDay(d);
     setNotes("");
-    setStages(planStages(d));
+    setStages(planStages(d, usualTeam()));
   };
+
+  /** Workload check: the member's tasks due in this paper's work week (Mon before → exam day). */
+  const busyThisWeek = (memberId: string) => {
+    const m = members.find((x) => x.id === memberId);
+    if (!m) return 0;
+    if (!examDay) return m.busy.length;
+    const from = addDays(examDay, -9);
+    return m.busy.filter((d) => d >= from && d <= examDay).length;
+  };
+
+  const saveTeam = () =>
+    startSavingTeam(async () => {
+      const owners = Object.fromEntries(stages.map((s) => [s.stage, s.skip ? "" : s.owner_id]));
+      const result = await setPaperDefaultOwnersAction({ owners });
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(result.message);
+      router.refresh();
+    });
 
   const save = (e: React.FormEvent) => {
     e.preventDefault();
@@ -296,12 +329,7 @@ export function NewPaperDialog({
             <div className="grid min-w-0 gap-2">
               <Label htmlFor="paper-exam-day">{examLabel}</Label>
               <div className="flex gap-2">
-                <Input
-                  id="paper-exam-day"
-                  type="date"
-                  value={examDay}
-                  onChange={(e) => applyExamDay(e.target.value)}
-                />
+                <Input id="paper-exam-day" type="date" value={examDay} onChange={(e) => applyExamDay(e.target.value)} />
                 <Button
                   type="button"
                   variant="outline"
@@ -337,9 +365,22 @@ export function NewPaperDialog({
           <div className="space-y-2">
             <div className="flex items-baseline justify-between gap-2">
               <p className="text-sm font-medium">Stages and work days</p>
-              <p className="text-muted-foreground text-xs">
-                {neededStages.length} stages{part === "split" ? " · same plan for both weeks" : ""}
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-muted-foreground hidden text-xs sm:block">
+                  {neededStages.length} stages{part === "split" ? " · same plan for both weeks" : ""}
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={saveTeam}
+                  disabled={savingTeam || stages.every((s) => !s.owner_id)}
+                  title="Fill in these owners on every new paper"
+                >
+                  {savingTeam ? <Loader2Icon className="animate-spin" /> : <UsersRoundIcon />}
+                  Save as usual team
+                </Button>
+              </div>
             </div>
             <div className="divide-y rounded-lg border">
               {STAGES.map((meta, i) => {
@@ -362,17 +403,39 @@ export function NewPaperDialog({
                         {notNeeded ? "Not needed – Sinhala only" : meta.description}
                       </p>
                     </div>
-                    <Select value={st.owner_id || NONE} disabled={off} onValueChange={(v) => setOwner(meta.stage, v === NONE ? "" : v)}>
+                    <Select
+                      value={st.owner_id || NONE}
+                      disabled={off}
+                      onValueChange={(v) => setOwner(meta.stage, v === NONE ? "" : v)}
+                    >
                       <SelectTrigger aria-label={`${meta.label} owner`} className="w-full">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value={NONE}>Choose later</SelectItem>
-                        {members.map((m) => (
-                          <SelectItem key={m.id} value={m.id}>
-                            {m.name}
-                          </SelectItem>
-                        ))}
+                        {members.map((m) => {
+                          const busy = busyThisWeek(m.id);
+                          return (
+                            <SelectItem
+                              key={m.id}
+                              value={m.id}
+                              hint={
+                                <span
+                                  className={cn(
+                                    "ml-auto pl-3 text-xs",
+                                    busy >= 3
+                                      ? "font-semibold text-amber-700 dark:text-warning"
+                                      : "text-muted-foreground",
+                                  )}
+                                >
+                                  {busy === 0 ? "free" : `${busy} that week`}
+                                </span>
+                              }
+                            >
+                              {m.name}
+                            </SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                     <div className="grid grid-cols-2 gap-2 sm:contents">
@@ -409,7 +472,7 @@ export function NewPaperDialog({
             </div>
             <p className="text-muted-foreground text-xs">
               Sinhala type setting and conversion run at the same time. Each owner gets their stage as a task when the
-              stages before it are done.
+              stages before it are done. Next to each name: their tasks already due that week (3+ is busy).
             </p>
           </div>
 
