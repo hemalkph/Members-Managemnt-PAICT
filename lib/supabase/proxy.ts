@@ -3,7 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/lib/database.types";
 import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/env";
 
-const PUBLIC_PATHS = ["/login", "/forgot-password", "/auth"];
+// /api/hooks: called by the database with its own secret (no login cookie).
+const PUBLIC_PATHS = ["/login", "/forgot-password", "/auth", "/api/hooks"];
 
 function isPublic(pathname: string) {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));

@@ -196,6 +196,9 @@ export type PaperView = {
   lmsLink: string | null;
   physicalLink: string | null;
   handedOverAt: string | null;
+  /** Draft files were deleted by the automatic clean-up. */
+  filesClearedAt: string | null;
+  filesClearedCount: number | null;
   createdAt: string;
   completedAt: string | null;
   stages: StageView[];

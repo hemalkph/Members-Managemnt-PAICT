@@ -396,13 +396,16 @@ export type Database = {
           lms_link: string | null;
           physical_link: string | null;
           handed_over_at: string | null;
+          files_cleared_at: string | null;
+          files_cleared_count: number | null;
           created_by: string | null;
           created_at: string;
           updated_at: string;
           completed_at: string | null;
         };
         Insert: { [_ in never]: never };
-        Update: { [_ in never]: never };
+        /** Only the service role (file clean-up) updates papers directly. */
+        Update: { files_cleared_at?: string | null; files_cleared_count?: number | null };
         Relationships: [
           {
             foreignKeyName: "papers_exam_id_fkey";
@@ -431,6 +434,7 @@ export type Database = {
           due_date: string | null;
           link: string | null;
           status: "waiting" | "in_progress" | "done" | "skipped";
+          started_at: string | null;
           completed_at: string | null;
         };
         Insert: { [_ in never]: never };
@@ -451,6 +455,21 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      push_subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          device: string | null;
+          created_at: string;
+          last_used_at: string | null;
+        };
+        Insert: { id?: string; user_id: string; endpoint: string; p256dh: string; auth: string; device?: string | null };
+        Update: { last_used_at?: string | null };
+        Relationships: [];
       };
       paper_files: {
         Row: {
@@ -593,6 +612,7 @@ export type Database = {
           deadline_enabled: boolean;
           deadline_day: number;
           reminder_days: number;
+          paper_file_days: number;
           updated_by: string | null;
           updated_at: string;
         };
@@ -941,6 +961,8 @@ export type Database = {
       };
       set_stage_link: { Args: { p_stage: string; p_link: string | null }; Returns: undefined };
       set_paper_links: { Args: { p_paper: string; p_lms: string | null; p_physical: string | null }; Returns: undefined };
+      storage_usage: { Args: Record<PropertyKey, never>; Returns: { bucket: string; files: number; bytes: number }[] };
+      set_paper_file_days: { Args: { p_days: number }; Returns: undefined };
       paper_contacts: {
         Args: { p_paper: string };
         Returns: { stage: string; user_id: string; full_name: string; whatsapp: string | null }[];

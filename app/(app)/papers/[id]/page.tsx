@@ -336,6 +336,13 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
         <ReviewContacts contacts={contacts} paperTitle={paper.title} paperUrl={`${getSiteUrl()}/papers/${paper.id}`} />
       )}
 
+      {paper.filesClearedAt && fileItems.length === 0 && (
+        <p className="text-muted-foreground rounded-xl border border-dashed p-3 text-sm">
+          The {paper.filesClearedCount ?? ""} draft file{paper.filesClearedCount === 1 ? " was" : "s were"} deleted on{" "}
+          {formatDate(paper.filesClearedAt)} to keep storage small. The final PDFs are in the WhatsApp groups.
+        </p>
+      )}
+
       {(canUpload || fileItems.length > 0) && (
         <Card className="gap-4">
           <CardHeader>

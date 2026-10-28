@@ -450,3 +450,11 @@ export const stageLinkSchema = z.object({ stage_id: uuid, link: optionalLink });
 
 export const paperLinksSchema = z.object({ paper_id: uuid, lms_link: optionalLink, physical_link: optionalLink });
 
+
+// ---------------------------------------------------------------- phone notifications
+export const pushSubscriptionSchema = z.object({
+  endpoint: z.url({ protocol: /^https$/ }).max(1000),
+  p256dh: z.string().min(20).max(200),
+  auth: z.string().min(8).max(100),
+  device: z.string().trim().max(120),
+});

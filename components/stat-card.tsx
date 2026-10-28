@@ -18,6 +18,8 @@ export function StatCard({
   tone = "primary",
   delay = 0,
   prefix,
+  suffix,
+  decimals = 0,
 }: {
   label: string;
   value: number;
@@ -27,6 +29,9 @@ export function StatCard({
   delay?: number;
   /** Shown before the number, e.g. "Rs. ". */
   prefix?: string;
+  /** Shown after the number, e.g. "%" or " days". */
+  suffix?: string;
+  decimals?: number;
 }) {
   return (
     <SpotlightCard className="p-3 sm:p-5">
@@ -35,7 +40,8 @@ export function StatCard({
           <p className="text-muted-foreground line-clamp-2 text-xs leading-tight font-medium sm:text-sm">{label}</p>
           <p className="text-2xl font-semibold tracking-tight sm:text-3xl">
             {prefix && <span className="text-muted-foreground mr-0.5 text-base font-medium sm:text-lg">{prefix}</span>}
-            <CountUp key={value} to={value} delay={delay} />
+            <CountUp key={value} to={value} delay={delay} decimals={decimals} />
+            {suffix && <span className="text-muted-foreground ml-0.5 text-base font-medium sm:text-lg">{suffix}</span>}
           </p>
           {hint && <p className="text-muted-foreground truncate text-xs">{hint}</p>}
         </div>

@@ -2,12 +2,14 @@ import type { Metadata } from "next";
 import { CheckCheckIcon, FileStackIcon, LoaderIcon, TriangleAlertIcon } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { NewPaperDialog } from "@/components/papers/new-paper-dialog";
+import { StorageCard } from "@/components/papers/storage-card";
 import { PaperFilters } from "@/components/papers/paper-filters";
 import { PaperRow } from "@/components/papers/paper-row";
 import BlurText from "@/components/reactbits/blur-text";
 import { StatCard } from "@/components/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { requireAdmin } from "@/lib/auth";
+import { mainAdminUnlocked, requireAdmin } from "@/lib/auth";
+import { STORAGE_LIMIT_BYTES } from "@/lib/paper-cleanup";
 import { activeOptions, getClassOptions } from "@/lib/classes";
 import { todayISO } from "@/lib/month";
 import { getPapers } from "@/lib/paper-queries";
@@ -21,18 +23,22 @@ const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) 
 const STATUSES = ["in_progress", "done", "cancelled"] as const;
 
 export default async function PapersPage({ searchParams }: PageProps<"/admin/papers">) {
-  await requireAdmin();
+  const profile = await requireAdmin();
   const sp = await searchParams;
   const exam = uuid.safeParse(one(sp.exam)).success ? one(sp.exam) : "";
   const status = STATUSES.find((s) => s === one(sp.status)) ?? "in_progress";
 
   const supabase = await createClient();
-  const [papers, allPapers, classOptions, { data: profiles }] = await Promise.all([
-    getPapers(supabase, { examId: exam || null, status }),
-    getPapers(supabase, { examId: exam || null }),
-    getClassOptions(supabase),
-    supabase.from("profiles").select("id, full_name, email").eq("is_active", true).order("full_name"),
-  ]);
+  const [papers, allPapers, classOptions, { data: profiles }, { data: usage }, { data: settings }, canEdit] =
+    await Promise.all([
+      getPapers(supabase, { examId: exam || null, status }),
+      getPapers(supabase, { examId: exam || null }),
+      getClassOptions(supabase),
+      supabase.from("profiles").select("id, full_name, email").eq("is_active", true).order("full_name"),
+      supabase.rpc("storage_usage"),
+      supabase.from("app_settings").select("paper_file_days").limit(1).maybeSingle(),
+      mainAdminUnlocked(profile),
+    ]);
   const tags = activeOptions(classOptions);
 
   const inProgress = allPapers.filter((p) => p.status === "in_progress");
@@ -83,16 +89,18 @@ export default async function PapersPage({ searchParams }: PageProps<"/admin/pap
         />
       </div>
 
-      <PaperFilters
-        status={status}
-        exam={exam}
-        exams={classOptions.exams.map((e) => ({ id: e.id, label: e.label }))}
-      />
+      <PaperFilters status={status} exam={exam} exams={classOptions.exams.map((e) => ({ id: e.id, label: e.label }))} />
 
       {papers.length === 0 ? (
         <EmptyState
           icon={FileStackIcon}
-          title={status === "in_progress" ? "No papers in progress" : status === "done" ? "No finished papers" : "No cancelled papers"}
+          title={
+            status === "in_progress"
+              ? "No papers in progress"
+              : status === "done"
+                ? "No finished papers"
+                : "No cancelled papers"
+          }
           description="Add a paper or tute and choose who does each stage."
         />
       ) : (
@@ -116,6 +124,12 @@ export default async function PapersPage({ searchParams }: PageProps<"/admin/pap
           ))}
         </div>
       )}
+      <StorageCard
+        usage={(usage ?? []).map((u) => ({ bucket: u.bucket, files: Number(u.files), bytes: Number(u.bytes) }))}
+        limitBytes={STORAGE_LIMIT_BYTES}
+        days={settings?.paper_file_days ?? 14}
+        canEdit={canEdit}
+      />
     </div>
   );
 }
