@@ -40,8 +40,32 @@ export function markingKind(part: PaperPart, title: string): "mcq" | "essay" | "
   return "full";
 }
 
-/** Which counts a paper takes: a full paper is marked whole ("Full paper") or by part (MCQ / Essay). */
-export function markingParts(part: PaperPart, title: string): MarkingPart[] {
-  const kind = markingKind(part, title);
-  return kind === "full" ? ["full", "mcq", "essay"] : [kind];
+/** "RFP 04 - MCQ" and "RFP 04 - SE & Essay" are one set: "RFP 04". */
+export function setTitle(title: string): string {
+  const base = title
+    .replace(
+      /\s*[-–—:|]?\s*\(?\s*(mcq|s\.?\s*e\.?\s*(&|and)\s*essay|structured\s*(&|and)\s*essay|essay)\s*\)?\s*$/i,
+      "",
+    )
+    .trim();
+  return base || title.trim();
+}
+
+/** Compares set titles loosely: "RFP 4" and "rfp 04" are the same set. */
+export function setKey(title: string): string {
+  return setTitle(title)
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(/\b0+(\d)/g, "$1");
+}
+
+/**
+ * Which counts a set of papers takes. When it has both parts (an MCQ paper and
+ * an Essay paper, or one full paper) it is marked as full papers – MCQ + Essay
+ * of one student – or by part; otherwise only its one part.
+ */
+export function setParts(papers: { part: PaperPart; title: string }[]): MarkingPart[] {
+  const kinds = new Set(papers.map((p) => markingKind(p.part, p.title)));
+  if (kinds.has("full") || (kinds.has("mcq") && kinds.has("essay"))) return ["full", "mcq", "essay"];
+  return [...kinds];
 }

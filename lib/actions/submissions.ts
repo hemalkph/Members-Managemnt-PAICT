@@ -5,7 +5,7 @@ import { friendlyDbError, type ActionResult } from "@/lib/action-result";
 import { getActionContext, NOT_ALLOWED } from "@/lib/auth";
 import { getDeadlines } from "@/lib/deadlines";
 import { APP_TIME_ZONE, currentMonthKey, monthKeyToDate, todayISO } from "@/lib/month";
-import { getMarkingRates, MARKING_LABEL, markingParts } from "@/lib/marking";
+import { getMarkingRates, MARKING_LABEL, setKey, setParts, setTitle } from "@/lib/marking";
 import { getPaperDrafts } from "@/lib/paper-drafts";
 import { getClosedMonthKeys } from "@/lib/payments";
 import { isProfileComplete } from "@/lib/profile-completion";
@@ -271,7 +271,8 @@ export async function logPaperPagesAction(input: { task_id: string; pages: numbe
  * entry per centre and part (MCQ / Essay), paid at the marking rates.
  */
 export async function logMarkingAction(input: {
-  paper_id: string;
+  /** One paper, or the papers of one set (e.g. "RFP 04 - MCQ" and "RFP 04 - SE & Essay"). */
+  paper_ids: string[];
   rows: { centre_id: string; mcq: number; essay: number; full?: number }[];
 }): Promise<ActionResult> {
   const ctx = await getActionContext();
@@ -283,8 +284,8 @@ export async function logMarkingAction(input: {
   }
   const v = parsed.data;
 
-  const [{ data: paper }, { data: centres }, rates] = await Promise.all([
-    ctx.supabase.from("papers").select("id, title, kind, part, exam_id, status").eq("id", v.paper_id).maybeSingle(),
+  const [{ data: papers }, { data: centres }, rates] = await Promise.all([
+    ctx.supabase.from("papers").select("id, title, kind, part, exam_id, status").in("id", v.paper_ids),
     ctx.supabase
       .from("centres")
       .select("id, name")
@@ -294,8 +295,13 @@ export async function logMarkingAction(input: {
       ),
     getMarkingRates(ctx.supabase, ctx.profile.id),
   ]);
-  if (!paper || paper.kind !== "paper" || paper.status === "cancelled") return { ok: false, error: "Paper not found." };
-  const parts = markingParts(paper.part, paper.title);
+  const set = (papers ?? []).filter((p) => p.kind === "paper" && p.status !== "cancelled");
+  if (set.length === 0 || set.length !== new Set(v.paper_ids).size) return { ok: false, error: "Paper not found." };
+  const title = setTitle(set[0].title);
+  if (set.some((p) => setKey(p.title) !== setKey(title)))
+    return { ok: false, error: "Choose one paper set at a time." };
+  const parts = setParts(set);
+  const examId = set.find((p) => p.exam_id)?.exam_id ?? null;
   const centreName = new Map((centres ?? []).map((c) => [c.id, c.name]));
 
   const month = currentMonthKey();
@@ -327,12 +333,12 @@ export async function logMarkingAction(input: {
         role_id: rate.roleId,
         rate_item_id: rate.rateItemId,
         work_month: monthKeyToDate(month),
-        title: `${paper.title} – ${LABEL[part]} marking – ${centre}`.slice(0, 150),
+        title: `${title} – ${LABEL[part]} marking – ${centre}`.slice(0, 150),
         description: `${count} ${part === "full" ? "full" : LABEL[part]} paper${count === 1 ? "" : "s"} marked · ${centre}`,
         quantity: count,
         date_done: todayISO(),
         links: [],
-        exam_id: paper.exam_id,
+        exam_id: examId,
         centre_id: r.centre_id,
       });
     }

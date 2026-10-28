@@ -492,7 +492,7 @@ export const groupLinksSchema = z.object({
 });
 
 export const markingLogSchema = z.object({
-  paper_id: uuid,
+  paper_ids: z.array(uuid).min(1, "Choose the paper you marked.").max(4),
   rows: z
     .array(
       z.object({
