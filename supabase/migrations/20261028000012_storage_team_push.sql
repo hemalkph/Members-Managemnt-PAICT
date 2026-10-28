@@ -127,7 +127,7 @@ begin
   if p_days is null or p_days < 1 or p_days > 365 then
     raise exception 'Choose between 1 and 365 days.' using errcode = 'P0001';
   end if;
-  update public.app_settings set paper_file_days = p_days, updated_by = (select auth.uid()), updated_at = now();
+  update public.app_settings set paper_file_days = p_days, updated_by = (select auth.uid()), updated_at = now() where id;
   perform public.write_activity('settings.paper_files', 'settings', 'paper_file_days', null,
     'Paper files are now kept ' || p_days || ' days after hand-over', jsonb_build_object('days', p_days));
 end;
