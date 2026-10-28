@@ -446,6 +446,10 @@ export const paperFileSchema = z.object({
 });
 export type PaperFileInput = z.input<typeof paperFileSchema>;
 
+export const paperDefaultOwnersSchema = z.object({
+  owners: z.record(z.enum(PAPER_STAGES), optionalUuid),
+});
+
 export const stageLinkSchema = z.object({ stage_id: uuid, link: optionalLink });
 
 export const paperLinksSchema = z.object({ paper_id: uuid, lms_link: optionalLink, physical_link: optionalLink });

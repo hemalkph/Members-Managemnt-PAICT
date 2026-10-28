@@ -22,7 +22,7 @@ export default async function PayslipPage({ params }: PageProps<"/payslips/[id]"
 
   const back = slip.viewingAsAdmin
     ? { href: `/admin/payments?month=${slip.monthKey}`, label: "Payments" }
-    : { href: "/payslips", label: "My payslips" };
+    : { href: "/payslips", label: "My earnings" };
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">

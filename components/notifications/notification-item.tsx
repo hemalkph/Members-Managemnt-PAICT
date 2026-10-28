@@ -6,6 +6,7 @@ import {
   TriangleAlertIcon,
   BellIcon,
   CalendarClockIcon,
+  SirenIcon,
   CircleCheckIcon,
   CircleXIcon,
   ClipboardListIcon,
@@ -46,6 +47,8 @@ const META: Record<string, { icon: LucideIcon; tone: string }> = {
   "task.turn": { icon: FileStackIcon, tone: "bg-primary/10 text-primary" },
   "task.due": { icon: AlarmClockIcon, tone: "bg-warning/20 text-amber-700 dark:text-warning" },
   "task.overdue": { icon: TriangleAlertIcon, tone: "bg-destructive/15 text-destructive" },
+  "task.escalated": { icon: SirenIcon, tone: "bg-destructive/15 text-destructive" },
+  "stage.tomorrow": { icon: CalendarClockIcon, tone: "bg-primary/10 text-primary" },
   "task.done": { icon: CircleCheckIcon, tone: "bg-success/15 text-success" },
   "paper.unassigned": { icon: FileStackIcon, tone: "bg-warning/20 text-amber-700 dark:text-warning" },
 };

@@ -14,7 +14,10 @@ export function AdminTaskBoard({
   options,
   today,
   emptyTitle,
+  phones = {},
 }: {
+  /** Member id → WhatsApp number (wa.me format) for late tasks. */
+  phones?: Record<string, string>;
   tasks: TaskView[];
   options: TaskFormOptions;
   today: string;
@@ -34,7 +37,13 @@ export function AdminTaskBoard({
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {tasks.map((t) => (
-            <TaskCard key={t.id} task={t} mode="admin" onEdit={(task) => setDialog({ task, key: Date.now() })} />
+            <TaskCard
+              key={t.id}
+              task={t}
+              mode="admin"
+              whatsapp={phones[t.assigneeId]}
+              onEdit={(task) => setDialog({ task, key: Date.now() })}
+            />
           ))}
         </div>
       )}

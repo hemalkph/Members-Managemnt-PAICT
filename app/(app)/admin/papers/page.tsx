@@ -29,16 +29,31 @@ export default async function PapersPage({ searchParams }: PageProps<"/admin/pap
   const status = STATUSES.find((s) => s === one(sp.status)) ?? "in_progress";
 
   const supabase = await createClient();
-  const [papers, allPapers, classOptions, { data: profiles }, { data: usage }, { data: settings }, canEdit] =
-    await Promise.all([
-      getPapers(supabase, { examId: exam || null, status }),
-      getPapers(supabase, { examId: exam || null }),
-      getClassOptions(supabase),
-      supabase.from("profiles").select("id, full_name, email").eq("is_active", true).order("full_name"),
-      supabase.rpc("storage_usage"),
-      supabase.from("app_settings").select("paper_file_days").limit(1).maybeSingle(),
-      mainAdminUnlocked(profile),
-    ]);
+  const [
+    papers,
+    allPapers,
+    classOptions,
+    { data: profiles },
+    { data: usage },
+    { data: settings },
+    canEdit,
+    { data: openTasks },
+  ] = await Promise.all([
+    getPapers(supabase, { examId: exam || null, status }),
+    getPapers(supabase, { examId: exam || null }),
+    getClassOptions(supabase),
+    supabase.from("profiles").select("id, full_name, email").eq("is_active", true).order("full_name"),
+    supabase.rpc("storage_usage"),
+    supabase.from("app_settings").select("paper_file_days, paper_default_owners").limit(1).maybeSingle(),
+    mainAdminUnlocked(profile),
+    // Workload check: open and upcoming tasks per member (by due date).
+    supabase
+      .from("tasks")
+      .select("assignee_id, due_date")
+      .in("status", ["open", "waiting"])
+      .not("due_date", "is", null)
+      .limit(3000),
+  ]);
   const tags = activeOptions(classOptions);
 
   const inProgress = allPapers.filter((p) => p.status === "in_progress");
@@ -65,7 +80,12 @@ export default async function PapersPage({ searchParams }: PageProps<"/admin/pap
           </p>
         </div>
         <NewPaperDialog
-          members={(profiles ?? []).map((p) => ({ id: p.id, name: p.full_name || p.email }))}
+          members={(profiles ?? []).map((p) => ({
+            id: p.id,
+            name: p.full_name || p.email,
+            busy: (openTasks ?? []).filter((t) => t.assignee_id === p.id).map((t) => t.due_date!),
+          }))}
+          defaultOwners={(settings?.paper_default_owners ?? {}) as Record<string, string>}
           exams={tags.exams.map((e) => ({ id: e.id, label: e.label, examDate: e.examDate }))}
           defaultExam={exam || undefined}
           today={todayISO()}

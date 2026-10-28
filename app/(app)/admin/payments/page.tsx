@@ -262,7 +262,7 @@ export default async function PaymentsPage({ searchParams }: PageProps<"/admin/p
             hint: `${totals.toPayCount - totals.unpaidCount} of ${totals.toPayCount} marked as paid`,
             done: allPaid,
           },
-          { title: "Payslips shared", hint: "Members see them in My payslips", done: allPaid },
+          { title: "Payslips shared", hint: "Members see them in My earnings", done: allPaid },
         ]}
       />
 

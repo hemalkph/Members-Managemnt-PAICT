@@ -87,7 +87,15 @@ function SelectLabel({ className, ...props }: React.ComponentProps<typeof Select
   );
 }
 
-function SelectItem({ className, children, ...props }: React.ComponentProps<typeof SelectPrimitive.Item>) {
+function SelectItem({
+  className,
+  children,
+  hint,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Item> & {
+  /** Extra text shown only in the open list, not in the closed box (e.g. "2 that week"). */
+  hint?: React.ReactNode;
+}) {
   return (
     <SelectPrimitive.Item
       data-slot="select-item"
@@ -103,6 +111,7 @@ function SelectItem({ className, children, ...props }: React.ComponentProps<type
         </SelectPrimitive.ItemIndicator>
       </span>
       <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
+      {hint}
     </SelectPrimitive.Item>
   );
 }

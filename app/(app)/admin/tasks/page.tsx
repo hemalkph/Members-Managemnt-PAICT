@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { AlarmClockIcon, CheckCheckIcon, ListTodoIcon, TriangleAlertIcon } from "lucide-react";
 import BlurText from "@/components/reactbits/blur-text";
 import { StatCard } from "@/components/stat-card";
+import { waNumber } from "@/components/papers/review-contacts";
 import { AdminTaskBoard } from "@/components/tasks/admin-task-board";
 import { TaskFilters } from "@/components/tasks/task-filters";
 import { requireAdmin } from "@/lib/auth";
@@ -31,14 +32,19 @@ export default async function AdminTasksPage({ searchParams }: PageProps<"/admin
   const today = todayISO();
 
   const supabase = await createClient();
-  const [tasks, openTasks, classOptions, { data: profiles }, { data: roles }, { data: memberRoles }] = await Promise.all([
-    getTasks(supabase, { statuses: VIEWS[view].statuses, assigneeId: member || undefined, examId: exam || undefined }),
-    getTasks(supabase, { statuses: ["open"], limit: 1000 }),
-    getClassOptions(supabase),
-    supabase.from("profiles").select("id, full_name, email, is_active").order("full_name"),
-    supabase.from("roles").select("id, name").order("sort_order").order("name"),
-    supabase.from("member_roles").select("user_id, role_id"),
-  ]);
+  const [tasks, openTasks, classOptions, { data: profiles }, { data: roles }, { data: memberRoles }] =
+    await Promise.all([
+      getTasks(supabase, {
+        statuses: VIEWS[view].statuses,
+        assigneeId: member || undefined,
+        examId: exam || undefined,
+      }),
+      getTasks(supabase, { statuses: ["open"], limit: 1000 }),
+      getClassOptions(supabase),
+      supabase.from("profiles").select("id, full_name, email, is_active, whatsapp, phone").order("full_name"),
+      supabase.from("roles").select("id, name").order("sort_order").order("name"),
+      supabase.from("member_roles").select("user_id, role_id"),
+    ]);
 
   const tags = activeOptions(classOptions);
   const weekAhead = new Date(Date.parse(`${today}T00:00:00Z`) + 7 * 86_400_000).toISOString().slice(0, 10);
@@ -48,7 +54,10 @@ export default async function AdminTasksPage({ searchParams }: PageProps<"/admin
     .from("tasks")
     .select("id", { count: "exact", head: true })
     .eq("status", "done")
-    .gte("completed_at", `${new Date(Date.parse(`${today}T00:00:00Z`) - 30 * 86_400_000).toISOString().slice(0, 10)}T00:00:00Z`);
+    .gte(
+      "completed_at",
+      `${new Date(Date.parse(`${today}T00:00:00Z`) - 30 * 86_400_000).toISOString().slice(0, 10)}T00:00:00Z`,
+    );
 
   const activeMembers = (profiles ?? []).filter((p) => p.is_active);
   const options = {
@@ -73,13 +82,7 @@ export default async function AdminTasksPage({ searchParams }: PageProps<"/admin
         <StatCard label="Open tasks" value={openTasks.length} icon={ListTodoIcon} />
         <StatCard label="Overdue" value={overdue} icon={TriangleAlertIcon} tone="warning" delay={0.1} />
         <StatCard label="Due in 7 days" value={dueThisWeek} icon={AlarmClockIcon} tone="info" delay={0.2} />
-        <StatCard
-          label="Done (30 days)"
-          value={doneCount ?? 0}
-          icon={CheckCheckIcon}
-          tone="success"
-          delay={0.3}
-        />
+        <StatCard label="Done (30 days)" value={doneCount ?? 0} icon={CheckCheckIcon} tone="success" delay={0.3} />
       </div>
 
       <TaskFilters
@@ -90,7 +93,18 @@ export default async function AdminTasksPage({ searchParams }: PageProps<"/admin
         exams={classOptions.exams.map((e) => ({ id: e.id, label: e.label }))}
       />
 
-      <AdminTaskBoard tasks={tasks} options={options} today={today} emptyTitle={VIEWS[view].empty} />
+      <AdminTaskBoard
+        tasks={tasks}
+        options={options}
+        today={today}
+        emptyTitle={VIEWS[view].empty}
+        phones={Object.fromEntries(
+          (profiles ?? []).flatMap((p) => {
+            const n = waNumber(p.whatsapp || p.phone);
+            return n ? [[p.id, n]] : [];
+          }),
+        )}
+      />
     </div>
   );
 }
