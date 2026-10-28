@@ -9,29 +9,40 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { logMarkingAction } from "@/lib/actions/submissions";
+import { cn } from "@/lib/utils";
 
-export type MarkingPaper = { id: string; title: string; sub: string; parts: ("mcq" | "essay")[] };
+type Part = "mcq" | "essay" | "full";
+const HEAD: Record<Part, string> = { full: "Full", mcq: "MCQ", essay: "Essay" };
+const ARIA: Record<Part, string> = { full: "full papers", mcq: "MCQ papers", essay: "Essay papers" };
 
-type Counts = Record<string, { mcq: string; essay: string }>;
+export type MarkingPaper = { id: string; title: string; sub: string; parts: Part[] };
 
-/** Pick a paper, then enter how many MCQ / Essay papers were marked at each centre. */
+type Counts = Record<string, Partial<Record<Part, string>>>;
+
+/**
+ * Pick a paper, then enter how many papers were marked at each centre. A full
+ * paper is counted whole ("Full") or by part (MCQ / Essay) – per centre, one or the other.
+ */
 export function MarkingForm({
   papers,
   centres,
   canMcq,
   canEssay,
+  canFull,
 }: {
   papers: MarkingPaper[];
   centres: { id: string; name: string }[];
   canMcq: boolean;
   canEssay: boolean;
+  canFull: boolean;
 }) {
   const router = useRouter();
   const [paperId, setPaperId] = useState(papers[0]?.id ?? "");
   const [counts, setCounts] = useState<Counts>({});
   const [pending, startTransition] = useTransition();
   const paper = papers.find((p) => p.id === paperId);
-  const parts = (paper?.parts ?? []).filter((p) => (p === "mcq" ? canMcq : canEssay));
+  const can: Record<Part, boolean> = { mcq: canMcq, essay: canEssay, full: canFull };
+  const parts = (paper?.parts ?? []).filter((p) => can[p]);
 
   const num = (v: string | undefined) => {
     const n = Number(v);
@@ -41,13 +52,19 @@ export function MarkingForm({
     () => ({
       mcq: centres.reduce((s, c) => s + num(counts[c.id]?.mcq), 0),
       essay: centres.reduce((s, c) => s + num(counts[c.id]?.essay), 0),
+      full: centres.reduce((s, c) => s + num(counts[c.id]?.full), 0),
     }),
     [centres, counts],
   );
   const total = parts.reduce((s, p) => s + totals[p], 0);
 
-  const set = (centre: string, part: "mcq" | "essay", value: string) =>
-    setCounts((c) => ({ ...c, [centre]: { ...(c[centre] ?? { mcq: "", essay: "" }), [part]: value } }));
+  const set = (centre: string, part: Part, value: string) =>
+    setCounts((c) => ({ ...c, [centre]: { ...c[centre], [part]: value } }));
+  // A centre with full papers can't also have MCQ / Essay counts, and the other way round.
+  const locked = (centre: string, part: Part) => {
+    const row = counts[centre] ?? {};
+    return part === "full" ? num(row.mcq) > 0 || num(row.essay) > 0 : num(row.full) > 0;
+  };
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,10 +74,11 @@ export function MarkingForm({
         rows: centres
           .map((c) => ({
             centre_id: c.id,
-            mcq: parts.includes("mcq") ? num(counts[c.id]?.mcq) : 0,
-            essay: parts.includes("essay") ? num(counts[c.id]?.essay) : 0,
+            mcq: parts.includes("mcq") && !locked(c.id, "mcq") ? num(counts[c.id]?.mcq) : 0,
+            essay: parts.includes("essay") && !locked(c.id, "essay") ? num(counts[c.id]?.essay) : 0,
+            full: parts.includes("full") && !locked(c.id, "full") ? num(counts[c.id]?.full) : 0,
           }))
-          .filter((r) => r.mcq > 0 || r.essay > 0),
+          .filter((r) => r.mcq > 0 || r.essay > 0 || r.full > 0),
       });
       if (!result.ok) {
         toast.error(result.error);
@@ -89,7 +107,8 @@ export function MarkingForm({
           <SelectContent>
             {papers.map((p) => (
               <SelectItem key={p.id} value={p.id}>
-                {p.title} · {p.sub}
+                {p.title}
+                {p.sub ? ` · ${p.sub}` : ""}
               </SelectItem>
             ))}
           </SelectContent>
@@ -110,7 +129,7 @@ export function MarkingForm({
               <span>Centre</span>
               {parts.map((p) => (
                 <span key={p} className="text-right">
-                  {p === "mcq" ? "MCQ" : "Essay"}
+                  {HEAD[p]}
                 </span>
               ))}
             </div>
@@ -129,9 +148,17 @@ export function MarkingForm({
                     min={0}
                     max={5000}
                     placeholder="0"
-                    className="px-2 text-right"
-                    aria-label={`${c.name} – ${p === "mcq" ? "MCQ" : "Essay"} papers marked`}
-                    value={counts[c.id]?.[p] ?? ""}
+                    className={cn("px-2 text-right", p === "full" && "border-primary/40")}
+                    disabled={locked(c.id, p)}
+                    title={
+                      locked(c.id, p)
+                        ? p === "full"
+                          ? "Clear MCQ and Essay to enter full papers"
+                          : "Clear Full to enter MCQ / Essay"
+                        : undefined
+                    }
+                    aria-label={`${c.name} – ${ARIA[p]} marked`}
+                    value={locked(c.id, p) ? "" : (counts[c.id]?.[p] ?? "")}
                     onChange={(e) => set(c.id, p, e.target.value)}
                   />
                 ))}
@@ -150,6 +177,12 @@ export function MarkingForm({
             </div>
           </div>
         )
+      )}
+      {parts.includes("full") && (
+        <p className="text-muted-foreground -mt-2 text-xs">
+          <strong className="text-foreground">Full</strong> = you marked both the MCQ and Essay of a paper. For each
+          centre, enter full papers <em>or</em> MCQ / Essay – the other boxes lock.
+        </p>
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-2">
