@@ -14,7 +14,7 @@ import { formatBytes } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 const BUCKET_LABEL: Record<string, string> = {
-  papers: "Paper drafts",
+  papers: "Paper files",
   attachments: "Work attachments",
   avatars: "Profile pictures",
 };
@@ -72,8 +72,8 @@ export function StorageCard({
           <HardDriveIcon className="text-primary size-5" /> Storage
         </CardTitle>
         <CardDescription>
-          Paper drafts are deleted automatically {days} day{days === 1 ? "" : "s"} after a paper is handed over (or
-          finished / cancelled), so storage stays small.
+          Drafts and older versions are deleted automatically {days} day{days === 1 ? "" : "s"} after a paper is
+          handed over (or finished / cancelled). The final PDFs and marking schemes are always kept.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

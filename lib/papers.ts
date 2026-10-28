@@ -60,7 +60,8 @@ export const STAGES: StageMeta[] = [
     stage: "review_si",
     label: "Review (Sinhala)",
     description: "Paper creator checks the type set paper",
-    howTo: "Check the type set Sinhala paper and send your corrections to the type setter.",
+    howTo:
+      "Download the type set Sinhala paper, write your corrections below (or upload a marked PDF), then mark your stage done.",
     startOffset: -2,
     dueOffset: -1,
   },
@@ -68,7 +69,8 @@ export const STAGES: StageMeta[] = [
     stage: "review_en",
     label: "Review (English)",
     description: "Converter checks the English paper",
-    howTo: "Check the type set English paper and send your corrections to the type setter.",
+    howTo:
+      "Download the type set English paper, write your corrections below (or upload a marked PDF), then mark your stage done.",
     english: true,
     startOffset: -2,
     dueOffset: -1,
@@ -76,11 +78,36 @@ export const STAGES: StageMeta[] = [
   {
     stage: "handover",
     label: "Correct & hand over",
-    description: "Type setter fixes it and sends the PDFs",
+    description: "Type setter fixes it and uploads the final PDFs",
     howTo:
-      "Make the corrections, then send the final PDF to the LMS admin and physical coordinator WhatsApp groups. Don't upload it here.",
+      "Make the reviewers' corrections, upload the final PDF(s) here – they are kept for everyone – share them in the WhatsApp groups, then mark done.",
     startOffset: -1,
     dueOffset: -1,
+  },
+  {
+    stage: "scheme",
+    label: "Make marking scheme",
+    description: "Paper creator writes the marking scheme",
+    howTo: "Write the marking scheme for this paper and upload it here (due within 2 weeks of the exam).",
+    startOffset: 0,
+    dueOffset: 14,
+  },
+  {
+    stage: "scheme_rewrite",
+    label: "Rewrite marking scheme",
+    description: "Marking team rewrites it clearly",
+    howTo: "Download the marking scheme, rewrite it clearly and upload the final version here.",
+    startOffset: 14,
+    dueOffset: 17,
+  },
+  {
+    stage: "scheme_en",
+    label: "Translate marking scheme",
+    description: "Translation team makes the English scheme (optional)",
+    howTo: "Translate the marking scheme to English and upload it here. Then add your page count in My work.",
+    english: true,
+    startOffset: 14,
+    dueOffset: 17,
   },
   {
     stage: "mark",
@@ -105,12 +132,20 @@ export const STAGE_INPUTS: Record<PaperStageName, PaperStageName[]> = {
   typeset_en: ["convert"],
   review_si: ["typeset_si"],
   review_en: ["typeset_en"],
-  handover: ["typeset_si", "typeset_en"],
+  handover: ["typeset_si", "typeset_en", "review_si", "review_en"],
+  scheme: ["handover"],
+  scheme_rewrite: ["scheme"],
+  scheme_en: ["scheme"],
   mark: [],
 };
 
+/** Stages whose files are the paper's final outputs: kept by the clean-up and open to every member. */
+export const FINAL_STAGES: PaperStageName[] = ["handover", "scheme", "scheme_rewrite", "scheme_en"];
+/** The marking-scheme stages (only on the paper that completes a full paper). */
+export const SCHEME_STAGES: PaperStageName[] = ["scheme", "scheme_rewrite", "scheme_en"];
+
 /** Paper stages paid per page: when done, the owner gets a ready-made work entry (they add the pages). */
-export const PAID_PAGE_STAGES: PaperStageName[] = ["typeset_si", "typeset_en", "convert"];
+export const PAID_PAGE_STAGES: PaperStageName[] = ["typeset_si", "typeset_en", "convert", "scheme_en"];
 
 export type PaperMedium = "si" | "both";
 export type PaperPart = "mcq" | "essay" | "full";

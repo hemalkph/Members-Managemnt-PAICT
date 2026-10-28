@@ -46,11 +46,11 @@ export function ReviewContacts({
     <Card className="gap-4">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <MessageCircleIcon className="size-5 text-emerald-600 dark:text-emerald-400" /> Review on WhatsApp
+          <MessageCircleIcon className="size-5 text-emerald-600 dark:text-emerald-400" /> Message the team
         </CardTitle>
         <CardDescription>
-          From the review stage, PDFs aren&apos;t uploaded here. Send the paper and your corrections straight to the
-          creator, converter and type setter.
+          Everyone on this paper, one tap away on WhatsApp – any time. Files and corrections still go in the system
+          above.
         </CardDescription>
       </CardHeader>
       <CardContent>

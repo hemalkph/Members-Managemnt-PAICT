@@ -3,12 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { friendlyDbError, type ActionResult } from "@/lib/action-result";
 import { getActionContext, NOT_ALLOWED } from "@/lib/auth";
-import { addDays, PAPERS_BUCKET, PART_LABEL } from "@/lib/papers";
+import { addDays, PAPERS_BUCKET, PART_LABEL, SCHEME_STAGES } from "@/lib/papers";
 import {
   firstError,
   idSchema,
   paperDefaultOwnersSchema,
-  paperLinksSchema,
+  groupLinksSchema,
+  paperNoteSchema,
   paperSchema,
   paperFileSchema,
   paperStageUpdateSchema,
@@ -55,13 +56,18 @@ export async function createPaperAction(input: PaperInput): Promise<ActionResult
       p_medium: v.medium,
       p_part: p.part,
       p_exam_day: shift(v.exam_day, p.days),
-      p_stages: v.stages.map((s) => ({
-        stage: s.stage,
-        owner_id: s.skip ? null : s.owner_id || null,
-        start_date: s.skip ? null : shift(s.start_date, p.days),
-        due_date: s.skip ? null : shift(s.due_date, p.days),
-        skip: s.skip,
-      })),
+      p_stages: v.stages.map((s) => {
+        // Over 2 weeks: the marking scheme is made once, after the SE & Essay
+        // paper, so it covers MCQ + Essay.
+        const skip = s.skip || (p.part === "mcq" && v.part === "split" && SCHEME_STAGES.includes(s.stage));
+        return {
+          stage: s.stage,
+          owner_id: skip ? null : s.owner_id || null,
+          start_date: skip ? null : shift(s.start_date, p.days),
+          due_date: skip ? null : shift(s.due_date, p.days),
+          skip,
+        };
+      }),
     });
     if (error || !data) {
       if (ids.length > 0) revalidatePapers();
@@ -124,28 +130,6 @@ export async function setStageLinkAction(input: { stage_id: string; link: string
   if (error) return { ok: false, error: friendlyDbError(error) };
   revalidatePapers(input.paper_id);
   return { ok: true, message: parsed.data.link ? "Link saved" : "Link removed" };
-}
-
-/** Admins: the WhatsApp hand-over links (LMS group and physical coordinator group). */
-export async function setPaperLinksAction(input: {
-  paper_id: string;
-  lms_link: string;
-  physical_link: string;
-}): Promise<ActionResult> {
-  const ctx = await getActionContext({ admin: true });
-  if (!ctx) return { ok: false, error: NOT_ALLOWED };
-  const parsed = paperLinksSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
-  const v = parsed.data;
-
-  const { error } = await ctx.supabase.rpc("set_paper_links", {
-    p_paper: v.paper_id,
-    p_lms: v.lms_link || null,
-    p_physical: v.physical_link || null,
-  });
-  if (error) return { ok: false, error: friendlyDbError(error) };
-  revalidatePapers(v.paper_id);
-  return { ok: true, message: v.lms_link && v.physical_link ? "Hand-over links saved" : "Links saved" };
 }
 
 /** Admins: cancel, restart or delete a paper. */
@@ -254,4 +238,50 @@ export async function setPaperDefaultOwnersAction(input: { owners: Record<string
   if (error) return { ok: false, error: friendlyDbError(error) };
   revalidatePath("/admin/papers");
   return { ok: true, message: "Saved – new papers will start with this team" };
+}
+
+/** Anyone working on the paper adds a correction or note (reviews happen here). */
+export async function addPaperNoteAction(input: { paper_id: string; stage: string; body: string }): Promise<ActionResult> {
+  const ctx = await getActionContext();
+  if (!ctx) return { ok: false, error: NOT_ALLOWED };
+  const parsed = paperNoteSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
+  const v = parsed.data;
+  const { error } = await ctx.supabase.from("paper_notes").insert({
+    paper_id: v.paper_id,
+    stage: v.stage || null,
+    author_id: ctx.profile.id,
+    body: v.body,
+  });
+  if (error) return { ok: false, error: friendlyDbError(error) };
+  revalidatePapers(v.paper_id);
+  return { ok: true, message: "Sent – the type setter has been told" };
+}
+
+/** The author (or an admin) removes a note. */
+export async function deletePaperNoteAction(input: { id: string; paper_id: string }): Promise<ActionResult> {
+  const ctx = await getActionContext();
+  if (!ctx) return { ok: false, error: NOT_ALLOWED };
+  const parsed = idSchema.safeParse({ id: input.id });
+  if (!parsed.success) return { ok: false, error: "Note not found." };
+  const { error } = await ctx.supabase.from("paper_notes").delete().eq("id", parsed.data.id);
+  if (error) return { ok: false, error: friendlyDbError(error) };
+  revalidatePapers(input.paper_id);
+  return { ok: true, message: "Note removed" };
+}
+
+/** Admins: the WhatsApp group links used for every paper. */
+export async function setGroupLinksAction(input: { lms_group_link: string; physical_group_link: string }): Promise<ActionResult> {
+  const ctx = await getActionContext({ admin: true });
+  if (!ctx) return { ok: false, error: NOT_ALLOWED };
+  const parsed = groupLinksSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
+  const { error } = await ctx.supabase.rpc("set_group_links", {
+    p_lms: parsed.data.lms_group_link || null,
+    p_physical: parsed.data.physical_group_link || null,
+  });
+  if (error) return { ok: false, error: friendlyDbError(error) };
+  revalidatePath("/admin/papers");
+  revalidatePath("/library");
+  return { ok: true, message: "Group links saved for every paper" };
 }

@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
-import { CheckCheckIcon, FileStackIcon, LoaderIcon, TriangleAlertIcon } from "lucide-react";
+import { CheckCheckIcon, FileStackIcon, LoaderIcon, TriangleAlertIcon, UsersIcon } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { NewPaperDialog } from "@/components/papers/new-paper-dialog";
 import { StorageCard } from "@/components/papers/storage-card";
 import { PaperFilters } from "@/components/papers/paper-filters";
 import { PaperRow } from "@/components/papers/paper-row";
+import { GroupLinksForm } from "@/components/papers/stage-controls";
 import BlurText from "@/components/reactbits/blur-text";
 import { StatCard } from "@/components/stat-card";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { mainAdminUnlocked, requireAdmin } from "@/lib/auth";
 import { STORAGE_LIMIT_BYTES } from "@/lib/paper-cleanup";
 import { activeOptions, getClassOptions } from "@/lib/classes";
@@ -44,7 +45,11 @@ export default async function PapersPage({ searchParams }: PageProps<"/admin/pap
     getClassOptions(supabase),
     supabase.from("profiles").select("id, full_name, email").eq("is_active", true).order("full_name"),
     supabase.rpc("storage_usage"),
-    supabase.from("app_settings").select("paper_file_days, paper_default_owners").limit(1).maybeSingle(),
+    supabase
+      .from("app_settings")
+      .select("paper_file_days, paper_default_owners, lms_group_link, physical_group_link")
+      .limit(1)
+      .maybeSingle(),
     mainAdminUnlocked(profile),
     // Workload check: open and upcoming tasks per member (by due date).
     supabase
@@ -76,7 +81,7 @@ export default async function PapersPage({ searchParams }: PageProps<"/admin/pap
         <div className="space-y-1">
           <BlurText as="h1" text="Papers" className="text-2xl font-semibold tracking-tight sm:text-3xl" />
           <p className="text-muted-foreground text-sm">
-            Create → Type set + Convert → Type set (English) → Review → Hand over, ready for the Wednesday exam.
+            Create → Type set + Convert → Type set (English) → Review → Hand over → Marking scheme, all in the system.
           </p>
         </div>
         <NewPaperDialog
@@ -144,12 +149,31 @@ export default async function PapersPage({ searchParams }: PageProps<"/admin/pap
           ))}
         </div>
       )}
-      <StorageCard
-        usage={(usage ?? []).map((u) => ({ bucket: u.bucket, files: Number(u.files), bytes: Number(u.bytes) }))}
-        limitBytes={STORAGE_LIMIT_BYTES}
-        days={settings?.paper_file_days ?? 14}
-        canEdit={canEdit}
-      />
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="gap-4">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <UsersIcon className="text-primary size-5" /> WhatsApp groups
+            </CardTitle>
+            <CardDescription>
+              The LMS admin and physical coordinator groups. Set them once – every paper&apos;s hand-over uses the same
+              links, and members can message each other on WhatsApp from any paper.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <GroupLinksForm
+              lmsLink={settings?.lms_group_link ?? null}
+              physicalLink={settings?.physical_group_link ?? null}
+            />
+          </CardContent>
+        </Card>
+        <StorageCard
+          usage={(usage ?? []).map((u) => ({ bucket: u.bucket, files: Number(u.files), bytes: Number(u.bytes) }))}
+          limitBytes={STORAGE_LIMIT_BYTES}
+          days={settings?.paper_file_days ?? 14}
+          canEdit={canEdit}
+        />
+      </div>
     </div>
   );
 }

@@ -16,6 +16,9 @@ export type PaperStageName =
   | "review_si"
   | "review_en"
   | "handover"
+  | "scheme"
+  | "scheme_rewrite"
+  | "scheme_en"
   | "mark";
 
 export type Database = {
@@ -456,6 +459,27 @@ export type Database = {
           },
         ];
       };
+      paper_notes: {
+        Row: {
+          id: string;
+          paper_id: string;
+          stage: PaperStageName | null;
+          author_id: string | null;
+          body: string;
+          created_at: string;
+        };
+        Insert: { id?: string; paper_id: string; stage?: PaperStageName | null; author_id: string; body: string };
+        Update: { [_ in never]: never };
+        Relationships: [
+          {
+            foreignKeyName: "paper_notes_author_id_fkey";
+            columns: ["author_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       push_subscriptions: {
         Row: {
           id: string;
@@ -614,6 +638,8 @@ export type Database = {
           reminder_days: number;
           paper_file_days: number;
           paper_default_owners: Json;
+          lms_group_link: string | null;
+          physical_group_link: string | null;
           updated_by: string | null;
           updated_at: string;
         };
@@ -965,6 +991,11 @@ export type Database = {
       storage_usage: { Args: Record<PropertyKey, never>; Returns: { bucket: string; files: number; bytes: number }[] };
       set_paper_file_days: { Args: { p_days: number }; Returns: undefined };
       set_paper_default_owners: { Args: { p_owners: Json }; Returns: undefined };
+      group_links: {
+        Args: Record<PropertyKey, never>;
+        Returns: { lms_group_link: string | null; physical_group_link: string | null }[];
+      };
+      set_group_links: { Args: { p_lms: string | null; p_physical: string | null }; Returns: undefined };
       paper_contacts: {
         Args: { p_paper: string };
         Returns: { stage: string; user_id: string; full_name: string; whatsapp: string | null }[];

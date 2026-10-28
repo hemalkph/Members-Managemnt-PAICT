@@ -27,7 +27,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { setPaperLinksAction, setStageLinkAction, updatePaperStageAction } from "@/lib/actions/papers";
+import { setGroupLinksAction, setStageLinkAction, updatePaperStageAction } from "@/lib/actions/papers";
 import { setTaskStatusAction } from "@/lib/actions/tasks";
 import type { ActionResult } from "@/lib/action-result";
 
@@ -315,16 +315,8 @@ export function StageLinkDialog({
   );
 }
 
-/** Admins: the WhatsApp message links for the LMS admin and physical coordinator groups. */
-export function HandoverLinksForm({
-  paperId,
-  lmsLink,
-  physicalLink,
-}: {
-  paperId: string;
-  lmsLink: string | null;
-  physicalLink: string | null;
-}) {
+/** Admins: the WhatsApp group links used for every paper (LMS admin group and physical coordinator group). */
+export function GroupLinksForm({ lmsLink, physicalLink }: { lmsLink: string | null; physicalLink: string | null }) {
   const router = useRouter();
   const [lms, setLms] = useState(lmsLink ?? "");
   const [physical, setPhysical] = useState(physicalLink ?? "");
@@ -333,15 +325,11 @@ export function HandoverLinksForm({
 
   return (
     <form
-      className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
+      className="grid gap-3"
       onSubmit={(e) => {
         e.preventDefault();
         startTransition(async () => {
-          const result = await setPaperLinksAction({
-            paper_id: paperId,
-            lms_link: lms.trim(),
-            physical_link: physical.trim(),
-          });
+          const result = await setGroupLinksAction({ lms_group_link: lms.trim(), physical_group_link: physical.trim() });
           if (!result.ok) {
             toast.error(result.error);
             return;
@@ -357,7 +345,7 @@ export function HandoverLinksForm({
           id="lms-link"
           type="url"
           inputMode="url"
-          placeholder="https://…"
+          placeholder="https://chat.whatsapp.com/…"
           value={lms}
           maxLength={500}
           onChange={(e) => setLms(e.target.value)}
@@ -369,13 +357,13 @@ export function HandoverLinksForm({
           id="physical-link"
           type="url"
           inputMode="url"
-          placeholder="https://…"
+          placeholder="https://chat.whatsapp.com/…"
           value={physical}
           maxLength={500}
           onChange={(e) => setPhysical(e.target.value)}
         />
       </div>
-      <Button type="submit" disabled={pending || !changed}>
+      <Button type="submit" className="justify-self-start" disabled={pending || !changed}>
         {pending && <Loader2Icon className="animate-spin" />}
         Save links
       </Button>
