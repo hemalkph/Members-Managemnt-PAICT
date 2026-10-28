@@ -378,6 +378,9 @@ export const PAPER_STAGES = [
   "review_si",
   "review_en",
   "handover",
+  "scheme",
+  "scheme_rewrite",
+  "scheme_en",
   "mark",
 ] as const;
 
@@ -430,14 +433,25 @@ export const paperStageUpdateSchema = z
     path: ["start_date"],
   });
 
-/** Files can be shared between members only in these early stages. From review on, use WhatsApp. */
-export const UPLOAD_STAGES = ["create_si", "typeset_si", "convert", "typeset_en"] as const;
+/** Stages that take files (every stage except marking the scripts). */
+export const UPLOAD_STAGES = [
+  "create_si",
+  "typeset_si",
+  "convert",
+  "typeset_en",
+  "review_si",
+  "review_en",
+  "handover",
+  "scheme",
+  "scheme_rewrite",
+  "scheme_en",
+] as const;
 
 export const MAX_PAPER_FILE_BYTES = 25 * 1024 * 1024; // 25 MB
 
 export const paperFileSchema = z.object({
   paper_id: uuid,
-  stage: z.enum(UPLOAD_STAGES, "Files can only be added up to English type setting"),
+  stage: z.enum(UPLOAD_STAGES, "This stage doesn't take files"),
   storage_path: z.string().min(3).max(400),
   file_name: z.string().trim().min(1).max(200),
   mime_type: z.string().max(150).nullable(),
@@ -452,7 +466,6 @@ export const paperDefaultOwnersSchema = z.object({
 
 export const stageLinkSchema = z.object({ stage_id: uuid, link: optionalLink });
 
-export const paperLinksSchema = z.object({ paper_id: uuid, lms_link: optionalLink, physical_link: optionalLink });
 
 
 // ---------------------------------------------------------------- phone notifications
@@ -461,4 +474,33 @@ export const pushSubscriptionSchema = z.object({
   p256dh: z.string().min(20).max(200),
   auth: z.string().min(8).max(100),
   device: z.string().trim().max(120),
+});
+
+// ---------------------------------------------------------------- paper notes, group links, marking log
+export const paperNoteSchema = z.object({
+  paper_id: uuid,
+  stage: z.union([z.enum(PAPER_STAGES), z.literal("")]),
+  body: trimmed(1, 3000, "Note"),
+});
+
+export const groupLinksSchema = z.object({
+  lms_group_link: z.union([z.literal(""), z.url({ protocol: /^https$/, error: "Paste a full link starting with https://" }).max(500)]),
+  physical_group_link: z.union([
+    z.literal(""),
+    z.url({ protocol: /^https$/, error: "Paste a full link starting with https://" }).max(500),
+  ]),
+});
+
+export const markingLogSchema = z.object({
+  paper_id: uuid,
+  rows: z
+    .array(
+      z.object({
+        centre_id: uuid,
+        mcq: z.number().int().min(0).max(5000),
+        essay: z.number().int().min(0).max(5000),
+      }),
+    )
+    .min(1)
+    .max(50),
 });

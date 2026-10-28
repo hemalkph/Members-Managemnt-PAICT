@@ -1,16 +1,19 @@
 import type { Metadata } from "next";
-import { CalendarClockIcon, LockIcon, UserRoundXIcon } from "lucide-react";
+import Link from "next/link";
+import { CalendarClockIcon, ClipboardPenIcon, LockIcon, UserRoundXIcon } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { PaperDraftsCard } from "@/components/member/paper-drafts-card";
 import { SubmissionForm } from "@/components/member/submission-form";
 import { PageHeader } from "@/components/page-header";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { requireCompleteProfile } from "@/lib/auth";
 import { SHOW_MEMBERS_THEIR_EARNINGS } from "@/lib/config";
 import { monthLabel, parseMonthParam, recentMonths, todayISO } from "@/lib/month";
 import { activeOptions, getClassOptions } from "@/lib/classes";
 import { getDeadlines } from "@/lib/deadlines";
+import { getMarkingRates } from "@/lib/marking";
 import { getPaperDrafts, toDraftItems } from "@/lib/paper-drafts";
 import { getClosedMonthKeys } from "@/lib/payments";
 import { getMemberRoles, getRatesForRoles } from "@/lib/queries";
@@ -53,6 +56,7 @@ export default async function NewWorkPage({ searchParams }: PageProps<"/work/new
       : Promise.resolve({ data: null }),
     getPaperDrafts(supabase, profile.id),
   ]);
+  const marking = await getMarkingRates(supabase, profile.id);
   // A paper stage opened from "Ready to log": its role and page rate are known.
   const taskDraft = task ? drafts.find((d) => d.taskId === task.id) : undefined;
   const tags = activeOptions(classOptions, { examId: task?.exam_id });
@@ -93,6 +97,15 @@ export default async function NewWorkPage({ searchParams }: PageProps<"/work/new
           from
             ? "Copied from an earlier submission. Check the details and submit."
             : "Log a task you finished. An admin will review it."
+        }
+        actions={
+          (marking.mcq || marking.essay) && !task && !from ? (
+            <Button asChild variant="outline">
+              <Link href="/work/marking">
+                <ClipboardPenIcon /> Log marked papers
+              </Link>
+            </Button>
+          ) : undefined
         }
       />
       {!closed.has(month) && requestedDeadline?.passed && (

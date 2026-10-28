@@ -37,7 +37,11 @@ export function pickPaperRate(stage: PaperStageName, kind: "paper" | "tute", rol
     r.rates.filter((x) => /page/i.test(x.unit)).map((x) => ({ role: r, rate: x })),
   );
   let pick: (typeof pageRates)[number] | undefined;
-  if (stage === "convert") {
+  if (stage === "scheme_en") {
+    // Translating the marking scheme: the "Marking translation" page rate.
+    const translating = pageRates.filter(({ rate }) => /translat/i.test(rate.name));
+    pick = translating.find(({ rate }) => /marking|scheme/i.test(rate.name)) ?? translating[0];
+  } else if (stage === "convert") {
     const converting = pageRates.filter(
       ({ role, rate }) => /conver|translat/i.test(role.name) || /conver|translat/i.test(rate.name),
     );

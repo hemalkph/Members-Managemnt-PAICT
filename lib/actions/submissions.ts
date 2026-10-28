@@ -5,6 +5,7 @@ import { friendlyDbError, type ActionResult } from "@/lib/action-result";
 import { getActionContext, NOT_ALLOWED } from "@/lib/auth";
 import { getDeadlines } from "@/lib/deadlines";
 import { APP_TIME_ZONE, currentMonthKey, monthKeyToDate, todayISO } from "@/lib/month";
+import { getMarkingRates, markingParts } from "@/lib/marking";
 import { getPaperDrafts } from "@/lib/paper-drafts";
 import { getClosedMonthKeys } from "@/lib/payments";
 import { isProfileComplete } from "@/lib/profile-completion";
@@ -13,6 +14,7 @@ import {
   fieldErrorsOf,
   firstError,
   idSchema,
+  markingLogSchema,
   paperPagesSchema,
   submissionActionSchema,
   type AttachmentInput,
@@ -262,4 +264,83 @@ export async function logPaperPagesAction(input: { task_id: string; pages: numbe
 
   revalidateWork();
   return { ok: true, message: `${pages} page${pages === 1 ? "" : "s"} sent for review` };
+}
+
+/**
+ * Marking team: log how many papers were marked at each centre. One work
+ * entry per centre and part (MCQ / Essay), paid at the marking rates.
+ */
+export async function logMarkingAction(input: {
+  paper_id: string;
+  rows: { centre_id: string; mcq: number; essay: number }[];
+}): Promise<ActionResult> {
+  const ctx = await getActionContext();
+  if (!ctx) return { ok: false, error: NOT_ALLOWED };
+  const parsed = markingLogSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
+  if (!ctx.profile.is_admin && !isProfileComplete(ctx.profile)) {
+    return { ok: false, error: "Please complete your profile before submitting work." };
+  }
+  const v = parsed.data;
+
+  const [{ data: paper }, { data: centres }, rates] = await Promise.all([
+    ctx.supabase.from("papers").select("id, title, kind, part, exam_id, status").eq("id", v.paper_id).maybeSingle(),
+    ctx.supabase
+      .from("centres")
+      .select("id, name")
+      .in(
+        "id",
+        v.rows.map((r) => r.centre_id),
+      ),
+    getMarkingRates(ctx.supabase, ctx.profile.id),
+  ]);
+  if (!paper || paper.kind !== "paper" || paper.status === "cancelled") return { ok: false, error: "Paper not found." };
+  const parts = markingParts(paper.part);
+  const centreName = new Map((centres ?? []).map((c) => [c.id, c.name]));
+
+  const month = currentMonthKey();
+  const [closed, deadlines] = await Promise.all([
+    getClosedMonthKeys(ctx.supabase),
+    ctx.profile.is_admin ? Promise.resolve(new Map()) : getDeadlines(ctx.supabase, [month]),
+  ]);
+  if (closed.includes(month) || deadlines.get(month)?.passed) {
+    return { ok: false, error: "This month is closed for new work. Ask an admin." };
+  }
+
+  const LABEL = { mcq: "MCQ", essay: "Essay" } as const;
+  const rows = [];
+  for (const r of v.rows) {
+    const centre = centreName.get(r.centre_id);
+    if (!centre) return { ok: false, error: "Choose a centre from the list." };
+    for (const part of parts) {
+      const count = r[part];
+      if (count <= 0) continue;
+      const rate = rates[part];
+      if (!rate) {
+        return { ok: false, error: `You don't have a "${LABEL[part]} paper marking" rate yet. Ask an admin.` };
+      }
+      rows.push({
+        user_id: ctx.profile.id,
+        role_id: rate.roleId,
+        rate_item_id: rate.rateItemId,
+        work_month: monthKeyToDate(month),
+        title: `${paper.title} – ${LABEL[part]} marking – ${centre}`.slice(0, 150),
+        description: `${count} ${LABEL[part]} paper${count === 1 ? "" : "s"} marked · ${centre}`,
+        quantity: count,
+        date_done: todayISO(),
+        links: [],
+        exam_id: paper.exam_id,
+        centre_id: r.centre_id,
+      });
+    }
+  }
+  if (rows.length === 0) return { ok: false, error: "Enter how many papers you marked." };
+
+  const { error } = await ctx.supabase.from("submissions").insert(rows);
+  if (error) return { ok: false, error: friendlyDbError(error) };
+
+  revalidateWork();
+  revalidatePath("/work/marking");
+  const total = rows.reduce((s, r) => s + r.quantity, 0);
+  return { ok: true, message: `${total} marked paper${total === 1 ? "" : "s"} sent for review` };
 }

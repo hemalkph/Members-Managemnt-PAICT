@@ -1,4 +1,5 @@
-import { CheckIcon, DownloadIcon, ExternalLinkIcon, FileIcon, MessageCircleIcon } from "lucide-react";
+import { CheckIcon, DownloadIcon, ExternalLinkIcon, FileIcon, MessageSquareTextIcon, UsersIcon } from "lucide-react";
+import { NoteForm, type NoteItem } from "@/components/papers/paper-notes";
 import { PaperFileUploader, type FileItem } from "@/components/papers/paper-files";
 import { FinishStageButton, StageLinkDialog } from "@/components/papers/stage-controls";
 import SpotlightCard from "@/components/reactbits/spotlight-card";
@@ -31,8 +32,14 @@ export type MyStage = {
   uploadOpen: boolean;
   myFile: FileItem | null;
   myLink: string | null;
-  /** Reviews and hand over happen on WhatsApp. */
-  whatsapp: boolean;
+  /** Review stages: corrections are written in the system (or a marked PDF is uploaded). */
+  review: boolean;
+  /** How many corrections I wrote for this review stage. */
+  myNotes: number;
+  /** Reviewers' corrections this stage has to fix (type setting and hand over). */
+  corrections: NoteItem[];
+  /** Hand over: the WhatsApp groups the final PDFs are shared in. */
+  groupLinks: { lms: string | null; physical: string | null } | null;
   taskId: string | null;
   logPages: boolean;
 };
@@ -103,13 +110,36 @@ function Step({
   );
 }
 
+/** The reviewers' corrections to fix, newest last. */
+function Corrections({ notes }: { notes: NoteItem[] }) {
+  return (
+    <div className="space-y-1.5 rounded-lg border border-amber-500/40 bg-amber-500/5 p-2.5">
+      <p className="flex items-center gap-1.5 text-sm font-medium">
+        <MessageSquareTextIcon className="size-4 text-amber-600" /> {notes.length} correction
+        {notes.length === 1 ? "" : "s"} to fix
+      </p>
+      <ul className="space-y-1.5">
+        {notes.map((n) => (
+          <li key={n.id} className="text-sm">
+            <span className="text-muted-foreground text-xs">
+              {n.author}
+              {n.stageLabel ? ` · ${n.stageLabel}` : ""} · {n.when}
+            </span>
+            <p className="whitespace-pre-line">{n.body}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 /**
  * "Your part" on a paper: for each stage the member owns, a clear
  * Get → Do → Finish flow with the files they need and the upload for their own work.
  */
 export function MyStagePanel({ paperId, stage: s }: { paperId: string; stage: MyStage }) {
   const hasInput = s.inputs.some((i) => i.file || i.link);
-  const myWorkSaved = Boolean(s.myFile || s.myLink);
+  const myWorkSaved = Boolean(s.myFile || s.myLink || s.myNotes > 0);
   const finished = s.status === "done";
   const needsWork = s.uploadOpen && !myWorkSaved;
 
@@ -122,7 +152,9 @@ export function MyStagePanel({ paperId, stage: s }: { paperId: string; stage: My
       )}
     >
       <div className="space-y-1">
-        <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">Your part · Stage {s.number}</p>
+        <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+          Your part · Stage {s.number}
+        </p>
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-lg font-semibold">{s.label}</p>
           {finished ? (
@@ -169,36 +201,44 @@ export function MyStagePanel({ paperId, stage: s }: { paperId: string; stage: My
                   >
                     {input.stageLabel}
                     {input.ownerName ? ` (${input.ownerName})` : ""}:{" "}
-                    {input.done ? "done, but no file was shared – ask them on WhatsApp." : "not finished yet."}
+                    {input.done ? "done, but no file was shared – message them below." : "not finished yet."}
                   </p>
                 ),
               )}
             </div>
+            {s.corrections.length > 0 && <Corrections notes={s.corrections} />}
           </Step>
         )}
 
         <Step
           n={s.inputs.length > 0 ? 2 : 1}
-          title={s.whatsapp ? "Do your part on WhatsApp" : s.uploadOpen ? "Upload your work" : "Your work"}
-          done={myWorkSaved || (s.whatsapp && finished)}
+          title={s.review ? "Write your corrections" : s.uploadOpen ? "Upload your work" : "Your work"}
+          done={myWorkSaved}
           active={!myWorkSaved && (!finished || s.uploadOpen)}
         >
-          {s.whatsapp ? (
-            <p className="text-muted-foreground flex items-start gap-1.5 text-sm">
-              <MessageCircleIcon className="mt-0.5 size-4 shrink-0 text-emerald-600" />
-              Files aren&apos;t uploaded from this stage. Use the WhatsApp buttons below to talk to the team.
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {s.myFile && <FileChip file={s.myFile} label="Your latest upload" />}
-              {s.uploadOpen && (
-                <PaperFileUploader
-                  paperId={paperId}
-                  defaultStage={s.stage}
-                  stages={[{ stage: s.stage, label: s.label }]}
-                  buttonLabel={s.myFile ? "Upload a new version" : "Upload file"}
-                />
-              )}
+          <div className="space-y-2">
+            {s.review && (
+              <>
+                {s.myNotes > 0 && (
+                  <p className="text-success flex items-center gap-1.5 text-sm font-medium">
+                    <MessageSquareTextIcon className="size-4" /> You sent {s.myNotes} correction
+                    {s.myNotes === 1 ? "" : "s"} – see them under Corrections &amp; notes.
+                  </p>
+                )}
+                {!finished && <NoteForm paperId={paperId} fixedStage={s.stage} />}
+                <p className="text-muted-foreground text-xs">Or upload the paper with your marks on it:</p>
+              </>
+            )}
+            {s.myFile && <FileChip file={s.myFile} label="Your latest upload" />}
+            {s.uploadOpen && (
+              <PaperFileUploader
+                paperId={paperId}
+                defaultStage={s.stage}
+                stages={[{ stage: s.stage, label: s.label }]}
+                buttonLabel={s.myFile ? "Upload a new version" : s.review ? "Upload marked PDF" : "Upload file"}
+              />
+            )}
+            {!s.review && (
               <div className="flex flex-wrap items-center gap-2">
                 {s.myLink && (
                   <Button asChild size="sm" variant="outline">
@@ -208,14 +248,30 @@ export function MyStagePanel({ paperId, stage: s }: { paperId: string; stage: My
                   </Button>
                 )}
                 <StageLinkDialog paperId={paperId} stageId={s.stageId} label={s.label} link={s.myLink} />
-                {!s.uploadOpen && !s.myFile && (
-                  <span className="text-muted-foreground text-xs">
-                    Uploads are closed for this stage – share a link.
-                  </span>
-                )}
               </div>
-            </div>
-          )}
+            )}
+            {s.groupLinks && (s.groupLinks.lms || s.groupLinks.physical) && (
+              <div className="space-y-1.5 pt-1">
+                <p className="text-muted-foreground text-xs">Then share the final PDF in the groups:</p>
+                <div className="flex flex-wrap gap-2">
+                  {s.groupLinks.lms && (
+                    <Button asChild size="sm" className="bg-[#0f7a6e] text-white hover:bg-[#0c675d]">
+                      <a href={s.groupLinks.lms} target="_blank" rel="noreferrer">
+                        <UsersIcon /> LMS admin group
+                      </a>
+                    </Button>
+                  )}
+                  {s.groupLinks.physical && (
+                    <Button asChild size="sm" className="bg-[#0f7a6e] text-white hover:bg-[#0c675d]">
+                      <a href={s.groupLinks.physical} target="_blank" rel="noreferrer">
+                        <UsersIcon /> Physical coordinator group
+                      </a>
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </Step>
 
         <Step
@@ -223,7 +279,7 @@ export function MyStagePanel({ paperId, stage: s }: { paperId: string; stage: My
           title={finished ? "Marked as done" : "Mark your stage done"}
           last
           done={finished}
-          active={!finished && (myWorkSaved || s.whatsapp)}
+          active={!finished && myWorkSaved}
         >
           {finished ? (
             <p className="text-muted-foreground text-sm">
