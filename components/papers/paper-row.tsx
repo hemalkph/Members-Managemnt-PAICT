@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { CalendarDaysIcon, ChevronRightIcon, LinkIcon, SendIcon, TriangleAlertIcon } from "lucide-react";
-import Stepper from "@/components/reactbits/stepper";
+import type { StepState } from "@/components/reactbits/stepper";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, formatDay } from "@/lib/format";
 import { MEDIUM_LABEL, PART_LABEL, paperSteps, STAGE_LABEL, type PaperView } from "@/lib/papers";
@@ -15,7 +15,7 @@ export function PaperRow({ paper }: { paper: PaperView }) {
     <Link
       href={`/papers/${paper.id}`}
       className={cn(
-        "hover:bg-accent/40 grid gap-3 rounded-xl border p-3 transition-colors sm:grid-cols-[minmax(0,1fr)_minmax(0,272px)_auto] sm:items-center sm:p-4",
+        "hover:bg-accent/40 grid gap-3 rounded-xl border p-3 transition-colors sm:grid-cols-[minmax(0,1fr)_minmax(180px,260px)_auto] sm:items-center sm:gap-4 sm:p-4",
         late && "border-destructive/40",
         paper.status === "cancelled" && "opacity-60",
       )}
@@ -58,8 +58,61 @@ export function PaperRow({ paper }: { paper: PaperView }) {
           )}
         </div>
       </div>
-      <Stepper steps={paperSteps(paper.stages, (d) => formatDay(d))} compact />
+      <StageProgress paper={paper} />
       <ChevronRightIcon className="text-muted-foreground hidden size-4 sm:block" />
     </Link>
+  );
+}
+
+const SEGMENT: Record<StepState, string> = {
+  done: "bg-success",
+  active: "bg-primary",
+  overdue: "bg-destructive",
+  waiting: "bg-muted-foreground/20",
+  skipped: "bg-muted-foreground/10",
+};
+
+/**
+ * Progress as one thin bar per stage (always fits the row, however many
+ * stages), with the current stage named above it.
+ */
+function StageProgress({ paper }: { paper: PaperView }) {
+  const steps = paperSteps(paper.stages, (d) => formatDay(d));
+  const finished = steps.filter((s) => s.state === "done" || s.state === "skipped").length;
+  const currentIndex = steps.findIndex((s) => s.state === "active" || s.state === "overdue");
+  const current = currentIndex >= 0 ? steps[currentIndex] : null;
+  const others = current ? steps.filter((s, i) => i !== currentIndex && (s.state === "active" || s.state === "overdue")).length : 0;
+
+  const label =
+    paper.status === "cancelled"
+      ? "Cancelled"
+      : current
+        ? `Stage ${currentIndex + 1} of ${steps.length} · ${current.label}${others > 0 ? ` +${others}` : ""}`
+        : finished === steps.length
+          ? "All stages done"
+          : `${finished} of ${steps.length} stages done`;
+
+  return (
+    <div className="min-w-0 space-y-1.5" aria-label={steps.map((s) => `${s.label}: ${s.state}`).join(", ")}>
+      <div className="flex items-baseline justify-between gap-2 text-xs">
+        <span className={cn("truncate font-medium", current?.state === "overdue" && "text-destructive")}>{label}</span>
+        <span className="text-muted-foreground shrink-0 tabular-nums">
+          {finished}/{steps.length}
+        </span>
+      </div>
+      <div className="flex gap-0.5">
+        {steps.map((s, i) => (
+          <span
+            key={s.key}
+            title={`${i + 1}. ${s.label}${s.hint ? ` – ${s.hint}` : ""}`}
+            className={cn(
+              "h-1.5 min-w-0 flex-1 rounded-full",
+              SEGMENT[s.state],
+              (s.state === "active" || s.state === "overdue") && "h-2 -translate-y-px",
+            )}
+          />
+        ))}
+      </div>
+    </div>
   );
 }

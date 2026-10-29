@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ShieldCheckIcon, UserCheckIcon, UserPlusIcon, UserXIcon, UsersIcon } from "lucide-react";
+import { KeyRoundIcon, ShieldCheckIcon, UserCheckIcon, UserPlusIcon, UserXIcon, UsersIcon } from "lucide-react";
 import { MemberActions } from "@/components/admin/member-actions";
 import { AddMemberDialog } from "@/components/admin/member-dialogs";
 import { MemberFilters } from "@/components/admin/member-filters";
@@ -13,7 +13,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getAllMemberRoles, roleOptionsFrom } from "@/lib/admin-queries";
-import { requireAdmin } from "@/lib/auth";
+import { mainAdminUnlocked, requirePage } from "@/lib/auth";
+import { accessMap, PAGES } from "@/lib/page-access";
+import { ReadOnlyNotice } from "@/components/read-only-notice";
 import { isBirthdayToday } from "@/lib/birthday";
 import { initials } from "@/lib/format";
 import { todayISO } from "@/lib/month";
@@ -29,7 +31,7 @@ function param(value: string | string[] | undefined) {
 }
 
 export default async function MembersPage({ searchParams }: PageProps<"/admin/members">) {
-  const me = await requireAdmin();
+  const { profile: me, canEdit } = await requirePage("members");
   const sp = await searchParams;
   const q = param(sp.q).trim().toLowerCase();
   const section = param(sp.section);
@@ -43,6 +45,7 @@ export default async function MembersPage({ searchParams }: PageProps<"/admin/me
     getAllMemberRoles(supabase),
   ]);
 
+  const everyoneRows = profiles ?? [];
   const allRoles = flattenRoles(structure);
   const roleById = new Map(allRoles.map((r) => [r.id, r]));
   const roleOptions = roleOptionsFrom(structure);
@@ -62,8 +65,25 @@ export default async function MembersPage({ searchParams }: PageProps<"/admin/me
     members.map((m) => m.avatar_path),
   );
   const canManageAuth = hasServiceRoleKey();
+  // Only main admins (with two-step done) can change page access.
+  const canSetAccess = await mainAdminUnlocked(me);
+  /** Short label for the member list: custom admin access, or admin pages given to a member. */
+  const accessLabel = (p: (typeof everyoneRows)[number]) => {
+    if (p.is_main_admin) return null;
+    const pages = accessMap(p);
+    if (p.is_admin) {
+      if (!p.page_access) return null;
+      const off = PAGES.filter((pg) => !pg.mainOnly && pages[pg.key] === "none").length;
+      const view = PAGES.filter((pg) => pages[pg.key] === "view").length;
+      return [off ? `${off} hidden` : null, view ? `${view} read only` : null].filter(Boolean).join(" · ") || null;
+    }
+    const given = PAGES.filter((pg) => pages[pg.key] !== "none");
+    if (given.length === 0) return null;
+    const viewOnly = given.every((pg) => pages[pg.key] === "view");
+    return `${given.map((pg) => pg.title).join(", ")}${viewOnly ? " (read only)" : ""}`;
+  };
   const today = todayISO();
-  const everyone = profiles ?? [];
+  const everyone = everyoneRows;
   const activeCount = everyone.filter((p) => p.is_active).length;
 
   return (
@@ -72,13 +92,16 @@ export default async function MembersPage({ searchParams }: PageProps<"/admin/me
         title="Members"
         description={`Showing ${members.length} of ${everyone.length} accounts`}
         actions={
-          <AddMemberDialog roleOptions={roleOptions} canCreate={canManageAuth}>
-            <Button>
-              <UserPlusIcon /> Add member
-            </Button>
-          </AddMemberDialog>
+          canEdit ? (
+            <AddMemberDialog roleOptions={roleOptions} canCreate={canManageAuth}>
+              <Button>
+                <UserPlusIcon /> Add member
+              </Button>
+            </AddMemberDialog>
+          ) : undefined
         }
       />
+      {!canEdit && <ReadOnlyNotice />}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label="Total accounts" value={everyone.length} icon={UsersIcon} hint="Everyone in the team" />
@@ -154,6 +177,15 @@ export default async function MembersPage({ searchParams }: PageProps<"/admin/me
                               </Badge>
                             )}
                             {m.id === me.id && <Badge className="text-[10px]">You</Badge>}
+                            {accessLabel(m) && (
+                              <Badge
+                                variant="secondary"
+                                className="max-w-[160px] truncate text-[10px] sm:max-w-[240px]"
+                                title={`Page access: ${accessLabel(m)}`}
+                              >
+                                <KeyRoundIcon /> {accessLabel(m)}
+                              </Badge>
+                            )}
                             {isBirthdayToday(m.date_of_birth, today) && (
                               <span title="Birthday today" aria-label="Birthday today">
                                 🎂
@@ -203,7 +235,9 @@ export default async function MembersPage({ searchParams }: PageProps<"/admin/me
                           title={m.is_active ? "Active" : "Inactive"}
                           aria-label={m.is_active ? "Active" : "Inactive"}
                         />
+                        {canEdit && (
                         <MemberActions
+                          access={canSetAccess ? { isMainAdmin: m.is_main_admin, stored: m.page_access } : undefined}
                           canManageAuth={canManageAuth}
                           isSelf={m.id === me.id}
                           roleOptions={roleOptions}
@@ -219,6 +253,7 @@ export default async function MembersPage({ searchParams }: PageProps<"/admin/me
                             is_active: m.is_active,
                           }}
                         />
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

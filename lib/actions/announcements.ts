@@ -12,7 +12,7 @@ function revalidateNotices() {
 }
 
 export async function saveAnnouncementAction(input: AnnouncementInput): Promise<ActionResult> {
-  const ctx = await getActionContext({ admin: true });
+  const ctx = await getActionContext({ page: "notices", edit: true });
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
 
   const parsed = announcementSchema.safeParse(input);
@@ -30,7 +30,7 @@ export async function saveAnnouncementAction(input: AnnouncementInput): Promise<
 }
 
 export async function deleteAnnouncementAction(input: { id: string }): Promise<ActionResult> {
-  const ctx = await getActionContext({ admin: true });
+  const ctx = await getActionContext({ page: "notices", edit: true });
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
   const parsed = idSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid notice." };

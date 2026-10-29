@@ -21,7 +21,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { requireAdmin } from "@/lib/auth";
+import { requirePage } from "@/lib/auth";
 import { monthLabel } from "@/lib/month";
 import { getTeamPerformance, MIN_FOR_RANKING, type MemberPerformance } from "@/lib/performance";
 import { signedAvatarUrls } from "@/lib/storage";
@@ -51,7 +51,7 @@ function Person({ m, avatar, size = "size-8" }: { m: MemberPerformance; avatar?:
 }
 
 export default async function TeamPerformancePage({ searchParams }: PageProps<"/admin/team">) {
-  await requireAdmin();
+  await requirePage("team");
   const raw = Number((await searchParams).months);
   const months = PERIODS.find((p) => p === raw) ?? 3;
 

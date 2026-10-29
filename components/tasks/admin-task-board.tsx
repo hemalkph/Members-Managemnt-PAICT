@@ -15,7 +15,10 @@ export function AdminTaskBoard({
   today,
   emptyTitle,
   phones = {},
+  readOnly = false,
 }: {
+  /** Read-only page access: no Assign / Edit / Delete. */
+  readOnly?: boolean;
   /** Member id → WhatsApp number (wa.me format) for late tasks. */
   phones?: Record<string, string>;
   tasks: TaskView[];
@@ -27,11 +30,13 @@ export function AdminTaskBoard({
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <Button onClick={() => setDialog({ task: null, key: Date.now() })}>
-          <PlusIcon /> Assign a task
-        </Button>
-      </div>
+      {!readOnly && (
+        <div className="flex justify-end">
+          <Button onClick={() => setDialog({ task: null, key: Date.now() })}>
+            <PlusIcon /> Assign a task
+          </Button>
+        </div>
+      )}
       {tasks.length === 0 ? (
         <EmptyState icon={ListTodoIcon} title={emptyTitle} description="Assign work with a due date to a member." />
       ) : (
@@ -41,6 +46,7 @@ export function AdminTaskBoard({
               key={t.id}
               task={t}
               mode="admin"
+              readOnly={readOnly}
               whatsapp={phones[t.assigneeId]}
               onEdit={(task) => setDialog({ task, key: Date.now() })}
             />

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { friendlyDbError, type ActionResult } from "@/lib/action-result";
 import { getActionContext, NOT_ALLOWED } from "@/lib/auth";
+import { pageAccess } from "@/lib/page-access";
 import { firstError, idSchema, taskSchema, taskStatusSchema, type TaskInput } from "@/lib/validation";
 
 function revalidateTasks() {
@@ -14,7 +15,7 @@ function revalidateTasks() {
 
 /** Admins: create or edit a task. */
 export async function saveTaskAction(input: TaskInput): Promise<ActionResult<{ id: string }>> {
-  const ctx = await getActionContext({ admin: true });
+  const ctx = await getActionContext({ page: "tasks", edit: true });
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
   const parsed = taskSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
@@ -62,7 +63,7 @@ export async function setTaskStatusAction(input: { id: string; status: "open" | 
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
   const parsed = taskStatusSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
-  if (parsed.data.status === "cancelled" && !ctx.profile.is_admin) return { ok: false, error: NOT_ALLOWED };
+  if (parsed.data.status === "cancelled" && pageAccess(ctx.profile, "tasks") !== "edit") return { ok: false, error: NOT_ALLOWED };
 
   const { data, error } = await ctx.supabase
     .from("tasks")
@@ -81,7 +82,7 @@ export async function setTaskStatusAction(input: { id: string; status: "open" | 
 
 /** Admins: delete a task (paper stage tasks are managed on the paper page). */
 export async function deleteTaskAction(input: { id: string }): Promise<ActionResult> {
-  const ctx = await getActionContext({ admin: true });
+  const ctx = await getActionContext({ page: "tasks", edit: true });
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
   const parsed = idSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Task not found." };

@@ -40,6 +40,7 @@ export type Database = {
           is_admin: boolean;
           is_main_admin: boolean;
           is_active: boolean;
+          page_access: Json | null;
           created_at: string;
           updated_at: string;
         };
@@ -54,6 +55,7 @@ export type Database = {
           is_admin?: boolean;
           is_main_admin?: boolean;
           is_active?: boolean;
+          page_access?: Json | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -68,6 +70,7 @@ export type Database = {
           is_admin?: boolean;
           is_main_admin?: boolean;
           is_active?: boolean;
+          page_access?: Json | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -994,6 +997,27 @@ export type Database = {
       group_links: {
         Args: Record<PropertyKey, never>;
         Returns: { lms_group_link: string | null; physical_group_link: string | null }[];
+      };
+      has_page: { Args: { p_page: string; p_edit?: boolean }; Returns: boolean };
+      team_directory: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          id: string;
+          name: string;
+          email: string | null;
+          phone: string | null;
+          whatsapp: string | null;
+          is_active: boolean;
+        }[];
+      };
+      paper_settings: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          paper_file_days: number;
+          paper_default_owners: Json;
+          lms_group_link: string | null;
+          physical_group_link: string | null;
+        }[];
       };
       set_group_links: { Args: { p_lms: string | null; p_physical: string | null }; Returns: undefined };
       paper_contacts: {

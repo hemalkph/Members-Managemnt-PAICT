@@ -39,7 +39,15 @@ type Editing = { kind: Kind; id?: string; name: string; batchId: string; examDat
 
 const KIND_LABEL: Record<Kind, string> = { batch: "batch", exam: "exam / test", centre: "class centre" };
 
-export function ClassesManager({ options, counts }: { options: ClassOptions; counts: Record<string, number> }) {
+export function ClassesManager({
+  options,
+  counts,
+  readOnly = false,
+}: {
+  options: ClassOptions;
+  counts: Record<string, number>;
+  readOnly?: boolean;
+}) {
   const router = useRouter();
   const [editing, setEditing] = useState<Editing | null>(null);
   const [pending, startTransition] = useTransition();
@@ -133,10 +141,14 @@ export function ClassesManager({ options, counts }: { options: ClassOptions; cou
         </Badge>
       )}
       {!active && <Badge variant="secondary">Inactive</Badge>}
-      <Button variant="ghost" size="icon" aria-label={`Edit ${title}`} onClick={onEdit}>
-        <PencilIcon />
-      </Button>
-      {del}
+      {!readOnly && (
+        <>
+          <Button variant="ghost" size="icon" aria-label={`Edit ${title}`} onClick={onEdit}>
+            <PencilIcon />
+          </Button>
+          {del}
+        </>
+      )}
     </li>
   );
 
@@ -150,9 +162,11 @@ export function ClassesManager({ options, counts }: { options: ClassOptions; cou
               <GraduationCapIcon className="text-primary size-5" />
               <h2 className="font-semibold">Batches</h2>
             </div>
-            <Button size="sm" variant="outline" onClick={() => setEditing(empty("batch"))}>
-              <PlusIcon /> Add
-            </Button>
+            {!readOnly && (
+              <Button size="sm" variant="outline" onClick={() => setEditing(empty("batch"))}>
+                <PlusIcon /> Add
+              </Button>
+            )}
           </div>
           {options.batches.length === 0 ? (
             <p className="text-muted-foreground text-sm">Add your A/L batches, e.g. “2026 A/L”.</p>
@@ -179,14 +193,16 @@ export function ClassesManager({ options, counts }: { options: ClassOptions; cou
               <CalendarDaysIcon className="text-primary size-5" />
               <h2 className="font-semibold">Exams & tests</h2>
             </div>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={options.batches.length === 0}
-              onClick={() => setEditing(empty("exam"))}
-            >
-              <PlusIcon /> Add
-            </Button>
+            {!readOnly && (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={options.batches.length === 0}
+                onClick={() => setEditing(empty("exam"))}
+              >
+                <PlusIcon /> Add
+              </Button>
+            )}
           </div>
           {options.exams.length === 0 ? (
             <p className="text-muted-foreground text-sm">
@@ -236,9 +252,11 @@ export function ClassesManager({ options, counts }: { options: ClassOptions; cou
               <MapPinIcon className="text-primary size-5" />
               <h2 className="font-semibold">Class centres</h2>
             </div>
-            <Button size="sm" variant="outline" onClick={() => setEditing(empty("centre"))}>
-              <PlusIcon /> Add
-            </Button>
+            {!readOnly && (
+              <Button size="sm" variant="outline" onClick={() => setEditing(empty("centre"))}>
+                <PlusIcon /> Add
+              </Button>
+            )}
           </div>
           {options.centres.length === 0 ? (
             <p className="text-muted-foreground text-sm">Add where classes happen, e.g. “Kandy hall” or “Online”.</p>

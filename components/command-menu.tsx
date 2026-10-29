@@ -18,9 +18,11 @@ import {
 } from "@/components/ui/command";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { adminNav, MEMBER_NAV, type NavItem } from "@/lib/navigation";
+import type { AccessLevel, PageKey } from "@/lib/page-access";
 
 /** Quick search (Ctrl/⌘ + K) to jump to any page or switch the theme. */
-export function CommandMenu({ isAdmin, isMainAdmin }: { isAdmin: boolean; isMainAdmin: boolean }) {
+export function CommandMenu({ pages }: { pages: Record<PageKey, AccessLevel> }) {
+  const adminItems = adminNav(pages);
   const router = useRouter();
   const { setTheme } = useTheme();
   const [open, setOpen] = useState(false);
@@ -76,8 +78,8 @@ export function CommandMenu({ isAdmin, isMainAdmin }: { isAdmin: boolean; isMain
             <CommandInput placeholder="Where do you want to go?" />
             <CommandList className="max-h-[60vh]">
               <CommandEmpty>Nothing found.</CommandEmpty>
-              {isAdmin && group("Admin", adminNav(isMainAdmin))}
-              {group(isAdmin ? "My space" : "Pages", MEMBER_NAV)}
+              {adminItems.length > 0 && group("Admin", adminItems)}
+              {group(adminItems.length > 0 ? "My space" : "Pages", MEMBER_NAV)}
               <CommandSeparator />
               <CommandGroup heading="Theme">
                 <CommandItem value="theme light" onSelect={() => run(() => setTheme("light"))}>

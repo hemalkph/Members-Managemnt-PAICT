@@ -42,7 +42,7 @@ type Row = {
   }[];
 };
 
-function toView(row: Row, today: string): PaperView {
+function toView(row: Row, today: string, names?: Map<string, string>): PaperView {
   return {
     id: row.id,
     title: row.title,
@@ -69,7 +69,7 @@ function toView(row: Row, today: string): PaperView {
         stage: s.stage,
         position: s.position,
         ownerId: s.owner_id,
-        ownerName: s.owner ? s.owner.full_name || s.owner.email : null,
+        ownerName: s.owner ? s.owner.full_name || s.owner.email : ((s.owner_id && names?.get(s.owner_id)) ?? null),
         startDate: s.start_date,
         dueDate: s.due_date,
         link: s.link,
@@ -84,18 +84,20 @@ function toView(row: Row, today: string): PaperView {
 export async function getPapers(
   supabase: Client,
   filters: { examId?: string | null; status?: "in_progress" | "done" | "cancelled" | null } = {},
+  /** Names for people the viewer can't read directly (from the team directory). */
+  names?: Map<string, string>,
 ): Promise<PaperView[]> {
   let query = supabase.from("papers").select(PAPER_SELECT).order("created_at", { ascending: false }).limit(300);
   if (filters.examId) query = query.eq("exam_id", filters.examId);
   if (filters.status) query = query.eq("status", filters.status);
   const { data } = await query;
   const today = todayISO();
-  return ((data ?? []) as unknown as Row[]).map((r) => toView(r, today));
+  return ((data ?? []) as unknown as Row[]).map((r) => toView(r, today, names));
 }
 
-export async function getPaper(supabase: Client, id: string): Promise<PaperView | null> {
+export async function getPaper(supabase: Client, id: string, names?: Map<string, string>): Promise<PaperView | null> {
   const { data } = await supabase.from("papers").select(PAPER_SELECT).eq("id", id).maybeSingle();
-  return data ? toView(data as unknown as Row, todayISO()) : null;
+  return data ? toView(data as unknown as Row, todayISO(), names) : null;
 }
 
 export type PaperFileView = {

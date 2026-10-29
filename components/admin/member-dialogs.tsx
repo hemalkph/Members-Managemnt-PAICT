@@ -1,14 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition, type ReactNode } from "react";
+import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { useForm, useWatch, type Control, type FieldValues, type Path } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangleIcon, MailIcon, KeyRoundIcon } from "lucide-react";
+import { AlertTriangleIcon, MailIcon, KeyRoundIcon, RotateCcwIcon, ShieldCheckIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { SubmitButton } from "@/components/submit-button";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -24,6 +25,7 @@ import { MultiSelect, type MultiSelectOption } from "@/components/ui/multi-selec
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { createMemberAction, updateMemberAction } from "@/lib/actions/admin";
+import { accessMap, editablePages, type AccessLevel, type PageAccessMap } from "@/lib/page-access";
 import {
   memberCreateSchema,
   memberUpdateSchema,
@@ -137,6 +139,124 @@ function MemberFields<T extends FieldValues & CommonFields>({
         )}
       />
     </>
+  );
+}
+
+/** Effective access for every page an account type can be given (the form's starting point). */
+function startingAccess(account: { is_admin: boolean; is_main_admin: boolean; page_access?: unknown }): PageAccessMap {
+  const all = accessMap(account);
+  return Object.fromEntries(editablePages(account).map((p) => [p.key, all[p.key]]));
+}
+
+/**
+ * Page access for one account: tick Access to open a page, and Read only to
+ * let them look without adding, changing or deleting anything.
+ */
+function PageAccessTable({
+  control,
+  setValue,
+  isMainAdmin,
+}: {
+  control: Control<MemberUpdateInput>;
+  setValue: (value: PageAccessMap) => void;
+  isMainAdmin: boolean;
+}) {
+  const isAdmin = Boolean(useWatch({ control, name: "is_admin" }));
+  const chosen = (useWatch({ control, name: "page_access" }) ?? {}) as PageAccessMap;
+  const account = { is_admin: isAdmin, is_main_admin: isMainAdmin };
+  const pages = editablePages(account);
+  const defaults = startingAccess(account);
+
+  // Turning Admin access on or off starts from that account type's defaults.
+  const firstAdmin = useRef(isAdmin);
+  useEffect(() => {
+    if (firstAdmin.current === isAdmin) return;
+    firstAdmin.current = isAdmin;
+    setValue(startingAccess({ is_admin: isAdmin, is_main_admin: isMainAdmin }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only when the switch changes
+  }, [isAdmin]);
+
+  const level = (key: (typeof pages)[number]["key"]): AccessLevel => chosen[key] ?? defaults[key] ?? "none";
+  const set = (key: (typeof pages)[number]["key"], next: AccessLevel) => setValue({ ...chosen, [key]: next });
+  const isDefault = pages.every((p) => level(p.key) === defaults[p.key]);
+
+  if (isMainAdmin) {
+    return (
+      <div className="text-muted-foreground flex items-center gap-2 rounded-lg border p-3 text-sm sm:col-span-2">
+        <ShieldCheckIcon className="text-primary size-4 shrink-0" />
+        Main admins can open every page with full access.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2 sm:col-span-2">
+      <div className="flex items-end justify-between gap-2">
+        <div>
+          <p className="text-sm font-medium">Page access</p>
+          <p className="text-muted-foreground text-xs">
+            {isAdmin
+              ? "Admins get every page by default. Untick a page to hide it, or tick Read only."
+              : "Members get no admin pages by default. They need two-step login turned on before these pages open."}
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          disabled={isDefault}
+          onClick={() => setValue(startingAccess(account))}
+        >
+          <RotateCcwIcon /> Defaults
+        </Button>
+      </div>
+      <div className="overflow-hidden rounded-lg border">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/50 text-muted-foreground text-[11px] tracking-wide uppercase">
+            <tr>
+              <th className="px-3 py-2 text-left font-semibold">Page</th>
+              <th className="w-16 px-2 py-2 text-center font-semibold sm:w-20">Access</th>
+              <th className="w-20 px-2 py-2 text-center font-semibold sm:w-24">Read only</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pages.map((p) => {
+              const l = level(p.key);
+              return (
+                <tr key={p.key} className="border-t">
+                  <td className="px-3 py-2">{p.title}</td>
+                  <td className="px-2 py-2 text-center">
+                    <Checkbox
+                      aria-label={`Access to ${p.title}`}
+                      checked={l !== "none"}
+                      onCheckedChange={(v) => set(p.key, v === true ? "edit" : "none")}
+                    />
+                  </td>
+                  <td className="px-2 py-2 text-center">
+                    {p.viewOnly ? (
+                      <span className="text-muted-foreground text-xs" title="This page has nothing to edit">
+                        —
+                      </span>
+                    ) : (
+                      <Checkbox
+                        aria-label={`${p.title} read only`}
+                        disabled={l === "none"}
+                        checked={l === "view"}
+                        onCheckedChange={(v) => set(p.key, v === true ? "view" : "edit")}
+                      />
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-muted-foreground text-xs">
+        Read only: they can view the page but can&apos;t add, change or delete anything. Money pages (Analytics,
+        Payments, Rates, Activity log) stay with main admins.
+      </p>
+    </div>
   );
 }
 
@@ -262,15 +382,28 @@ export function EditMemberDialog({
   roleOptions,
   open,
   onOpenChange,
+  access,
 }: {
   member: MemberUpdateInput & { email: string };
   roleOptions: MultiSelectOption[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Page access (only main admins get this, so only they can change it). */
+  access?: { isMainAdmin: boolean; stored: unknown };
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const { email, ...defaults } = member;
+  const { email, ...rest } = member;
+  const defaults: MemberUpdateInput = access
+    ? {
+        ...rest,
+        page_access: startingAccess({
+          is_admin: rest.is_admin,
+          is_main_admin: access.isMainAdmin,
+          page_access: access.stored,
+        }),
+      }
+    : rest;
   const form = useForm<MemberUpdateInput>({ resolver: zodResolver(memberUpdateSchema), defaultValues: defaults });
 
   const onSubmit = (values: MemberUpdateInput) =>
@@ -301,6 +434,13 @@ export function EditMemberDialog({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 sm:grid-cols-2" noValidate>
             <MemberFields control={form.control} roleOptions={roleOptions} />
+            {access && (
+              <PageAccessTable
+                control={form.control}
+                isMainAdmin={access.isMainAdmin}
+                setValue={(value) => form.setValue("page_access", value, { shouldDirty: true })}
+              />
+            )}
             <DialogFooter className="sm:col-span-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel

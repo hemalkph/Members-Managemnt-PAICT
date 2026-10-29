@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
 import { StructureManager } from "@/components/admin/structure-manager";
 import { PageHeader } from "@/components/page-header";
-import { requireAdmin } from "@/lib/auth";
+import { ReadOnlyNotice } from "@/components/read-only-notice";
+import { requirePage } from "@/lib/auth";
 import { getStructure } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Sections & roles" };
 
 export default async function StructurePage() {
-  await requireAdmin();
+  const { canEdit } = await requirePage("structure");
   const supabase = await createClient();
   const [structure, { data: memberRoles }, { data: submissions }] = await Promise.all([
     getStructure(supabase),
@@ -30,7 +31,9 @@ export default async function StructurePage() {
         title="Sections & roles"
         description="Sections group the team's roles. Members can hold several roles across sections."
       />
+      {!canEdit && <ReadOnlyNotice />}
       <StructureManager
+        readOnly={!canEdit}
         sections={structure.map((s) => ({
           id: s.id,
           name: s.name,

@@ -5,8 +5,9 @@ import { ReviewFilters } from "@/components/admin/review-filters";
 import { ReviewTable } from "@/components/admin/review-table";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
+import { ReadOnlyNotice } from "@/components/read-only-notice";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { requireAdmin } from "@/lib/auth";
+import { requirePage } from "@/lib/auth";
 import { dateToMonthKey, monthKeyToDate, monthLabel, parseMonthParam } from "@/lib/month";
 import { getPayMonth } from "@/lib/payments";
 import { getStructure } from "@/lib/queries";
@@ -22,7 +23,7 @@ function param(value: string | string[] | undefined) {
 }
 
 export default async function ReviewPage({ searchParams }: PageProps<"/admin/review">) {
-  await requireAdmin();
+  const { canEdit } = await requirePage("review");
   const sp = await searchParams;
   const month = parseMonthParam(sp.month);
   const status = STATUSES.find((s) => s === param(sp.status));
@@ -84,6 +85,7 @@ export default async function ReviewPage({ searchParams }: PageProps<"/admin/rev
   return (
     <div className="space-y-6">
       <PageHeader title="Work review" description="Open a submission to see details, then approve or reject it." />
+      {!canEdit && <ReadOnlyNotice />}
       <ReviewFilters
         month={month}
         sections={structure.map((s) => ({ id: s.id, name: s.name, roles: s.roles.map((r) => ({ id: r.id, name: r.name })) }))}
@@ -106,7 +108,7 @@ export default async function ReviewPage({ searchParams }: PageProps<"/admin/rev
           description={`No submissions match these filters for ${monthLabel(month)}.`}
         />
       ) : (
-        <ReviewTable rows={rows} />
+        <ReviewTable rows={rows} readOnly={!canEdit} />
       )}
     </div>
   );

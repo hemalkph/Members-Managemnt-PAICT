@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { friendlyDbError, type ActionResult } from "@/lib/action-result";
-import { getActionContext, NOT_ALLOWED } from "@/lib/auth";
+import { getActionContext, mainAdminUnlocked, NOT_ALLOWED } from "@/lib/auth";
+import { sameStoredAccess, toStoredAccess, type PageAccessMap, type PageKey } from "@/lib/page-access";
 import { getSiteUrl } from "@/lib/env";
 import { createAdminClient, hasServiceRoleKey } from "@/lib/supabase/admin";
 import {
@@ -26,8 +27,9 @@ import {
 
 type AdminCtx = NonNullable<Awaited<ReturnType<typeof getActionContext>>>;
 
-async function adminCtx() {
-  return getActionContext({ admin: true });
+/** Admin actions check the page they belong to (with edit rights). */
+async function adminCtx(page: PageKey) {
+  return getActionContext({ page, edit: true });
 }
 
 async function syncRoles(ctx: AdminCtx, userId: string, roleIds: string[]) {
@@ -63,7 +65,7 @@ function revalidateMembers(id?: string) {
 // ---------------------------------------------------------------- members
 
 export async function createMemberAction(input: MemberCreateInput): Promise<ActionResult<{ id: string }>> {
-  const ctx = await adminCtx();
+  const ctx = await adminCtx("members");
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
 
   const parsed = memberCreateSchema.safeParse(input);
@@ -125,7 +127,7 @@ export async function createMemberAction(input: MemberCreateInput): Promise<Acti
 }
 
 export async function updateMemberAction(input: MemberUpdateInput): Promise<ActionResult> {
-  const ctx = await adminCtx();
+  const ctx = await adminCtx("members");
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
 
   const parsed = memberUpdateSchema.safeParse(input);
@@ -136,6 +138,26 @@ export async function updateMemberAction(input: MemberUpdateInput): Promise<Acti
     return { ok: false, error: "You can't remove your own admin access." };
   }
 
+  const { data: target } = await ctx.supabase
+    .from("profiles")
+    .select("is_admin, is_main_admin, page_access")
+    .eq("id", v.id)
+    .maybeSingle();
+  if (!target) return { ok: false, error: "Member not found." };
+
+  // Page access: only main admins (with two-step done) can change it; the
+  // database checks the same. Saved as null when it matches the defaults.
+  let pageAccessUpdate: { page_access: PageAccessMap | null } | Record<string, never> = {};
+  if (v.page_access && (await mainAdminUnlocked(ctx.profile))) {
+    const account = { is_admin: v.is_admin, is_main_admin: target.is_main_admin };
+    const stored = target.is_main_admin ? null : toStoredAccess(account, v.page_access as PageAccessMap);
+    if (!sameStoredAccess(stored, target.page_access)) pageAccessUpdate = { page_access: stored };
+  } else if (target.is_admin !== v.is_admin && target.page_access !== null) {
+    // Admin turned on/off by someone who can't set page access: start from the
+    // new account type's defaults, so old choices don't carry over.
+    return { ok: false, error: "This account has custom page access. Ask a main admin to change its admin access." };
+  }
+
   const { error } = await ctx.supabase
     .from("profiles")
     .update({
@@ -144,6 +166,7 @@ export async function updateMemberAction(input: MemberUpdateInput): Promise<Acti
       whatsapp: v.whatsapp || null,
       nic: v.nic || null,
       is_admin: v.is_admin,
+      ...pageAccessUpdate,
     })
     .eq("id", v.id);
   if (error) return { ok: false, error: friendlyDbError(error) };
@@ -156,7 +179,7 @@ export async function updateMemberAction(input: MemberUpdateInput): Promise<Acti
 }
 
 export async function setMemberActiveAction(input: { id: string; active: boolean }): Promise<ActionResult> {
-  const ctx = await adminCtx();
+  const ctx = await adminCtx("members");
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
 
   const parsed = memberActiveSchema.safeParse(input);
@@ -178,7 +201,7 @@ export async function setMemberActiveAction(input: { id: string; active: boolean
 
 /** Admin sets a new password for another member (needs the service role key). */
 export async function resetMemberPasswordAction(input: AdminResetPasswordInput): Promise<ActionResult> {
-  const ctx = await adminCtx();
+  const ctx = await adminCtx("members");
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
 
   const parsed = adminResetPasswordSchema.safeParse(input);
@@ -207,7 +230,7 @@ export async function resetMemberPasswordAction(input: AdminResetPasswordInput):
 // ---------------------------------------------------------------- review
 
 export async function reviewSubmissionsAction(input: ReviewInput): Promise<ActionResult<{ count: number }>> {
-  const ctx = await adminCtx();
+  const ctx = await adminCtx("review");
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
 
   const parsed = reviewSchema.safeParse(input);
@@ -233,7 +256,7 @@ export async function reviewSubmissionsAction(input: ReviewInput): Promise<Actio
 // ---------------------------------------------------------------- sections & roles
 
 export async function saveSectionAction(input: SectionInput): Promise<ActionResult> {
-  const ctx = await adminCtx();
+  const ctx = await adminCtx("structure");
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
   const parsed = sectionSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstError(parsed.error), fieldErrors: fieldErrorsOf(parsed.error) };
@@ -260,7 +283,7 @@ export async function saveSectionAction(input: SectionInput): Promise<ActionResu
 }
 
 export async function deleteSectionAction(input: { id: string }): Promise<ActionResult> {
-  const ctx = await adminCtx();
+  const ctx = await adminCtx("structure");
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
   const parsed = idSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid section." };
@@ -280,7 +303,7 @@ export async function deleteSectionAction(input: { id: string }): Promise<Action
 }
 
 export async function saveRoleAction(input: RoleInput): Promise<ActionResult> {
-  const ctx = await adminCtx();
+  const ctx = await adminCtx("structure");
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
   const parsed = roleSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstError(parsed.error), fieldErrors: fieldErrorsOf(parsed.error) };
@@ -311,7 +334,7 @@ export async function saveRoleAction(input: RoleInput): Promise<ActionResult> {
 }
 
 export async function deleteRoleAction(input: { id: string }): Promise<ActionResult> {
-  const ctx = await adminCtx();
+  const ctx = await adminCtx("structure");
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
   const parsed = idSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid role." };

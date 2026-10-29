@@ -172,7 +172,11 @@ export const memberCreateSchema = memberBase
   });
 export type MemberCreateInput = z.input<typeof memberCreateSchema>;
 
-export const memberUpdateSchema = memberBase.extend({ id: uuid });
+export const memberUpdateSchema = memberBase.extend({
+  id: uuid,
+  /** Page access choices (only saved when a main admin edits). Unknown pages are ignored. */
+  page_access: z.record(z.string().max(40), z.enum(["edit", "view", "none"])).optional(),
+});
 export type MemberUpdateInput = z.input<typeof memberUpdateSchema>;
 
 export const memberActiveSchema = z.object({ id: uuid, active: z.boolean() });

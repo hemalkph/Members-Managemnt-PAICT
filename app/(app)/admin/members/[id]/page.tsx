@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { adminRevealAccountNumberAction } from "@/lib/actions/bank";
 import { roleOptionsFrom } from "@/lib/admin-queries";
-import { requireAdmin } from "@/lib/auth";
+import { mainAdminUnlocked, requirePage } from "@/lib/auth";
 import { ADMINS_CAN_REVEAL_ACCOUNT_NUMBER } from "@/lib/config";
 import { ageOn, formatBirthday, isBirthdayToday } from "@/lib/birthday";
 import { formatDate, formatLKR, initials } from "@/lib/format";
@@ -31,7 +31,7 @@ export default async function MemberDetailPage({ params }: PageProps<"/admin/mem
   const { id } = await params;
   if (!uuid.safeParse(id).success) notFound();
 
-  const me = await requireAdmin();
+  const { profile: me, canEdit } = await requirePage("members");
   const supabase = await createClient();
   const { data: member } = await supabase.from("profiles").select("*").eq("id", id).maybeSingle();
   if (!member) notFound();
@@ -90,7 +90,9 @@ export default async function MemberDetailPage({ params }: PageProps<"/admin/mem
             <p className="text-muted-foreground text-sm">Joined {formatDate(member.created_at)}</p>
           </div>
         </div>
+        {canEdit && (
         <MemberActions
+          access={(await mainAdminUnlocked(me)) ? { isMainAdmin: member.is_main_admin, stored: member.page_access } : undefined}
           variant="buttons"
           showView={false}
           canManageAuth={hasServiceRoleKey()}
@@ -108,6 +110,7 @@ export default async function MemberDetailPage({ params }: PageProps<"/admin/mem
             is_active: member.is_active,
           }}
         />
+        )}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">

@@ -48,7 +48,10 @@ export function ReviewDialog({
   row,
   open,
   onOpenChange,
+  readOnly = false,
 }: {
+  /** Read-only page access: show the work, no decisions. */
+  readOnly?: boolean;
   row: ReviewRow | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -179,7 +182,7 @@ export function ReviewDialog({
 
         <Separator />
 
-        <div className="grid gap-2">
+        <div className={readOnly ? "hidden" : "grid gap-2"}>
           <Label htmlFor="review-comment">Comment for the member</Label>
           <Textarea
             id="review-comment"
@@ -197,7 +200,10 @@ export function ReviewDialog({
           )}
         </div>
 
-        <DialogFooter className="gap-2 sm:justify-between">
+        {readOnly && row.admin_comment && (
+          <p className="text-muted-foreground text-sm">Comment: {row.admin_comment}</p>
+        )}
+        <DialogFooter className={readOnly ? "hidden" : "gap-2 sm:justify-between"}>
           {row.status !== "pending" ? (
             <Button variant="ghost" onClick={() => decide("pending")} disabled={pending}>
               {busy === "pending" ? <Loader2Icon className="animate-spin" /> : <RotateCcwIcon />} Back to pending

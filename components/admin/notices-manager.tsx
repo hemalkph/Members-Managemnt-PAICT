@@ -44,7 +44,7 @@ export type ManagedNotice = {
 
 const EMPTY: AnnouncementInput = { title: "", body: "", pinned: false, expires_on: "" };
 
-export function NoticesManager({ notices }: { notices: ManagedNotice[] }) {
+export function NoticesManager({ notices, readOnly = false }: { notices: ManagedNotice[]; readOnly?: boolean }) {
   const router = useRouter();
   const [editing, setEditing] = useState<AnnouncementInput | null>(null);
   const [deleting, setDeleting] = useState<ManagedNotice | null>(null);
@@ -67,11 +67,13 @@ export function NoticesManager({ notices }: { notices: ManagedNotice[] }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <Button onClick={() => setEditing(EMPTY)}>
-          <PlusIcon /> New notice
-        </Button>
-      </div>
+      {!readOnly && (
+        <div className="flex justify-end">
+          <Button onClick={() => setEditing(EMPTY)}>
+            <PlusIcon /> New notice
+          </Button>
+        </div>
+      )}
 
       {notices.length === 0 ? (
         <EmptyState
@@ -97,7 +99,7 @@ export function NoticesManager({ notices }: { notices: ManagedNotice[] }) {
                     {n.expires_on ? ` · shown until ${formatDate(n.expires_on)}` : ""}
                   </p>
                 </div>
-                <div className="flex gap-1">
+                <div className={readOnly ? "hidden" : "flex gap-1"}>
                   <Button
                     variant="ghost"
                     size="icon-sm"

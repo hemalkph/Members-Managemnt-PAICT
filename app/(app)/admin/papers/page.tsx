@@ -9,13 +9,15 @@ import { GroupLinksForm } from "@/components/papers/stage-controls";
 import BlurText from "@/components/reactbits/blur-text";
 import { StatCard } from "@/components/stat-card";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { mainAdminUnlocked, requireAdmin } from "@/lib/auth";
+import { mainAdminUnlocked, requirePage } from "@/lib/auth";
 import { STORAGE_LIMIT_BYTES } from "@/lib/paper-cleanup";
 import { activeOptions, getClassOptions } from "@/lib/classes";
 import { todayISO } from "@/lib/month";
 import { getPapers } from "@/lib/paper-queries";
 import { nextExamDay } from "@/lib/papers";
 import { createClient } from "@/lib/supabase/server";
+import { getTeamDirectory, teamNames } from "@/lib/team-directory";
+import { ReadOnlyNotice } from "@/components/read-only-notice";
 import { uuid } from "@/lib/validation";
 
 export const metadata: Metadata = { title: "Papers" };
@@ -24,32 +26,28 @@ const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) 
 const STATUSES = ["in_progress", "done", "cancelled"] as const;
 
 export default async function PapersPage({ searchParams }: PageProps<"/admin/papers">) {
-  const profile = await requireAdmin();
+  const { profile, canEdit } = await requirePage("papers");
   const sp = await searchParams;
   const exam = uuid.safeParse(one(sp.exam)).success ? one(sp.exam) : "";
   const status = STATUSES.find((s) => s === one(sp.status)) ?? "in_progress";
 
   const supabase = await createClient();
+  const team = await getTeamDirectory(supabase);
+  const names = teamNames(team);
   const [
     papers,
     allPapers,
     classOptions,
-    { data: profiles },
     { data: usage },
-    { data: settings },
-    canEdit,
+    { data: settingsRows },
+    canSetStorage,
     { data: openTasks },
   ] = await Promise.all([
-    getPapers(supabase, { examId: exam || null, status }),
-    getPapers(supabase, { examId: exam || null }),
+    getPapers(supabase, { examId: exam || null, status }, names),
+    getPapers(supabase, { examId: exam || null }, names),
     getClassOptions(supabase),
-    supabase.from("profiles").select("id, full_name, email").eq("is_active", true).order("full_name"),
     supabase.rpc("storage_usage"),
-    supabase
-      .from("app_settings")
-      .select("paper_file_days, paper_default_owners, lms_group_link, physical_group_link")
-      .limit(1)
-      .maybeSingle(),
+    supabase.rpc("paper_settings"),
     mainAdminUnlocked(profile),
     // Workload check: open and upcoming tasks per member (by due date).
     supabase
@@ -59,6 +57,8 @@ export default async function PapersPage({ searchParams }: PageProps<"/admin/pap
       .not("due_date", "is", null)
       .limit(3000),
   ]);
+  const settings = settingsRows?.[0] ?? null;
+  const profiles = team.filter((m) => m.isActive);
   const tags = activeOptions(classOptions);
 
   const inProgress = allPapers.filter((p) => p.status === "in_progress");
@@ -84,10 +84,11 @@ export default async function PapersPage({ searchParams }: PageProps<"/admin/pap
             Create → Type set + Convert → Type set (English) → Review → Hand over → Marking scheme, all in the system.
           </p>
         </div>
+        {canEdit && (
         <NewPaperDialog
-          members={(profiles ?? []).map((p) => ({
+          members={profiles.map((p) => ({
             id: p.id,
-            name: p.full_name || p.email,
+            name: p.name,
             busy: (openTasks ?? []).filter((t) => t.assignee_id === p.id).map((t) => t.due_date!),
           }))}
           defaultOwners={(settings?.paper_default_owners ?? {}) as Record<string, string>}
@@ -99,7 +100,10 @@ export default async function PapersPage({ searchParams }: PageProps<"/admin/pap
             allPapers.filter((p) => p.kind === "paper" && p.status !== "cancelled").map((p) => p.examDay),
           )}
         />
+        )}
       </div>
+
+      {!canEdit && <ReadOnlyNotice />}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label="In progress" value={inProgress.length} icon={LoaderIcon} />
@@ -164,6 +168,7 @@ export default async function PapersPage({ searchParams }: PageProps<"/admin/pap
             <GroupLinksForm
               lmsLink={settings?.lms_group_link ?? null}
               physicalLink={settings?.physical_group_link ?? null}
+              readOnly={!canEdit}
             />
           </CardContent>
         </Card>
@@ -171,7 +176,7 @@ export default async function PapersPage({ searchParams }: PageProps<"/admin/pap
           usage={(usage ?? []).map((u) => ({ bucket: u.bucket, files: Number(u.files), bytes: Number(u.bytes) }))}
           limitBytes={STORAGE_LIMIT_BYTES}
           days={settings?.paper_file_days ?? 14}
-          canEdit={canEdit}
+          canEdit={canSetStorage}
         />
       </div>
     </div>

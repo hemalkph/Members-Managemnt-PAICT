@@ -50,10 +50,13 @@ export function TaskCard({
   mode,
   onEdit,
   whatsapp,
+  readOnly = false,
 }: {
   task: TaskView;
   mode: "member" | "admin";
   onEdit?: (task: TaskView) => void;
+  /** Admin view with read-only page access: no edit / cancel / delete. */
+  readOnly?: boolean;
   /** Admins: the member's WhatsApp number (wa.me format), shown when the task is late. */
   whatsapp?: string | null;
 }) {
@@ -116,7 +119,14 @@ export function TaskCard({
             )}
           </div>
         </div>
-        {mode === "admin" && (
+        {mode === "admin" && readOnly && task.paperId && (
+          <Button asChild variant="ghost" size="icon" aria-label={`Open the paper for ${task.title}`}>
+            <Link href={`/papers/${task.paperId}`}>
+              <FileStackIcon />
+            </Link>
+          </Button>
+        )}
+        {mode === "admin" && !readOnly && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" aria-label={`Actions for ${task.title}`} disabled={pending}>

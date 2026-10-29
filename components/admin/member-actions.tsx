@@ -42,7 +42,10 @@ export function MemberActions({
   canManageAuth,
   showView = true,
   variant = "menu",
+  access,
 }: {
+  /** Page access, passed only when the viewer is a main admin (they can change it). */
+  access?: { isMainAdmin: boolean; stored: unknown };
   member: EditableMember;
   roleOptions: MultiSelectOption[];
   isSelf: boolean;
@@ -137,7 +140,13 @@ export function MemberActions({
         </div>
       )}
 
-      <EditMemberDialog member={editable} roleOptions={roleOptions} open={editOpen} onOpenChange={setEditOpen} />
+      <EditMemberDialog
+        member={editable}
+        roleOptions={roleOptions}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        access={access}
+      />
 
       {!isSelf && (
         <ResetPasswordDialog
