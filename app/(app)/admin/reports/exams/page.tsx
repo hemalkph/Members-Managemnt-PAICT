@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { requireAdmin } from "@/lib/auth";
+import { requirePage } from "@/lib/auth";
 import { getClassOptions } from "@/lib/classes";
 import { formatDate, formatNumber } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
@@ -23,7 +23,7 @@ const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) 
 type RoleLine = { role: string; approved: number; quantity: number; pending: number; members: Set<string> };
 
 export default async function ExamReportPage({ searchParams }: PageProps<"/admin/reports/exams">) {
-  await requireAdmin();
+  await requirePage("reports");
   const sp = await searchParams;
   const supabase = await createClient();
   const options = await getClassOptions(supabase);

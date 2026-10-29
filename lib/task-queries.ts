@@ -32,7 +32,7 @@ export type TaskView = {
 };
 
 const SELECT =
-  "id, title, description, assignee_id, role_id, exam_id, centre_id, quantity, due_date, priority, status, completed_at, paper_stage_id, assignee:profiles!tasks_assignee_id_fkey(full_name, email), creator:profiles!tasks_created_by_fkey(full_name, email), roles(name), exam:exams(name, batch:batches(name)), centre:centres(name), stage:paper_stages(paper_id), submissions(count)";
+  "id, title, description, assignee_id, role_id, exam_id, centre_id, quantity, due_date, priority, status, completed_at, paper_stage_id, created_by, assignee:profiles!tasks_assignee_id_fkey(full_name, email), creator:profiles!tasks_created_by_fkey(full_name, email), roles(name), exam:exams(name, batch:batches(name)), centre:centres(name), stage:paper_stages(paper_id), submissions(count)";
 
 const DAY = 86_400_000;
 
@@ -61,6 +61,7 @@ type Row = {
   status: TaskStatus;
   completed_at: string | null;
   paper_stage_id: string | null;
+  created_by: string | null;
   assignee: { full_name: string; email: string } | null;
   creator: { full_name: string; email: string } | null;
   roles: { name: string } | null;
@@ -73,6 +74,8 @@ type Row = {
 export async function getTasks(
   supabase: SupabaseClient<Database>,
   filters: { assigneeId?: string; statuses?: TaskStatus[]; examId?: string; limit?: number } = {},
+  /** Names for people the viewer can't read directly (from the team directory). */
+  names?: Map<string, string>,
 ): Promise<TaskView[]> {
   let query = supabase.from("tasks").select(SELECT);
   if (filters.assigneeId) query = query.eq("assignee_id", filters.assigneeId);
@@ -89,7 +92,7 @@ export async function getTasks(
     title: t.title,
     description: t.description,
     assigneeId: t.assignee_id,
-    assigneeName: t.assignee ? t.assignee.full_name || t.assignee.email : "Unknown member",
+    assigneeName: t.assignee ? t.assignee.full_name || t.assignee.email : (names?.get(t.assignee_id) ?? "Unknown member"),
     roleId: t.role_id,
     roleName: t.roles?.name ?? null,
     examId: t.exam_id,
@@ -103,7 +106,7 @@ export async function getTasks(
     status: t.status,
     paperId: t.stage?.paper_id ?? null,
     workCount: t.submissions?.[0]?.count ?? 0,
-    createdByName: t.creator ? t.creator.full_name || t.creator.email : null,
+    createdByName: t.creator ? t.creator.full_name || t.creator.email : ((t.created_by && names?.get(t.created_by)) ?? null),
     completedAt: t.completed_at,
   }));
 }

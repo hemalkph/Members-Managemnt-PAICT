@@ -316,7 +316,15 @@ export function StageLinkDialog({
 }
 
 /** Admins: the WhatsApp group links used for every paper (LMS admin group and physical coordinator group). */
-export function GroupLinksForm({ lmsLink, physicalLink }: { lmsLink: string | null; physicalLink: string | null }) {
+export function GroupLinksForm({
+  lmsLink,
+  physicalLink,
+  readOnly = false,
+}: {
+  lmsLink: string | null;
+  physicalLink: string | null;
+  readOnly?: boolean;
+}) {
   const router = useRouter();
   const [lms, setLms] = useState(lmsLink ?? "");
   const [physical, setPhysical] = useState(physicalLink ?? "");
@@ -347,6 +355,7 @@ export function GroupLinksForm({ lmsLink, physicalLink }: { lmsLink: string | nu
           inputMode="url"
           placeholder="https://chat.whatsapp.com/…"
           value={lms}
+          readOnly={readOnly}
           maxLength={500}
           onChange={(e) => setLms(e.target.value)}
         />
@@ -359,14 +368,17 @@ export function GroupLinksForm({ lmsLink, physicalLink }: { lmsLink: string | nu
           inputMode="url"
           placeholder="https://chat.whatsapp.com/…"
           value={physical}
+          readOnly={readOnly}
           maxLength={500}
           onChange={(e) => setPhysical(e.target.value)}
         />
       </div>
-      <Button type="submit" className="justify-self-start" disabled={pending || !changed}>
-        {pending && <Loader2Icon className="animate-spin" />}
-        Save links
-      </Button>
+      {!readOnly && (
+        <Button type="submit" className="justify-self-start" disabled={pending || !changed}>
+          {pending && <Loader2Icon className="animate-spin" />}
+          Save links
+        </Button>
+      )}
     </form>
   );
 }

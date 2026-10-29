@@ -52,7 +52,7 @@ type Editing =
 
 type Deleting = { kind: "section" | "role"; id: string; name: string; note?: string } | null;
 
-export function StructureManager({ sections }: { sections: StructureSection[] }) {
+export function StructureManager({ sections, readOnly = false }: { sections: StructureSection[]; readOnly?: boolean }) {
   const router = useRouter();
   const [editing, setEditing] = useState<Editing>(null);
   const [deleting, setDeleting] = useState<Deleting>(null);
@@ -80,7 +80,7 @@ export function StructureManager({ sections }: { sections: StructureSection[] })
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className={readOnly ? "hidden" : "flex justify-end"}>
         <Button onClick={() => setEditing({ kind: "section", value: { name: "", description: "" } })}>
           <FolderPlusIcon /> Add section
         </Button>
@@ -97,6 +97,7 @@ export function StructureManager({ sections }: { sections: StructureSection[] })
                   <h3 className="font-semibold">{section.name}</h3>
                   {section.description && <p className="text-muted-foreground text-sm">{section.description}</p>}
                 </div>
+                {!readOnly && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon-sm" aria-label={`Actions for ${section.name}`}>
@@ -137,6 +138,7 @@ export function StructureManager({ sections }: { sections: StructureSection[] })
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+                )}
               </div>
               <ul className="flex-1 divide-y">
                 {section.roles.length === 0 && <li className="text-muted-foreground p-4 text-sm">No roles yet.</li>}
@@ -149,6 +151,8 @@ export function StructureManager({ sections }: { sections: StructureSection[] })
                     <Badge variant="secondary" title="Members with this role">
                       <UsersIcon /> {role.members}
                     </Badge>
+                    {!readOnly && (
+                    <>
                     <Button
                       variant="ghost"
                       size="icon-sm"
@@ -183,10 +187,12 @@ export function StructureManager({ sections }: { sections: StructureSection[] })
                     >
                       <Trash2Icon />
                     </Button>
+                    </>
+                    )}
                   </li>
                 ))}
               </ul>
-              <div className="border-t p-2">
+              <div className={readOnly ? "hidden" : "border-t p-2"}>
                 <Button
                   variant="ghost"
                   size="sm"

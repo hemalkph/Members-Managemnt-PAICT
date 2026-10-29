@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
 import { ClassesManager } from "@/components/classes/classes-manager";
 import BlurText from "@/components/reactbits/blur-text";
-import { requireAdmin } from "@/lib/auth";
+import { ReadOnlyNotice } from "@/components/read-only-notice";
+import { requirePage } from "@/lib/auth";
 import { getClassOptions } from "@/lib/classes";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Batches & exams" };
 
 export default async function ClassesPage() {
-  await requireAdmin();
+  const { canEdit } = await requirePage("classes");
   const supabase = await createClient();
   const [options, { data: tagged }] = await Promise.all([
     getClassOptions(supabase),
@@ -31,7 +32,8 @@ export default async function ClassesPage() {
           by exam.
         </p>
       </div>
-      <ClassesManager options={options} counts={counts} />
+      {!canEdit && <ReadOnlyNotice />}
+      <ClassesManager options={options} counts={counts} readOnly={!canEdit} />
     </div>
   );
 }

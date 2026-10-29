@@ -8,7 +8,7 @@ import { StatCard } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { requireAdmin } from "@/lib/auth";
+import { requirePage } from "@/lib/auth";
 import { formatNumber } from "@/lib/format";
 import { monthLabel, parseMonthParam } from "@/lib/month";
 import { getMonthlyReport } from "@/lib/report";
@@ -17,7 +17,7 @@ import { createClient } from "@/lib/supabase/server";
 export const metadata: Metadata = { title: "Monthly report" };
 
 export default async function ReportsPage({ searchParams }: PageProps<"/admin/reports">) {
-  await requireAdmin();
+  await requirePage("reports");
   const month = parseMonthParam((await searchParams).month);
   const supabase = await createClient();
   const report = await getMonthlyReport(supabase, month);

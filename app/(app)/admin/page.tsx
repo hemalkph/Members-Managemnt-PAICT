@@ -17,7 +17,7 @@ import { StatCard } from "@/components/stat-card";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { requireAdmin } from "@/lib/auth";
+import { requirePage } from "@/lib/auth";
 import { formatBirthday, ordinal } from "@/lib/birthday";
 import { getBirthdays } from "@/lib/birthday-queries";
 import { getCurrentNotices } from "@/lib/notices";
@@ -30,7 +30,7 @@ import { createClient } from "@/lib/supabase/server";
 export const metadata: Metadata = { title: "Admin overview" };
 
 export default async function AdminDashboardPage() {
-  const profile = await requireAdmin();
+  const { profile } = await requirePage("overview");
   const supabase = await createClient();
   const month = currentMonthKey();
   // Reminders are also sent by a daily job; this catches up when an admin opens the app.

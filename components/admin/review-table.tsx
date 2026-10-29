@@ -14,7 +14,7 @@ import { reviewSubmissionsAction } from "@/lib/actions/admin";
 import { formatDate, formatLKR } from "@/lib/format";
 import { ReviewDialog, type ReviewRow } from "./review-dialog";
 
-export function ReviewTable({ rows }: { rows: ReviewRow[] }) {
+export function ReviewTable({ rows, readOnly = false }: { rows: ReviewRow[]; readOnly?: boolean }) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [openId, setOpenId] = useState<string | null>(null);
@@ -57,9 +57,9 @@ export function ReviewTable({ rows }: { rows: ReviewRow[] }) {
       <div className="flex min-h-9 flex-wrap items-center justify-between gap-2">
         <p className="text-muted-foreground text-sm">
           {rows.length} submission{rows.length === 1 ? "" : "s"} · {pendingRows.length} pending
-          {selectedPending.length === 0 && pendingRows.length > 1 && " · tick several to approve them together"}
+          {!readOnly && selectedPending.length === 0 && pendingRows.length > 1 && " · tick several to approve them together"}
         </p>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className={readOnly ? "hidden" : "flex flex-wrap items-center gap-2"}>
           {paperRows.length > 0 && (
             <Button
               variant="outline"
@@ -87,7 +87,7 @@ export function ReviewTable({ rows }: { rows: ReviewRow[] }) {
               <TableHead className="w-10 pl-4">
                 <Checkbox
                   aria-label="Select all pending"
-                  disabled={pendingRows.length === 0}
+                  disabled={readOnly || pendingRows.length === 0}
                   checked={allChecked ? true : someChecked ? "indeterminate" : false}
                   onCheckedChange={(v) => setSelected(v === true ? new Set(pendingRows.map((r) => r.id)) : new Set())}
                 />
@@ -111,7 +111,7 @@ export function ReviewTable({ rows }: { rows: ReviewRow[] }) {
                 <TableCell className="pl-4" onClick={(e) => e.stopPropagation()}>
                   <Checkbox
                     aria-label={`Select ${r.title}`}
-                    disabled={r.status !== "pending"}
+                    disabled={readOnly || r.status !== "pending"}
                     checked={selected.has(r.id)}
                     onCheckedChange={(v) => toggle(r.id, v === true)}
                   />
@@ -167,6 +167,7 @@ export function ReviewTable({ rows }: { rows: ReviewRow[] }) {
         row={openRow}
         open={openRow !== null}
         onOpenChange={(open) => !open && setOpenId(null)}
+        readOnly={readOnly}
       />
     </div>
   );

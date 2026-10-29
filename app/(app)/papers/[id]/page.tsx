@@ -26,7 +26,7 @@ import Stepper from "@/components/reactbits/stepper";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { requireUser } from "@/lib/auth";
+import { effectivePageAccess, requireUser } from "@/lib/auth";
 import { getSiteUrl } from "@/lib/env";
 import { formatDate, formatDateTime, formatDay, formatDayRange } from "@/lib/format";
 import { getPaper, getPaperFiles } from "@/lib/paper-queries";
@@ -41,6 +41,7 @@ import {
   STAGE_META,
 } from "@/lib/papers";
 import { createClient } from "@/lib/supabase/server";
+import { getTeamDirectory, teamNames } from "@/lib/team-directory";
 import { cn } from "@/lib/utils";
 import { UPLOAD_STAGES, uuid } from "@/lib/validation";
 
@@ -59,7 +60,11 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
   if (!uuid.safeParse(id).success) notFound();
 
   const supabase = await createClient();
-  const paper = await getPaper(supabase, id);
+  // Papers page access: "edit" can change any paper, "view" can see every paper.
+  const papersAccess = await effectivePageAccess(profile, "papers");
+  const canManage = papersAccess === "edit";
+  const team = papersAccess !== "none" ? await getTeamDirectory(supabase) : [];
+  const paper = await getPaper(supabase, id, teamNames(team));
   if (!paper) notFound();
 
   const [files, { data: contactRows }, { data: stageTasks }, { data: profiles }, { data: noteRows }, { data: links }] =
@@ -73,9 +78,7 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
           "paper_stage_id",
           paper.stages.map((s) => s.id),
         ),
-      profile.is_admin
-        ? supabase.from("profiles").select("id, full_name, email").eq("is_active", true).order("full_name")
-        : Promise.resolve({ data: [] as { id: string; full_name: string; email: string }[] }),
+      Promise.resolve({ data: canManage ? team.filter((m) => m.isActive) : [] }),
       supabase
         .from("paper_notes")
         .select("id, stage, author_id, body, created_at")
@@ -86,7 +89,7 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
     ]);
   const groupLinks = { lms: links?.[0]?.lms_group_link ?? null, physical: links?.[0]?.physical_group_link ?? null };
   const taskByStage = new Map((stageTasks ?? []).map((t) => [t.paper_stage_id, t]));
-  const members = (profiles ?? []).map((p) => ({ id: p.id, name: p.full_name || p.email }));
+  const members = (profiles ?? []).map((p) => ({ id: p.id, name: p.name }));
   const handover = paper.stages.find((s) => s.stage === "handover");
 
   // Every stage takes files (reviewers can upload a marked PDF; hand over takes the final PDFs).
@@ -112,14 +115,14 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
     sizeBytes: f.sizeBytes,
     note: f.note,
     uploadedBy: f.uploadedBy,
-    canDelete: profile.is_admin || f.uploadedById === profile.id,
+    canDelete: canManage || f.uploadedById === profile.id,
     when: formatDateTime(f.createdAt),
     latest: latestVersion.get(f.stage) === f.version,
   }));
 
   // Names of the people on this paper (members can't read other profiles).
   const nameOf = new Map<string, string>((contactRows ?? []).map((c) => [c.user_id, c.full_name]));
-  for (const m of members) nameOf.set(m.id, m.name);
+  for (const m of team) nameOf.set(m.id, m.name);
   nameOf.set(profile.id, profile.full_name || profile.email);
   const notes: (NoteItem & { stage: string | null })[] = (noteRows ?? []).map((n) => ({
     id: n.id,
@@ -128,7 +131,7 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
     stageLabel: n.stage ? (STAGE_META[n.stage as keyof typeof STAGE_META]?.label ?? null) : null,
     body: n.body,
     when: formatDateTime(n.created_at),
-    canDelete: profile.is_admin || n.author_id === profile.id,
+    canDelete: canManage || n.author_id === profile.id,
     mine: n.author_id === profile.id,
   }));
   // The corrections each stage has to fix.
@@ -229,11 +232,11 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Button asChild variant="ghost" className="-ml-3">
-          <Link href={profile.is_admin ? "/admin/papers" : "/tasks"}>
-            <ArrowLeftIcon /> {profile.is_admin ? "Papers" : "My tasks"}
+          <Link href={papersAccess !== "none" ? "/admin/papers" : "/tasks"}>
+            <ArrowLeftIcon /> {papersAccess !== "none" ? "Papers" : "My tasks"}
           </Link>
         </Button>
-        {profile.is_admin && <PaperActions paperId={paper.id} title={paper.title} status={paper.status} />}
+        {canManage && <PaperActions paperId={paper.id} title={paper.title} status={paper.status} />}
       </div>
 
       <div className="space-y-2">
@@ -325,7 +328,7 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
                 )}
               </div>
               <div className="mt-auto flex flex-wrap gap-2">
-                {profile.is_admin && s.overdue && s.ownerId && s.ownerId !== profile.id && phoneOf.get(s.ownerId) && (
+                {canManage && s.overdue && s.ownerId && s.ownerId !== profile.id && phoneOf.get(s.ownerId) && (
                   <Button asChild size="sm" className="bg-[#0f7a6e] text-white hover:bg-[#0c675d]">
                     <a
                       href={`https://wa.me/${phoneOf.get(s.ownerId)}?text=${encodeURIComponent(
@@ -355,14 +358,14 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
                     </a>
                   </Button>
                 )}
-                {(profile.is_admin || s.ownerId === profile.id) &&
+                {(canManage || s.ownerId === profile.id) &&
                   s.status !== "skipped" &&
                   s.stage !== "handover" &&
                   paper.status !== "cancelled" &&
                   !myStages.some((t) => t.stageId === s.id) && (
                     <StageLinkDialog paperId={paper.id} stageId={s.id} label={meta.label} link={s.link} />
                   )}
-                {profile.is_admin && paper.status === "in_progress" && s.status !== "done" && (
+                {canManage && paper.status === "in_progress" && s.status !== "done" && (
                   <EditStageDialog
                     paperId={paper.id}
                     stageId={s.id}
@@ -380,7 +383,7 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
         })}
       </div>
 
-      {paper.status !== "cancelled" && (onPaper || profile.is_admin) && (
+      {paper.status !== "cancelled" && (onPaper || canManage) && (
         <PaperNotes
           paperId={paper.id}
           notes={notes}
@@ -413,7 +416,7 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {profile.is_admin && canUpload && defaultUpload && (
+            {canManage && canUpload && defaultUpload && (
               <PaperFileUploader
                 paperId={paper.id}
                 defaultStage={defaultUpload.stage}
@@ -471,7 +474,7 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
                   <LibraryIcon /> Paper library
                 </Link>
               </Button>
-              {profile.is_admin && !groupLinks.lms && !groupLinks.physical && (
+              {canManage && !groupLinks.lms && !groupLinks.physical && (
                 <span className="text-muted-foreground text-xs">Add the group links on the Papers page.</span>
               )}
             </div>

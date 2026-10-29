@@ -5,11 +5,13 @@ import { StatCard } from "@/components/stat-card";
 import { waNumber } from "@/components/papers/review-contacts";
 import { AdminTaskBoard } from "@/components/tasks/admin-task-board";
 import { TaskFilters } from "@/components/tasks/task-filters";
-import { requireAdmin } from "@/lib/auth";
+import { requirePage } from "@/lib/auth";
 import { activeOptions, getClassOptions } from "@/lib/classes";
 import type { TaskStatus } from "@/lib/database.types";
 import { todayISO } from "@/lib/month";
 import { createClient } from "@/lib/supabase/server";
+import { getTeamDirectory, teamNames } from "@/lib/team-directory";
+import { ReadOnlyNotice } from "@/components/read-only-notice";
 import { getTasks } from "@/lib/task-queries";
 import { uuid } from "@/lib/validation";
 
@@ -24,7 +26,7 @@ const VIEWS: Record<string, { statuses: TaskStatus[]; empty: string }> = {
 };
 
 export default async function AdminTasksPage({ searchParams }: PageProps<"/admin/tasks">) {
-  await requireAdmin();
+  const { canEdit } = await requirePage("tasks");
   const sp = await searchParams;
   const view = VIEWS[one(sp.view)] ? one(sp.view) : "open";
   const member = uuid.safeParse(one(sp.member)).success ? one(sp.member) : "";
@@ -32,20 +34,19 @@ export default async function AdminTasksPage({ searchParams }: PageProps<"/admin
   const today = todayISO();
 
   const supabase = await createClient();
-  const [tasks, openTasks, classOptions, { data: profiles }, { data: roles }, { data: memberRoles }] =
-    await Promise.all([
-      getTasks(supabase, {
-        statuses: VIEWS[view].statuses,
-        assigneeId: member || undefined,
-        examId: exam || undefined,
-      }),
-      getTasks(supabase, { statuses: ["open"], limit: 1000 }),
-      getClassOptions(supabase),
-      supabase.from("profiles").select("id, full_name, email, is_active, whatsapp, phone").order("full_name"),
-      supabase.from("roles").select("id, name").order("sort_order").order("name"),
-      supabase.from("member_roles").select("user_id, role_id"),
-    ]);
-
+  const team = await getTeamDirectory(supabase);
+  const names = teamNames(team);
+  const [tasks, openTasks, classOptions, { data: roles }, { data: memberRoles }] = await Promise.all([
+    getTasks(
+      supabase,
+      { statuses: VIEWS[view].statuses, assigneeId: member || undefined, examId: exam || undefined },
+      names,
+    ),
+    getTasks(supabase, { statuses: ["open"], limit: 1000 }, names),
+    getClassOptions(supabase),
+    supabase.from("roles").select("id, name").order("sort_order").order("name"),
+    supabase.from("member_roles").select("user_id, role_id"),
+  ]);
   const tags = activeOptions(classOptions);
   const weekAhead = new Date(Date.parse(`${today}T00:00:00Z`) + 7 * 86_400_000).toISOString().slice(0, 10);
   const overdue = openTasks.filter((t) => t.overdue).length;
@@ -59,11 +60,11 @@ export default async function AdminTasksPage({ searchParams }: PageProps<"/admin
       `${new Date(Date.parse(`${today}T00:00:00Z`) - 30 * 86_400_000).toISOString().slice(0, 10)}T00:00:00Z`,
     );
 
-  const activeMembers = (profiles ?? []).filter((p) => p.is_active);
+  const activeMembers = team.filter((p) => p.isActive);
   const options = {
     members: activeMembers.map((p) => ({
       id: p.id,
-      name: p.full_name || p.email,
+      name: p.name,
       roleIds: (memberRoles ?? []).filter((r) => r.user_id === p.id).map((r) => r.role_id),
     })),
     roles: roles ?? [],
@@ -78,6 +79,8 @@ export default async function AdminTasksPage({ searchParams }: PageProps<"/admin
         <p className="text-muted-foreground text-sm">Give members work with a due date and see what is overdue.</p>
       </div>
 
+      {!canEdit && <ReadOnlyNotice />}
+
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label="Open tasks" value={openTasks.length} icon={ListTodoIcon} />
         <StatCard label="Overdue" value={overdue} icon={TriangleAlertIcon} tone="warning" delay={0.1} />
@@ -89,7 +92,7 @@ export default async function AdminTasksPage({ searchParams }: PageProps<"/admin
         view={view}
         member={member}
         exam={exam}
-        members={(profiles ?? []).map((p) => ({ id: p.id, name: p.full_name || p.email }))}
+        members={team.map((p) => ({ id: p.id, name: p.name }))}
         exams={classOptions.exams.map((e) => ({ id: e.id, label: e.label }))}
       />
 
@@ -98,8 +101,9 @@ export default async function AdminTasksPage({ searchParams }: PageProps<"/admin
         options={options}
         today={today}
         emptyTitle={VIEWS[view].empty}
+        readOnly={!canEdit}
         phones={Object.fromEntries(
-          (profiles ?? []).flatMap((p) => {
+          team.flatMap((p) => {
             const n = waNumber(p.whatsapp || p.phone);
             return n ? [[p.id, n]] : [];
           }),

@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/sidebar";
 import { initials } from "@/lib/format";
 import { adminNav as getAdminNav, MEMBER_NAV, type NavItem as BaseNavItem } from "@/lib/navigation";
+import type { AccessLevel, PageKey } from "@/lib/page-access";
 
 type NavItem = BaseNavItem & { badge?: number };
 
@@ -40,14 +41,15 @@ export type SidebarUser = {
   email: string;
   avatarUrl: string | null;
   isAdmin: boolean;
-  isMainAdmin: boolean;
+  /** Admin pages this account can open. */
+  pages: Record<PageKey, AccessLevel>;
 };
 
 export function AppSidebar({ user, pendingReviews }: { user: SidebarUser; pendingReviews: number }) {
   const pathname = usePathname();
   const { setOpenMobile } = useSidebar();
 
-  const adminNav: NavItem[] = getAdminNav(user.isMainAdmin).map((item) =>
+  const adminNav: NavItem[] = getAdminNav(user.pages).map((item) =>
     item.href === "/admin/review" ? { ...item, badge: pendingReviews } : item,
   );
 
@@ -85,7 +87,7 @@ export function AppSidebar({ user, pendingReviews }: { user: SidebarUser; pendin
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link href={user.isAdmin ? "/admin" : "/dashboard"} onClick={() => setOpenMobile(false)}>
+              <Link href={user.pages.overview !== "none" ? "/admin" : "/dashboard"} onClick={() => setOpenMobile(false)}>
                 <div className="flex aspect-square size-8 shrink-0 items-center justify-center">
                   <BrandLogo className="h-auto w-8" priority />
                 </div>
@@ -100,8 +102,8 @@ export function AppSidebar({ user, pendingReviews }: { user: SidebarUser; pendin
       </SidebarHeader>
 
       <SidebarContent>
-        {user.isAdmin && renderGroup("Admin", adminNav)}
-        {renderGroup(user.isAdmin ? "My space" : "Menu", MEMBER_NAV)}
+        {adminNav.length > 0 && renderGroup("Admin", adminNav)}
+        {renderGroup(adminNav.length > 0 ? "My space" : "Menu", MEMBER_NAV)}
       </SidebarContent>
 
       <SidebarFooter>

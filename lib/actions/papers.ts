@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { friendlyDbError, type ActionResult } from "@/lib/action-result";
 import { getActionContext, NOT_ALLOWED } from "@/lib/auth";
+import { pageAccess } from "@/lib/page-access";
 import { addDays, PAPERS_BUCKET, PART_LABEL, SCHEME_STAGES } from "@/lib/papers";
 import {
   firstError,
@@ -31,7 +32,7 @@ function revalidatePapers(id?: string) {
  * week later (every date moves 7 days).
  */
 export async function createPaperAction(input: PaperInput): Promise<ActionResult<{ id: string }>> {
-  const ctx = await getActionContext({ admin: true });
+  const ctx = await getActionContext({ page: "papers", edit: true });
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
   const parsed = paperSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
@@ -95,7 +96,7 @@ export async function updatePaperStageAction(input: {
   action: "save" | "skip" | "done";
   paper_id: string;
 }): Promise<ActionResult> {
-  const ctx = await getActionContext({ admin: true });
+  const ctx = await getActionContext({ page: "papers", edit: true });
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
   const parsed = paperStageUpdateSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
@@ -137,7 +138,7 @@ export async function setPaperStatusAction(input: {
   id: string;
   status: "cancelled" | "in_progress" | "deleted";
 }): Promise<ActionResult> {
-  const ctx = await getActionContext({ admin: true });
+  const ctx = await getActionContext({ page: "papers", edit: true });
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
   const parsed = idSchema.safeParse({ id: input.id });
   if (!parsed.success || !["cancelled", "in_progress", "deleted"].includes(input.status)) {
@@ -217,19 +218,20 @@ export async function deletePaperFileAction(input: { id: string }): Promise<Acti
     .eq("id", parsed.data.id)
     .maybeSingle();
   if (!file) return { ok: false, error: "File not found." };
-  if (file.uploaded_by !== ctx.profile.id && !ctx.profile.is_admin) return { ok: false, error: NOT_ALLOWED };
+  const editor = pageAccess(ctx.profile, "papers") === "edit";
+  if (file.uploaded_by !== ctx.profile.id && !editor) return { ok: false, error: NOT_ALLOWED };
 
   const { error } = await ctx.supabase.from("paper_files").delete().eq("id", file.id);
   if (error) return { ok: false, error: friendlyDbError(error) };
-  // Only admins may delete from the bucket; for others the row is gone and the file is unreachable.
-  if (ctx.profile.is_admin) await ctx.supabase.storage.from(PAPERS_BUCKET).remove([file.storage_path]);
+  // Only Papers editors may delete from the bucket; for others the row is gone and the file is unreachable.
+  if (editor) await ctx.supabase.storage.from(PAPERS_BUCKET).remove([file.storage_path]);
   revalidatePapers(file.paper_id);
   return { ok: true, message: "File removed" };
 }
 
 /** Admins: save the usual owner of each stage; new papers start with them filled in. */
 export async function setPaperDefaultOwnersAction(input: { owners: Record<string, string> }): Promise<ActionResult> {
-  const ctx = await getActionContext({ admin: true });
+  const ctx = await getActionContext({ page: "papers", edit: true });
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
   const parsed = paperDefaultOwnersSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
@@ -272,7 +274,7 @@ export async function deletePaperNoteAction(input: { id: string; paper_id: strin
 
 /** Admins: the WhatsApp group links used for every paper. */
 export async function setGroupLinksAction(input: { lms_group_link: string; physical_group_link: string }): Promise<ActionResult> {
-  const ctx = await getActionContext({ admin: true });
+  const ctx = await getActionContext({ page: "papers", edit: true });
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
   const parsed = groupLinksSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };

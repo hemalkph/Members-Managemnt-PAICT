@@ -28,7 +28,7 @@ function nameError(error: { code?: string } | null, what: string) {
 }
 
 export async function saveBatchAction(input: BatchInput): Promise<ActionResult> {
-  const ctx = await getActionContext({ admin: true });
+  const ctx = await getActionContext({ page: "classes", edit: true });
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
   const parsed = batchSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
@@ -43,7 +43,7 @@ export async function saveBatchAction(input: BatchInput): Promise<ActionResult> 
 }
 
 export async function saveExamAction(input: ExamInput): Promise<ActionResult> {
-  const ctx = await getActionContext({ admin: true });
+  const ctx = await getActionContext({ page: "classes", edit: true });
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
   const parsed = examSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
@@ -59,7 +59,7 @@ export async function saveExamAction(input: ExamInput): Promise<ActionResult> {
 }
 
 export async function saveCentreAction(input: CentreInput): Promise<ActionResult> {
-  const ctx = await getActionContext({ admin: true });
+  const ctx = await getActionContext({ page: "classes", edit: true });
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
   const parsed = centreSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
@@ -78,7 +78,7 @@ export async function deleteClassItemAction(input: {
   kind: "batch" | "exam" | "centre";
   id: string;
 }): Promise<ActionResult> {
-  const ctx = await getActionContext({ admin: true });
+  const ctx = await getActionContext({ page: "classes", edit: true });
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
   const parsed = idSchema.safeParse({ id: input.id });
   if (!parsed.success || !["batch", "exam", "centre"].includes(input.kind)) return { ok: false, error: "Not found." };

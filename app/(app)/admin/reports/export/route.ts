@@ -5,7 +5,7 @@ import { csvCell, getMonthlyReport } from "@/lib/report";
 
 /** CSV of approved work per member per role for ?month=YYYY-MM (admins only). */
 export async function GET(request: NextRequest) {
-  const ctx = await getActionContext({ admin: true });
+  const ctx = await getActionContext({ page: "reports" });
   if (!ctx) return new NextResponse("Not allowed", { status: 403 });
 
   const month = parseMonthParam(request.nextUrl.searchParams.get("month") ?? undefined);
