@@ -16,7 +16,8 @@ export type PageKey =
   | "rates"
   | "classes"
   | "structure"
-  | "activity";
+  | "activity"
+  | "dispatch";
 
 export type AccessLevel = "edit" | "view" | "none";
 export type PageAccessMap = Partial<Record<PageKey, AccessLevel>>;
@@ -48,6 +49,7 @@ export const PAGES: PageInfo[] = [
   { key: "classes", title: "Batches & exams", href: "/admin/classes", forMembers: true },
   { key: "structure", title: "Sections & roles", href: "/admin/structure" },
   { key: "activity", title: "Activity log", href: "/admin/activity", mainOnly: true },
+  { key: "dispatch", title: "Tute dispatch", href: "/admin/dispatch", forMembers: true },
 ];
 
 export const PAGE_BY_KEY = Object.fromEntries(PAGES.map((p) => [p.key, p])) as Record<PageKey, PageInfo>;

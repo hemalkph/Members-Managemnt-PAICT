@@ -509,3 +509,80 @@ export const markingLogSchema = z.object({
     .min(1)
     .max(50),
 });
+
+// ---------------------------------------------------------------- tute dispatch
+const dispatchPhone = z
+  .string()
+  .trim()
+  .refine((v) => v === "" || /^0\d{9}$/.test(v), "Use 10 digits starting with 0, e.g. 0771234567");
+
+export const studentSchema = z.object({
+  id: z.union([uuid, z.literal("")]),
+  batch_id: uuid,
+  student_no: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[0-9A-Z][0-9A-Z-]{0,19}$/, "Use letters, numbers or - (max 20), e.g. 088"),
+  full_name: trimmed(1, 120, "Name"),
+  address_line1: optionalText(200, "Address line 1"),
+  address_line2: optionalText(200, "Address line 2"),
+  address_line3: optionalText(200, "Address line 3"),
+  city: optionalText(60, "City"),
+  region: optionalText(60, "Region"),
+  phone1: z.string().trim().max(40),
+  phone2: z.string().trim().max(40),
+  delivery_note: optionalText(300, "Delivery note"),
+  expected_updated_at: z.string().max(40),
+});
+export type StudentInput = z.input<typeof studentSchema>;
+
+export const dispatchSettingsSchema = z.object({
+  sender_name: optionalText(100, "Sender name"),
+  sender_line1: optionalText(200, "Address line 1"),
+  sender_line2: optionalText(200, "Address line 2"),
+  sender_line3: optionalText(200, "Address line 3"),
+  sender_city: optionalText(60, "City"),
+  sender_contact_name: optionalText(100, "Contact name"),
+  sender_phone1: dispatchPhone,
+  sender_phone2: dispatchPhone,
+  default_cod: z.coerce.number().min(0, "COD can't be negative").max(1_000_000),
+  default_weight_g: z.coerce.number().int().min(1).max(30_000),
+  default_pieces: z.coerce.number().int().min(1).max(20),
+  require_verification: z.boolean(),
+  student_retention_months: z.coerce.number().int().min(1).max(120),
+  recipient_retention_days: z.coerce.number().int().min(30).max(3650),
+  courier_file_retention_days: z.coerce.number().int().min(7).max(3650),
+  import_file_retention_days: z.coerce.number().int().min(1).max(365),
+});
+export type DispatchSettingsInput = z.input<typeof dispatchSettingsSchema>;
+
+export const dispatchGrantSchema = z.object({
+  user_id: uuid,
+  capability: z.enum(["plan", "courier", "pack", "verify", "correct", "finance"]),
+  grant: z.boolean(),
+  reason: optionalText(300, "Reason"),
+});
+
+const columnSource = z.object({ column: z.number().int().min(0).max(59), fromReference: z.boolean().optional() });
+export const importMappingSchema = z.object({
+  student_no: columnSource.optional(),
+  full_name: columnSource.optional(),
+  address_line1: columnSource.optional(),
+  address_line2: columnSource.optional(),
+  address_line3: columnSource.optional(),
+  city: columnSource.optional(),
+  region: columnSource.optional(),
+  phone1: columnSource.optional(),
+  phone2: columnSource.optional(),
+  delivery_note: columnSource.optional(),
+});
+
+export const importStepSchema = z.object({
+  import_id: uuid,
+  mapping: importMappingSchema,
+});
+
+export const importApplySchema = importStepSchema.extend({
+  lines: z.array(z.number().int().min(2).max(2100)).max(2000),
+});

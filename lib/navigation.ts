@@ -24,6 +24,7 @@ import {
   PieChartIcon,
   Settings2Icon,
   UserIcon,
+  TruckIcon,
   UsersIcon,
   type LucideIcon,
 } from "lucide-react";
@@ -62,6 +63,7 @@ export function adminNav(access: Record<PageKey, AccessLevel>): NavItem[] {
     { page: "rates", title: "Rates & budget", href: "/admin/rates", icon: CalculatorIcon, keywords: "prices pay rate" },
     { page: "classes", title: "Batches & exams", href: "/admin/classes", icon: GraduationCapIcon, keywords: "batch exam test term centre class hall" },
     { page: "structure", title: "Sections & roles", href: "/admin/structure", icon: Settings2Icon, keywords: "teams structure" },
+    { page: "dispatch", title: "Tute dispatch", href: "/admin/dispatch", icon: TruckIcon, keywords: "tutes courier citypak parcels students delivery packing" },
     { page: "activity", title: "Activity log", href: "/admin/activity", icon: HistoryIcon, keywords: "audit history who changed approved" },
   ];
   return items.filter((i) => access[i.page] !== "none");
