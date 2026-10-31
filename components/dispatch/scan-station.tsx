@@ -72,7 +72,7 @@ const LOOKUP_TITLE: Record<LookupResult["result"], string> = {
 };
 
 /** Short sounds (no files): a high beep for success, a low double beep for problems. */
-function beep(ok: boolean) {
+export function beep(ok: boolean) {
   try {
     const ctx = new AudioContext();
     const tones = ok ? [880] : [260, 200];

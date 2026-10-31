@@ -108,3 +108,47 @@ export async function readyRound(
   ).rows as ReadyParcel[];
   return { round, parcels };
 }
+
+/**
+ * A round whose parcels are packed (by `packer`) and verified (by `verifier`),
+ * so they are ready to give to the courier. Runs as owner at the end.
+ */
+export async function verifiedRound(
+  client: pg.Client,
+  packer: Actor,
+  verifier: Actor,
+  batch: string,
+  prefix: string,
+  count: number,
+): Promise<{ round: string; parcels: ReadyParcel[] }> {
+  const { round, parcels } = await readyRound(client, packer, batch, prefix, count);
+  for (const action of ["pack", "verify"] as const) {
+    for (const p of parcels) {
+      await asOwner(client);
+      p.row_version = (await client.query("select row_version from public.parcels where id = $1", [p.id])).rows[0].row_version;
+      await actAs(client, action === "pack" ? packer : verifier);
+      const r = await client.query("select public.parcel_scan_confirm($1, $2, gen_random_uuid(), $3, $4::uuid[]) as r", [
+        p.id,
+        action,
+        p.row_version,
+        p.items,
+      ]);
+      if (r.rows[0].r.result !== "ok") throw new Error(`${action} ${p.reference}: ${r.rows[0].r.message}`);
+    }
+  }
+  await asOwner(client);
+  for (const p of parcels) {
+    p.row_version = (await client.query("select row_version from public.parcels where id = $1", [p.id])).rows[0].row_version;
+  }
+  return { round, parcels };
+}
+
+/** Open a handover, scan the parcels in and confirm them (as `verifier`). Returns the handover id. */
+export async function handOver(client: pg.Client, verifier: Actor, round: string, parcels: ReadyParcel[]): Promise<string> {
+  await actAs(client, verifier);
+  const hid = (await client.query("select public.handover_open($1) as id", [round])).rows[0].id as string;
+  for (const p of parcels) await client.query("select public.handover_scan($1, $2)", [hid, p.tracking]);
+  await client.query("select public.handover_confirm($1, $2, 'Rep', 'REF1', '')", [hid, parcels.length]);
+  await asOwner(client);
+  return hid;
+}
