@@ -195,6 +195,7 @@ export const SI: Record<string, string> = {
   Camera: "කැමරාව",
   "Camera view": "කැමරා දර්ශනය",
   "Close camera": "කැමරාව වසන්න",
+  "Try again": "නැවත උත්සාහ කරන්න",
   "Starting camera…": "කැමරාව පණගන්වමින්…",
   "Saving…": "සුරකිමින්…",
   empty: "හිස්",
@@ -551,8 +552,15 @@ export const SI: Record<string, string> = {
   "I checked it – mark verified": "මම පරීක්ෂා කළා – තහවුරු කළ ලෙස සලකුණු කරන්න",
   "Not verified": "තහවුරු කර නැහැ",
   "This round is not open for packing.": "මේ වටය පැක් කිරීමට විවෘත නැහැ.",
-  "Camera permission was refused. Allow the camera for this site, or use a USB scanner.":
-    "කැමරා අවසරය ප්‍රතික්ෂේප කළා. මේ වෙබ් අඩවියට කැමරාව ඉඩ දෙන්න, නැතහොත් USB scanner එකක් භාවිතා කරන්න.",
+  "The camera is not allowed yet.": "කැමරාවට තවම අවසර දී නැහැ.",
+  "Tap Try again and choose Allow when the phone asks.":
+    "“නැවත උත්සාහ කරන්න” ඔබා, phone එක අහන විට Allow තෝරන්න.",
+  "If it doesn't ask: tap the icon next to the web address, set Camera to Allow, then tap Try again.":
+    "එය නොඅසයි නම්: වෙබ් ලිපිනය අසල ඇති icon එක ඔබා, Camera එක Allow කර, “නැවත උත්සාහ කරන්න” ඔබන්න.",
+  "iPhone: Settings → Safari → Camera → Allow.": "iPhone: Settings → Safari → Camera → Allow.",
+  "No camera was found on this device.": "මේ උපාංගයේ කැමරාවක් හමු වුණේ නැහැ.",
+  "Another app is using the camera. Close it and try again.":
+    "වෙනත් app එකක් කැමරාව භාවිතා කරනවා. එය වසා නැවත උත්සාහ කරන්න.",
   "This browser can't use the camera here (HTTPS is needed).":
     "මේ browser එකට මෙහි කැමරාව භාවිතා කළ නොහැක (HTTPS අවශ්‍යයි).",
   "The camera could not start.": "කැමරාව පණගැන්වීමට නොහැකි වුණා.",
