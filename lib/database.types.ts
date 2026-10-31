@@ -631,6 +631,51 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      parcel_exceptions: {
+        Row: {
+          id: string;
+          parcel_id: string;
+          round_id: string;
+          kind: "missing_item" | "damaged" | "wrong_address" | "label_problem" | "returned" | "cod_issue" | "other";
+          note: string;
+          opened_by: string | null;
+          opened_at: string;
+          resolution: "fixed" | "reship" | "void" | "write_off" | null;
+          resolution_note: string | null;
+          resolved_by: string | null;
+          resolved_at: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "parcel_exceptions_parcel_id_fkey";
+            columns: ["parcel_id"];
+            isOneToOne: false;
+            referencedRelation: "parcels";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      parcel_scans: {
+        Row: {
+          id: string;
+          idempotency_key: string | null;
+          round_id: string;
+          parcel_id: string | null;
+          raw_code: string | null;
+          action: "lookup" | "pack" | "verify";
+          result: string;
+          response: Json;
+          operator: string | null;
+          device_id: string | null;
+          event_id: number | null;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       batches: {
         Row: {
           id: string;
@@ -1249,6 +1294,43 @@ export type Database = {
       };
     };
     Functions: {
+      scan_lookup: { Args: { p_round: string; p_code: string; p_action: string; p_device?: string | null }; Returns: Json };
+      parcel_scan_confirm: {
+        Args: {
+          p_parcel: string;
+          p_action: string;
+          p_idem: string;
+          p_row_version: number;
+          p_checked: string[];
+          p_device?: string | null;
+        };
+        Returns: Json;
+      };
+      parcel_unpack: { Args: { p_parcel: string; p_reason: string; p_row_version: number }; Returns: undefined };
+      exception_open: { Args: { p_parcel: string; p_kind: string; p_note: string }; Returns: string };
+      exception_resolve: { Args: { p_exception: string; p_resolution: string; p_note: string }; Returns: undefined };
+      parcel_assign: { Args: { p_round: string; p_parcels: string[]; p_packer: string | null }; Returns: number };
+      dispatch_packers: { Args: Record<PropertyKey, never>; Returns: { id: string; name: string }[] };
+      dispatch_pack_list: {
+        Args: { p_round: string };
+        Returns: {
+          parcel_id: string;
+          reference: string;
+          tracking_no: string | null;
+          student_no: string;
+          items: string | null;
+          pack_state: string;
+          on_hold: boolean;
+          registration_state: string;
+          assigned_to: string | null;
+          assigned_name: string | null;
+          packed_name: string | null;
+          packed_at: string | null;
+          verified_name: string | null;
+          verified_at: string | null;
+          row_version: number;
+        }[];
+      };
       round_save: { Args: { p: Json }; Returns: string };
       round_set_tutes: { Args: { p_round: string; p_tutes: Json }; Returns: undefined };
       round_set_students: { Args: { p_round: string; p_rows: Json }; Returns: number };

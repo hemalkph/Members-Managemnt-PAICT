@@ -12,7 +12,7 @@ export function DispatchNav({ items }: { items: DispatchNavItem[] }) {
   const isActive = (href: string) =>
     href === "/admin/dispatch" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
   return (
-    <nav aria-label="Tute dispatch" className="-mx-1 overflow-x-auto">
+    <nav aria-label="Tute dispatch" className="-mx-1 overflow-x-auto print:hidden">
       <ul className="flex min-w-max gap-1 border-b px-1">
         {items.map((item) => (
           <li key={item.href}>

@@ -25,9 +25,25 @@ const FUNCTIONS = [
   "tracking_apply",
   "citypak_template_set",
   "dispatch_log_download",
+  "scan_lookup",
+  "parcel_scan_confirm",
+  "parcel_unpack",
+  "exception_open",
+  "exception_resolve",
+  "parcel_assign",
+  "dispatch_packers",
+  "dispatch_pack_list",
 ];
 /** Privileged helpers used only inside other functions: nobody may call them directly. */
-const INTERNAL = ["dispatch_require", "dispatch_lock_draft"];
+const INTERNAL = [
+  "dispatch_require",
+  "dispatch_lock_draft",
+  "dispatch_name",
+  "dispatch_can_pack",
+  "dispatch_parcel_card",
+  "dispatch_block_reason",
+  "sync_parcel_hold",
+];
 const TABLES = [
   "dispatch_grants",
   "dispatch_settings",
@@ -41,6 +57,8 @@ const TABLES = [
   "parcel_items",
   "parcel_events",
   "carrier_files",
+  "parcel_exceptions",
+  "parcel_scans",
 ];
 
 let db: pg.Client;
