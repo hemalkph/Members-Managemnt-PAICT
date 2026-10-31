@@ -57,6 +57,8 @@ const FUNCTIONS = [
   "round_reopen",
   "dispatch_report_rounds",
   "dispatch_report_people",
+  "student_delete",
+  "dispatch_batch_clear",
 ];
 /** Privileged helpers used only inside other functions: nobody may call them directly. */
 const INTERNAL = [

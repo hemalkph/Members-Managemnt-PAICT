@@ -1106,6 +1106,38 @@ export const SI: Record<string, string> = {
   "{n} parcel": "පාර්සල් {n}",
   "{n} parcels": "පාර්සල් {n}",
 
+  // ------------------------------------------------------------------ deleting student details
+  "Delete…": "මකන්න…",
+  "Delete {name}?": "{name} මකන්නද?",
+  "Their name, address and phone are removed for good. A student who is already in a sent round can't be deleted – mark them inactive instead.":
+    "ඔවුන්ගේ නම, ලිපිනය සහ දුරකථනය සදහටම ඉවත් වේ. දැනටමත් යැවූ වටයක සිටින සිසුවෙක් මැකිය නොහැක – ඒ වෙනුවට අක්‍රිය කරන්න.",
+  Keep: "තබාගන්න",
+  "Delete student": "සිසුවා මකන්න",
+  "Student deleted": "සිසුවා මැකුවා",
+  "Clear a batch…": "බැච් එකක් හිස් කරන්න…",
+  "Clear a batch's student details": "බැච් එකක සිසු විස්තර මකන්න",
+  "Removes the students of one batch and their uploaded student lists. This can't be undone. The batch itself stays.":
+    "එක් බැච් එකක සිසුන් සහ උඩුගත කළ සිසු ලැයිස්තු ඉවත් කරයි. මෙය ආපසු හැරවිය නොහැක. බැච් එක එලෙසම තිබේ.",
+  "{n} students": "සිසුන් {n}",
+  "This is a test batch: its rounds, parcels, packing and delivery history, handovers, COD settlements and uploaded files are deleted too.":
+    "මෙය පරීක්ෂණ බැච් එකකි: එහි වට, පාර්සල්, පැක් කිරීමේ සහ බෙදාහැරීමේ ඉතිහාසය, භාර දීම්, COD ගෙවීම් සහ උඩුගත කළ ගොනු ද මැකේ.",
+  "Only possible while this batch has no sent round. Delivery and COD records of sent rounds are kept; their personal details are removed automatically later.":
+    "මේ බැච් එකේ යැවූ වටයක් නැති තාක් පමණක් කළ හැකියි. යැවූ වටවල බෙදාහැරීම් සහ COD වාර්තා තබාගනී; ඒවායේ පෞද්ගලික විස්තර පසුව ස්වයංක්‍රීයව ඉවත් වේ.",
+  "Type “{name}” to confirm": "තහවුරු කිරීමට “{name}” ටයිප් කරන්න",
+  "Delete for good": "සදහටම මකන්න",
+  "Batch cleared": "බැච් එක හිස් කළා",
+  "Batch cleared. Some uploaded files could not be removed – delete them in Storage, or they go automatically later.":
+    "බැච් එක හිස් කළා. සමහර උඩුගත කළ ගොනු ඉවත් කළ නොහැකි වුණා – ඒවා Storage හි මකන්න, නැතහොත් පසුව ස්වයංක්‍රීයව ඉවත් වේ.",
+  "Batch not found.": "බැච් එක හමු නොවුණා.",
+  "Only main admins can clear a batch.": "බැච් එකක් හිස් කළ හැක්කේ ප්‍රධාන පරිපාලකයින්ට පමණයි.",
+  "Type the batch name exactly to confirm.": "තහවුරු කිරීමට බැච් නම හරියටම ටයිප් කරන්න.",
+  "This batch has sent rounds, so its delivery records must stay. Student details are removed automatically after the last round closes (Dispatch settings → retention).":
+    "මේ බැච් එකේ යැවූ වට ඇති නිසා බෙදාහැරීමේ වාර්තා තිබිය යුතුයි. අවසන් වටය වැසූ පසු සිසු විස්තර ස්වයංක්‍රීයව ඉවත් වේ (Dispatch settings → retention).",
+  "This student is in a sent round, so the delivery record must stay. Mark them inactive instead – their details are removed automatically later.":
+    "මේ සිසුවා යැවූ වටයක සිටින නිසා බෙදාහැරීමේ වාර්තාව තිබිය යුතුයි. ඒ වෙනුවට අක්‍රිය කරන්න – ඔවුන්ගේ විස්තර පසුව ස්වයංක්‍රීයව ඉවත් වේ.",
+  "A COD settlement mixes this test batch with real parcels. Remove the test parcels from it first.":
+    "COD ගෙවීමක මේ පරීක්ෂණ බැච් එක සැබෑ පාර්සල් සමඟ මිශ්‍ර වී ඇත. මුලින්ම එයින් පරීක්ෂණ පාර්සල් ඉවත් කරන්න.",
+
 };
 
 /** Messages with changing parts, mostly from the database. Named groups fill the placeholders. */

@@ -1510,6 +1510,8 @@ export type Database = {
         Args: { p_from: string; p_to: string };
         Returns: { name: string | null; packed: number; verified: number; handed_over: number }[];
       };
+      student_delete: { Args: { p_student: string }; Returns: undefined };
+      dispatch_batch_clear: { Args: { p_batch: string; p_confirm: string }; Returns: Json };
       dispatch_retention_run: { Args: { p_now?: string }; Returns: Json };
       dispatch_retention_files: { Args: { p_now?: string }; Returns: { id: string; storage_path: string }[] };
       dispatch_retention_mark_deleted: { Args: { p_ids: string[] }; Returns: number };
