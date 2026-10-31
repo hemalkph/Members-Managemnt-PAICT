@@ -10,7 +10,7 @@ export const ROUND_STATE: Record<RoundState, { label: string; variant: "secondar
   cancelled: { label: "Cancelled", variant: "secondary" },
 };
 
-export type RoundCounts = { parcels: number; registered: number; voided: number };
+export type RoundCounts = { parcels: number; registered: number; voided: number; packed?: number; verified?: number; onHold?: number };
 
 /** The next thing to do, worked out from what is actually saved. */
 export function nextStep(state: RoundState, c: RoundCounts): string {
@@ -20,7 +20,10 @@ export function nextStep(state: RoundState, c: RoundCounts): string {
   const waiting = c.parcels - c.registered - c.voided;
   if (c.registered === 0) return "Register the parcels with Citypak, then import their tracking sheet.";
   if (waiting > 0) return `${waiting} parcel${waiting === 1 ? " has" : "s have"} no tracking number yet – import the Citypak sheet.`;
-  return "All parcels have tracking numbers. Packing comes in the next phase.";
+  const live = c.parcels - c.voided;
+  if (c.onHold) return `${c.onHold} parcel${c.onHold === 1 ? " is" : "s are"} on hold – sort them out on the Packing page.`;
+  if ((c.packed ?? 0) < live) return `Pack the parcels at the packing station (${c.packed ?? 0} of ${live} packed).`;
+  return "Every parcel is packed. Handover to Citypak comes next.";
 }
 
 export function monthLabelFromDate(date: string): string {

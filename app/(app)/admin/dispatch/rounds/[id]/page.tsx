@@ -21,7 +21,7 @@ import { formatLKR } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import { uuid } from "@/lib/validation";
-import { CheckCircle2Icon, HashIcon, PackageIcon } from "lucide-react";
+import { CheckCircle2Icon, HashIcon, PackageCheckIcon, PackageIcon, ScanBarcodeIcon } from "lucide-react";
 
 export const metadata: Metadata = { title: "Round – Tute dispatch" };
 
@@ -235,7 +235,7 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
     supabase
       .from("parcels")
       .select(
-        "id, student_id, reference, tracking_no, registration_state, cod_expected, row_version, parcel_recipients(*), students(student_no)",
+        "id, student_id, reference, tracking_no, registration_state, pack_state, on_hold, cod_expected, row_version, parcel_recipients(*), students(student_no)",
       )
       .eq("round_id", id)
       .order("reference")
@@ -264,6 +264,9 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
     parcels: list.length,
     registered: list.filter((p) => p.registration_state === "registered").length,
     voided: list.filter((p) => p.registration_state === "voided").length,
+    packed: list.filter((p) => p.registration_state !== "voided" && p.pack_state !== "planned").length,
+    verified: list.filter((p) => p.pack_state === "verified").length,
+    onHold: list.filter((p) => p.on_hold).length,
   };
   const waiting = counts.parcels - counts.registered - counts.voided;
   const codTotal = list.filter((p) => p.registration_state !== "voided").reduce((s, p) => s + Number(p.cod_expected), 0);
@@ -271,11 +274,12 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
   return (
     <div className="space-y-6">
       {header}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <StatCard label="Parcels" value={counts.parcels - counts.voided} icon={PackageIcon} />
         <StatCard label="With tracking" value={counts.registered} icon={CheckCircle2Icon} tone="success" delay={0.1} />
         <StatCard label="Waiting for tracking" value={waiting} icon={HashIcon} tone={waiting > 0 ? "warning" : "success"} delay={0.2} />
-        <StatCard label="COD expected" value={codTotal} prefix="Rs. " icon={TruckIcon} tone="info" delay={0.3} />
+        <StatCard label="Packed" value={counts.packed} icon={PackageCheckIcon} tone="success" delay={0.3} hint={`${counts.verified} verified · ${counts.onHold} on hold`} />
+        <StatCard label="COD expected" value={codTotal} prefix="Rs. " icon={TruckIcon} tone="info" delay={0.4} />
       </div>
 
       <Card className="border-primary/40 gap-3">
@@ -283,13 +287,29 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
           <CardDescription className="text-primary text-xs font-semibold tracking-wide uppercase">Next step</CardDescription>
           <CardTitle>{nextStep(round.state, counts)}</CardTitle>
         </CardHeader>
-        {caps.has("courier") && (round.state === "finalised" || round.state === "active") && (
-          <CardContent>
-            <Button asChild variant="outline">
-              <Link href={`/admin/dispatch/rounds/${id}/courier`}>
-                Courier files <ArrowRightIcon />
-              </Link>
-            </Button>
+        {(round.state === "finalised" || round.state === "active") && (
+          <CardContent className="flex flex-wrap gap-2">
+            {caps.has("courier") && (
+              <Button asChild variant="outline">
+                <Link href={`/admin/dispatch/rounds/${id}/courier`}>
+                  Courier files <ArrowRightIcon />
+                </Link>
+              </Button>
+            )}
+            {canPlan && (
+              <Button asChild variant="outline">
+                <Link href={`/admin/dispatch/rounds/${id}/packing`}>
+                  Packing <ArrowRightIcon />
+                </Link>
+              </Button>
+            )}
+            {(caps.has("pack") || caps.has("verify")) && counts.registered > 0 && (
+              <Button asChild>
+                <Link href={`/admin/dispatch/rounds/${id}/scan`}>
+                  <ScanBarcodeIcon /> Packing station
+                </Link>
+              </Button>
+            )}
           </CardContent>
         )}
       </Card>

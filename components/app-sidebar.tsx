@@ -82,7 +82,7 @@ export function AppSidebar({ user, pendingReviews }: { user: SidebarUser; pendin
   );
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="icon" className="print:hidden">
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>

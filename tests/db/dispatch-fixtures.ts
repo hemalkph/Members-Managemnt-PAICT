@@ -74,3 +74,37 @@ export async function trackingFile(client: pg.Client, actor: Actor, round: strin
   );
   return rows[0].id;
 }
+
+export type ReadyParcel = { id: string; reference: string; tracking: string; items: string[]; row_version: number };
+
+// Random block per test file so tracking numbers never clash across files sharing one database.
+let trackingSeq = 10000000 + Math.floor(Math.random() * 800) * 100000;
+
+/** A finalised round whose parcels all have tracking numbers (ready to pack). Runs as `actor`. */
+export async function readyRound(
+  client: pg.Client,
+  actor: Actor,
+  batch: string,
+  prefix: string,
+  count: number,
+): Promise<{ round: string; parcels: ReadyParcel[] }> {
+  const numbers = Array.from({ length: count }, (_, i) => `${prefix}${i + 1}`);
+  const students = await seedStudents(client, batch, numbers);
+  const { round } = await planRound(client, actor, batch, prefix, students);
+  await actAs(client, actor);
+  await client.query("select public.round_finalise($1)", [round]);
+  const file = await trackingFile(client, actor, round, (trackingSeq % 9).toString());
+  const refs = (await client.query("select reference from public.parcels where round_id = $1 order by reference", [round])).rows;
+  const rows = refs.map((r) => ({ reference: r.reference, tracking_no: `D${trackingSeq++}` }));
+  await client.query("select public.tracking_apply($1, $2, $3::jsonb)", [round, file, JSON.stringify(rows)]);
+  await asOwner(client);
+  const parcels = (
+    await client.query(
+      `select p.id, p.reference, p.tracking_no as tracking, p.row_version,
+              array(select round_tute_id from public.parcel_items i where i.parcel_id = p.id order by round_tute_id)::text[] as items
+         from public.parcels p where p.round_id = $1 order by p.reference`,
+      [round],
+    )
+  ).rows as ReadyParcel[];
+  return { round, parcels };
+}

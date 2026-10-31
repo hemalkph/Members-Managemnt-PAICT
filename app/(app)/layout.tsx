@@ -46,7 +46,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         pendingReviews={pending.count ?? 0}
       />
       <SidebarInset>
-        <header className="bg-background/80 sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b px-3 backdrop-blur sm:px-4">
+        <header className="print:hidden bg-background/80 sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b px-3 backdrop-blur sm:px-4">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-1 data-[orientation=vertical]:h-4" />
           <span className="text-muted-foreground truncate text-sm">

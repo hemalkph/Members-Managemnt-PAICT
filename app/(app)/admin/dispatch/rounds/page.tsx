@@ -22,16 +22,19 @@ export default async function RoundsPage() {
       .select("id, name, batch_id, sending_month, state, ref_prefix, created_at")
       .order("created_at", { ascending: false })
       .limit(100),
-    supabase.from("parcels").select("round_id, registration_state").limit(20000),
+    supabase.from("parcels").select("round_id, registration_state, pack_state, on_hold").limit(20000),
     supabase.from("batches").select("id, name"),
   ]);
   const batchName = new Map((batches ?? []).map((b) => [b.id, b.name]));
   const counts = new Map<string, RoundCounts>();
   for (const p of parcels ?? []) {
-    const c = counts.get(p.round_id) ?? { parcels: 0, registered: 0, voided: 0 };
+    const c = counts.get(p.round_id) ?? { parcels: 0, registered: 0, voided: 0, packed: 0, verified: 0, onHold: 0 };
     c.parcels += 1;
     if (p.registration_state === "registered") c.registered += 1;
     if (p.registration_state === "voided") c.voided += 1;
+    else if (p.pack_state !== "planned") c.packed = (c.packed ?? 0) + 1;
+    if (p.pack_state === "verified") c.verified = (c.verified ?? 0) + 1;
+    if (p.on_hold) c.onHold = (c.onHold ?? 0) + 1;
     counts.set(p.round_id, c);
   }
 
