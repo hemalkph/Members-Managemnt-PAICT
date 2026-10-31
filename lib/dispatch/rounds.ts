@@ -10,7 +10,17 @@ export const ROUND_STATE: Record<RoundState, { label: string; variant: "secondar
   cancelled: { label: "Cancelled", variant: "secondary" },
 };
 
-export type RoundCounts = { parcels: number; registered: number; voided: number; packed?: number; verified?: number; onHold?: number };
+export type RoundCounts = {
+  parcels: number;
+  registered: number;
+  voided: number;
+  packed?: number;
+  verified?: number;
+  onHold?: number;
+  handedOver?: number;
+  delivered?: number;
+  problems?: number;
+};
 
 /** The next thing to do, worked out from what is actually saved. */
 export function nextStep(state: RoundState, c: RoundCounts): string {
@@ -22,8 +32,14 @@ export function nextStep(state: RoundState, c: RoundCounts): string {
   if (waiting > 0) return `${waiting} parcel${waiting === 1 ? " has" : "s have"} no tracking number yet – import the Citypak sheet.`;
   const live = c.parcels - c.voided;
   if (c.onHold) return `${c.onHold} parcel${c.onHold === 1 ? " is" : "s are"} on hold – sort them out on the Packing page.`;
-  if ((c.packed ?? 0) < live) return `Pack the parcels at the packing station (${c.packed ?? 0} of ${live} packed).`;
-  return "Every parcel is packed. Handover to Citypak comes next.";
+  const handed = c.handedOver ?? 0;
+  if (c.problems) return `${c.problems} parcel${c.problems === 1 ? "" : "s"} failed or came back – send ${c.problems === 1 ? "it" : "them"} again or void ${c.problems === 1 ? "it" : "them"} on the Delivery page.`;
+  if (handed === live && (c.delivered ?? 0) === live) return "Every parcel is delivered.";
+  if (handed === live) return `Every parcel is with Citypak (${c.delivered ?? 0} of ${live} delivered). Update statuses on the Delivery page.`;
+  if ((c.packed ?? 0) < live) return `Pack the parcels at the packing station (${c.packed ?? 0} of ${live} packed${handed ? `, ${handed} handed over` : ""}).`;
+  return handed > 0
+    ? `${live - handed} packed parcel${live - handed === 1 ? " is" : "s are"} still here – hand ${live - handed === 1 ? "it" : "them"} to Citypak.`
+    : "Every parcel is packed. Hand them to Citypak on the Handover page.";
 }
 
 export function monthLabelFromDate(date: string): string {

@@ -32,9 +32,10 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        // The packing station may use the camera to read parcel labels (same site only).
-        // Listed after the rule above, so it replaces camera=() for this page alone.
-        source: "/admin/dispatch/rounds/:id/scan",
+        // The packing station and the handover page may use the camera to read parcel
+        // labels (same site only). Listed after the rule above, so it replaces camera=()
+        // for these pages alone.
+        source: "/admin/dispatch/rounds/:id/:page(scan|handover)",
         headers: [{ key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=()" }],
       },
       {

@@ -33,6 +33,15 @@ const FUNCTIONS = [
   "parcel_assign",
   "dispatch_packers",
   "dispatch_pack_list",
+  "handover_open",
+  "handover_scan",
+  "handover_release",
+  "handover_confirm",
+  "handover_cancel",
+  "dispatch_handover_list",
+  "delivery_set",
+  "parcel_void",
+  "parcel_replace",
 ];
 /** Privileged helpers used only inside other functions: nobody may call them directly. */
 const INTERNAL = [
@@ -43,6 +52,7 @@ const INTERNAL = [
   "dispatch_parcel_card",
   "dispatch_block_reason",
   "sync_parcel_hold",
+  "dispatch_handover_block",
 ];
 const TABLES = [
   "dispatch_grants",
@@ -59,6 +69,8 @@ const TABLES = [
   "carrier_files",
   "parcel_exceptions",
   "parcel_scans",
+  "handovers",
+  "handover_parcels",
 ];
 
 let db: pg.Client;

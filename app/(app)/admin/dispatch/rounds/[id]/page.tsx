@@ -235,7 +235,7 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
     supabase
       .from("parcels")
       .select(
-        "id, student_id, reference, tracking_no, registration_state, pack_state, on_hold, cod_expected, row_version, parcel_recipients(*), students(student_no)",
+        "id, student_id, reference, tracking_no, registration_state, pack_state, delivery_state, on_hold, cod_expected, row_version, parcel_recipients(*), students(student_no)",
       )
       .eq("round_id", id)
       .order("reference")
@@ -267,6 +267,9 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
     packed: list.filter((p) => p.registration_state !== "voided" && p.pack_state !== "planned").length,
     verified: list.filter((p) => p.pack_state === "verified").length,
     onHold: list.filter((p) => p.on_hold).length,
+    handedOver: list.filter((p) => p.registration_state !== "voided" && p.delivery_state !== "awaiting_pickup").length,
+    delivered: list.filter((p) => p.registration_state !== "voided" && p.delivery_state === "delivered").length,
+    problems: list.filter((p) => p.registration_state !== "voided" && (p.delivery_state === "failed" || p.delivery_state === "returned")).length,
   };
   const waiting = counts.parcels - counts.registered - counts.voided;
   const codTotal = list.filter((p) => p.registration_state !== "voided").reduce((s, p) => s + Number(p.cod_expected), 0);
@@ -279,7 +282,18 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
         <StatCard label="With tracking" value={counts.registered} icon={CheckCircle2Icon} tone="success" delay={0.1} />
         <StatCard label="Waiting for tracking" value={waiting} icon={HashIcon} tone={waiting > 0 ? "warning" : "success"} delay={0.2} />
         <StatCard label="Packed" value={counts.packed} icon={PackageCheckIcon} tone="success" delay={0.3} hint={`${counts.verified} verified · ${counts.onHold} on hold`} />
-        <StatCard label="COD expected" value={codTotal} prefix="Rs. " icon={TruckIcon} tone="info" delay={0.4} />
+        {counts.handedOver > 0 ? (
+          <StatCard
+            label="With the courier"
+            value={counts.handedOver}
+            icon={TruckIcon}
+            tone={counts.problems > 0 ? "warning" : "info"}
+            delay={0.4}
+            hint={`${counts.delivered} delivered · ${counts.problems} failed or returned`}
+          />
+        ) : (
+          <StatCard label="COD expected" value={codTotal} prefix="Rs. " icon={TruckIcon} tone="info" delay={0.4} />
+        )}
       </div>
 
       <Card className="border-primary/40 gap-3">
@@ -307,6 +321,20 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
               <Button asChild>
                 <Link href={`/admin/dispatch/rounds/${id}/scan`}>
                   <ScanBarcodeIcon /> Packing station
+                </Link>
+              </Button>
+            )}
+            {caps.has("verify") && counts.packed > 0 && (
+              <Button asChild variant="outline">
+                <Link href={`/admin/dispatch/rounds/${id}/handover`}>
+                  Handover <ArrowRightIcon />
+                </Link>
+              </Button>
+            )}
+            {caps.has("courier") && counts.handedOver > 0 && (
+              <Button asChild variant="outline">
+                <Link href={`/admin/dispatch/rounds/${id}/delivery`}>
+                  Delivery <ArrowRightIcon />
                 </Link>
               </Button>
             )}

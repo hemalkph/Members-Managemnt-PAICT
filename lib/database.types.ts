@@ -541,6 +541,8 @@ export type Database = {
           verified_at: string | null;
           manifest_version: number;
           row_version: number;
+          handover_id: string | null;
+          delivery_note: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -616,7 +618,14 @@ export type Database = {
         Row: {
           id: string;
           round_id: string | null;
-          kind: "citypak_template" | "manifest_export" | "tracking_sheet" | "waybill_pdf" | "status_report" | "settlement_report";
+          kind:
+            | "citypak_template"
+            | "manifest_export"
+            | "tracking_sheet"
+            | "waybill_pdf"
+            | "status_report"
+            | "settlement_report"
+            | "handover_receipt";
           storage_path: string;
           file_name: string;
           sha256: string;
@@ -650,6 +659,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "parcel_exceptions_parcel_id_fkey";
+            columns: ["parcel_id"];
+            isOneToOne: false;
+            referencedRelation: "parcels";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      handovers: {
+        Row: {
+          id: string;
+          round_id: string;
+          state: "open" | "confirmed" | "cancelled";
+          courier_rep: string;
+          courier_ref: string;
+          counted_count: number | null;
+          note: string;
+          receipt_file: string | null;
+          opened_by: string | null;
+          opened_at: string;
+          confirmed_by: string | null;
+          confirmed_at: string | null;
+          cancelled_by: string | null;
+          cancelled_at: string | null;
+          cancel_reason: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      handover_parcels: {
+        Row: {
+          id: string;
+          handover_id: string;
+          parcel_id: string;
+          added_by: string | null;
+          added_at: string;
+          released_by: string | null;
+          released_at: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "handover_parcels_parcel_id_fkey";
             columns: ["parcel_id"];
             isOneToOne: false;
             referencedRelation: "parcels";
@@ -1307,6 +1360,35 @@ export type Database = {
         Returns: Json;
       };
       parcel_unpack: { Args: { p_parcel: string; p_reason: string; p_row_version: number }; Returns: undefined };
+      handover_open: { Args: { p_round: string }; Returns: string };
+      handover_scan: { Args: { p_handover: string; p_code: string }; Returns: Json };
+      handover_release: { Args: { p_handover: string; p_parcel: string }; Returns: undefined };
+      handover_confirm: {
+        Args: { p_handover: string; p_counted: number; p_courier_rep: string; p_courier_ref: string; p_note: string; p_receipt?: string | null };
+        Returns: number;
+      };
+      handover_cancel: { Args: { p_handover: string; p_reason: string }; Returns: undefined };
+      dispatch_handover_list: {
+        Args: { p_round: string };
+        Returns: {
+          id: string;
+          state: "open" | "confirmed" | "cancelled";
+          courier_rep: string;
+          courier_ref: string;
+          counted_count: number | null;
+          note: string;
+          receipt_file: string | null;
+          opened_at: string;
+          confirmed_at: string | null;
+          confirmed_name: string | null;
+          cancelled_at: string | null;
+          cancel_reason: string | null;
+          parcels: number;
+        }[];
+      };
+      delivery_set: { Args: { p_parcels: string[]; p_state: string; p_reason: string; p_evidence?: string | null }; Returns: Json };
+      parcel_void: { Args: { p_parcel: string; p_reason: string }; Returns: undefined };
+      parcel_replace: { Args: { p_parcel: string; p_reason: string; p?: Json }; Returns: string };
       exception_open: { Args: { p_parcel: string; p_kind: string; p_note: string }; Returns: string };
       exception_resolve: { Args: { p_exception: string; p_resolution: string; p_note: string }; Returns: undefined };
       parcel_assign: { Args: { p_round: string; p_parcels: string[]; p_packer: string | null }; Returns: number };
