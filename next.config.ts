@@ -28,15 +28,11 @@ const nextConfig: NextConfig = {
           { key: "X-Frame-Options", value: "DENY" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+          // Camera: our own pages only (the packing and handover scanners). It is allowed
+          // on every page because in-app links don't reload the page, so a page-specific
+          // rule would leave the camera blocked without the browser ever asking.
+          { key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=()" },
         ],
-      },
-      {
-        // The packing station and the handover page may use the camera to read parcel
-        // labels (same site only). Listed after the rule above, so it replaces camera=()
-        // for these pages alone.
-        source: "/admin/dispatch/rounds/:id/:page(scan|handover)",
-        headers: [{ key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=()" }],
       },
       {
         source: "/manifest.webmanifest",

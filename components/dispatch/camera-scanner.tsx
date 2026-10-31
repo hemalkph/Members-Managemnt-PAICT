@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CameraOffIcon, Loader2Icon } from "lucide-react";
+import { CameraOffIcon, Loader2Icon, RotateCwIcon } from "lucide-react";
 
 import { useT } from "@/components/dispatch/lang";
 type Detector = { detect: (source: HTMLVideoElement) => Promise<{ rawValue: string }[]> };
@@ -34,6 +34,8 @@ export function CameraScanner({ onCode, onClose }: { onCode: (code: string) => v
   const video = useRef<HTMLVideoElement>(null);
   const [status, setStatus] = useState<"starting" | "running" | "error">("starting");
   const [error, setError] = useState("");
+  const [blocked, setBlocked] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const last = useRef<{ code: string; at: number }>({ code: "", at: 0 });
   const onCodeRef = useRef(onCode);
   useEffect(() => {
@@ -49,8 +51,14 @@ export function CameraScanner({ onCode, onClose }: { onCode: (code: string) => v
       try {
         if (!navigator.mediaDevices?.getUserMedia)
           throw new Error("This browser can't use the camera here (HTTPS is needed).");
-        const detector = await makeDetector();
+        // Ask for the camera first, so the phone shows its "Allow camera?" question
+        // straight after the tap; the barcode reader loads afterwards.
         stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+        if (stopped) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        const detector = await makeDetector();
         if (stopped || !video.current) return;
         video.current.srcObject = stream;
         await video.current.play();
@@ -73,11 +81,18 @@ export function CameraScanner({ onCode, onClose }: { onCode: (code: string) => v
         };
         tick();
       } catch (e) {
+        if (stopped) return;
+        const name = (e as Error).name;
         setStatus("error");
+        setBlocked(name === "NotAllowedError" || name === "SecurityError");
         setError(
-          (e as Error).name === "NotAllowedError"
-            ? "Camera permission was refused. Allow the camera for this site, or use a USB scanner."
-            : (e as Error).message || "The camera could not start.",
+          name === "NotAllowedError" || name === "SecurityError"
+            ? "The camera is not allowed yet."
+            : name === "NotFoundError" || name === "OverconstrainedError"
+              ? "No camera was found on this device."
+              : name === "NotReadableError"
+                ? "Another app is using the camera. Close it and try again."
+                : (e as Error).message || "The camera could not start.",
         );
       }
     })();
@@ -85,9 +100,16 @@ export function CameraScanner({ onCode, onClose }: { onCode: (code: string) => v
     return () => {
       stopped = true;
       if (timer) clearTimeout(timer);
-      stream?.getTracks().forEach((t) => t.stop());
+      stream?.getTracks().forEach((track) => track.stop());
     };
-  }, []);
+  }, [attempt]);
+
+  function retry() {
+    setStatus("starting");
+    setError("");
+    setBlocked(false);
+    setAttempt((n) => n + 1);
+  }
 
   return (
     <div className="relative overflow-hidden rounded-lg border bg-black">
@@ -109,10 +131,26 @@ export function CameraScanner({ onCode, onClose }: { onCode: (code: string) => v
       {status === "error" && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center text-sm text-white">
           <CameraOffIcon className="size-6" />
-          <p>{t(error)}</p>
-          <button type="button" className="underline" onClick={onClose}>
-            {t("Close camera")}
-          </button>
+          <p className="font-medium">{t(error)}</p>
+          {blocked && (
+            <div className="max-w-sm space-y-1 text-xs text-white/80">
+              <p>{t("Tap Try again and choose Allow when the phone asks.")}</p>
+              <p>{t("If it doesn't ask: tap the icon next to the web address, set Camera to Allow, then tap Try again.")}</p>
+              <p>{t("iPhone: Settings → Safari → Camera → Allow.")}</p>
+            </div>
+          )}
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-1.5 font-medium text-black"
+              onClick={retry}
+            >
+              <RotateCwIcon className="size-4" /> {t("Try again")}
+            </button>
+            <button type="button" className="underline" onClick={onClose}>
+              {t("Close camera")}
+            </button>
+          </div>
         </div>
       )}
     </div>
