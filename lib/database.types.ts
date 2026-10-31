@@ -380,6 +380,10 @@ export type Database = {
           recipient_retention_days: number;
           courier_file_retention_days: number;
           import_file_retention_days: number;
+          citypak_template_file: string | null;
+          citypak_template_verified: boolean;
+          citypak_template_verified_by: string | null;
+          citypak_template_verified_at: string | null;
           updated_by: string | null;
           updated_at: string;
         };
@@ -439,6 +443,192 @@ export type Database = {
         };
         Insert: never;
         Update: { file_deleted_at?: string | null };
+        Relationships: [];
+      };
+      dispatch_rounds: {
+        Row: {
+          id: string;
+          name: string;
+          batch_id: string;
+          sending_month: string;
+          group_label: string;
+          subject: string;
+          ref_prefix: string;
+          default_cod: number;
+          default_weight_g: number;
+          default_pieces: number;
+          planned_handover: string | null;
+          notes: string;
+          state: "draft" | "finalised" | "active" | "closed" | "cancelled";
+          manifest_version: number;
+          created_by: string | null;
+          created_at: string;
+          updated_by: string | null;
+          updated_at: string;
+          finalised_by: string | null;
+          finalised_at: string | null;
+          closed_by: string | null;
+          closed_at: string | null;
+          close_note: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "dispatch_rounds_batch_id_fkey";
+            columns: ["batch_id"];
+            isOneToOne: false;
+            referencedRelation: "batches";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      round_tutes: {
+        Row: {
+          id: string;
+          round_id: string;
+          paper_id: string | null;
+          manual_title: string | null;
+          title: string;
+          short_code: string;
+          version_label: string;
+          qty_per_parcel: number;
+          sort_order: number;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      round_students: {
+        Row: {
+          round_id: string;
+          student_id: string;
+          cod_amount: number | null;
+          note: string;
+          excluded_tute_ids: string[];
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "round_students_student_id_fkey";
+            columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "students";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      parcels: {
+        Row: {
+          id: string;
+          round_id: string;
+          student_id: string;
+          reference: string;
+          tracking_no: string | null;
+          replaces_parcel_id: string | null;
+          registration_state: "unregistered" | "registered" | "voided";
+          pack_state: "planned" | "packed" | "verified";
+          delivery_state: "awaiting_pickup" | "handed_over" | "in_transit" | "delivered" | "failed" | "returned";
+          on_hold: boolean;
+          cod_expected: number;
+          weight_g: number;
+          pieces: number;
+          assigned_to: string | null;
+          packed_by: string | null;
+          packed_at: string | null;
+          verified_by: string | null;
+          verified_at: string | null;
+          manifest_version: number;
+          row_version: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "parcels_student_id_fkey";
+            columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "students";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      parcel_recipients: {
+        Row: {
+          parcel_id: string;
+          name: string;
+          address_line1: string;
+          address_line2: string;
+          address_line3: string;
+          city: string;
+          phone1: string | null;
+          phone2: string | null;
+          anonymised_at: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "parcel_recipients_parcel_id_fkey";
+            columns: ["parcel_id"];
+            isOneToOne: true;
+            referencedRelation: "parcels";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      parcel_items: {
+        Row: { parcel_id: string; round_tute_id: string; qty: number };
+        Insert: never;
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "parcel_items_parcel_id_fkey";
+            columns: ["parcel_id"];
+            isOneToOne: false;
+            referencedRelation: "parcels";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      parcel_events: {
+        Row: {
+          id: number;
+          parcel_id: string;
+          round_id: string;
+          type: string;
+          from_state: string | null;
+          to_state: string | null;
+          actor: string | null;
+          source: "manual" | "import" | "system" | "scan";
+          reason: string | null;
+          details: Json;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      carrier_files: {
+        Row: {
+          id: string;
+          round_id: string | null;
+          kind: "citypak_template" | "manifest_export" | "tracking_sheet" | "waybill_pdf" | "status_report" | "settlement_report";
+          storage_path: string;
+          file_name: string;
+          sha256: string;
+          size_bytes: number;
+          row_count: number | null;
+          summary: Json;
+          created_by: string | null;
+          created_at: string;
+          deleted_at: string | null;
+        };
+        Insert: never;
+        Update: never;
         Relationships: [];
       };
       batches: {
@@ -1059,6 +1249,28 @@ export type Database = {
       };
     };
     Functions: {
+      round_save: { Args: { p: Json }; Returns: string };
+      round_set_tutes: { Args: { p_round: string; p_tutes: Json }; Returns: undefined };
+      round_set_students: { Args: { p_round: string; p_rows: Json }; Returns: number };
+      round_cancel: { Args: { p_round: string; p_reason: string }; Returns: undefined };
+      round_finalise: { Args: { p_round: string }; Returns: number };
+      parcel_correct: { Args: { p_parcel: string; p: Json; p_reason: string; p_row_version: number }; Returns: undefined };
+      carrier_file_record: {
+        Args: {
+          p_round: string | null;
+          p_kind: string;
+          p_path: string;
+          p_name: string;
+          p_sha256: string;
+          p_size: number;
+          p_rows: number | null;
+          p_summary: Json;
+        };
+        Returns: string;
+      };
+      tracking_apply: { Args: { p_round: string; p_file: string; p_rows: Json }; Returns: Json };
+      citypak_template_set: { Args: { p_file: string | null; p_verified: boolean }; Returns: undefined };
+      dispatch_log_download: { Args: { p_file: string }; Returns: undefined };
       has_dispatch: { Args: { p_cap: string }; Returns: boolean };
       dispatch_my_caps: { Args: Record<PropertyKey, never>; Returns: string[] };
       dispatch_grant: { Args: { p_user: string; p_cap: string; p_reason?: string | null }; Returns: undefined };

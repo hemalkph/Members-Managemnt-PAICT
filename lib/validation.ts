@@ -586,3 +586,83 @@ export const importStepSchema = z.object({
 export const importApplySchema = importStepSchema.extend({
   lines: z.array(z.number().int().min(2).max(2100)).max(2000),
 });
+
+export const roundSchema = z.object({
+  id: z.union([uuid, z.literal("")]),
+  name: trimmed(2, 120, "Round name"),
+  batch_id: uuid,
+  sending_month: monthKey,
+  group_label: optionalText(60, "Group"),
+  subject: optionalText(60, "Subject"),
+  ref_prefix: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-Z0-9]{2,20}$/, "Use 2–20 capital letters or numbers, e.g. 27TGNOVICT"),
+  default_cod: z.coerce.number().min(0, "COD can't be negative").max(1_000_000),
+  default_weight_g: z.coerce.number().int().min(1).max(30_000),
+  default_pieces: z.coerce.number().int().min(1).max(20),
+  planned_handover: z.union([isoDate, z.literal("")]),
+  notes: optionalText(500, "Notes"),
+});
+export type RoundInput = z.input<typeof roundSchema>;
+
+export const roundTutesSchema = z.object({
+  round_id: uuid,
+  tutes: z
+    .array(
+      z.object({
+        id: z.union([uuid, z.literal("")]),
+        paper_id: z.union([uuid, z.literal("")]),
+        manual_title: optionalText(150, "Title"),
+        short_code: z
+          .string()
+          .trim()
+          .toUpperCase()
+          .regex(/^[A-Z0-9-]{1,10}$/, "Short code: up to 10 capital letters, numbers or -"),
+        version_label: optionalText(30, "Version"),
+        qty_per_parcel: z.coerce.number().int().min(1).max(10),
+      }),
+    )
+    .max(30),
+});
+export type RoundTutesInput = z.input<typeof roundTutesSchema>;
+
+export const roundStudentsSchema = z.object({
+  round_id: uuid,
+  rows: z
+    .array(
+      z.object({
+        student_id: uuid,
+        cod_amount: z.union([z.literal(""), z.coerce.number().min(0).max(1_000_000)]),
+        note: optionalText(300, "Note"),
+        excluded_tute_ids: z.array(uuid).max(30),
+      }),
+    )
+    .max(3000),
+});
+export type RoundStudentsInput = z.input<typeof roundStudentsSchema>;
+
+export const parcelCorrectionSchema = z.object({
+  parcel_id: uuid,
+  row_version: z.number().int().min(1),
+  reason: trimmed(3, 300, "Reason"),
+  cod_expected: z.union([z.literal(""), z.coerce.number().min(0).max(1_000_000)]),
+  tute_ids: z.array(uuid).min(1, "Keep at least one tute").max(30),
+  recipient: z.object({
+    name: trimmed(1, 120, "Name"),
+    address_line1: trimmed(1, 200, "Address line 1"),
+    address_line2: optionalText(200, "Address line 2"),
+    address_line3: optionalText(200, "Address line 3"),
+    city: trimmed(1, 60, "City"),
+    phone1: z.string().trim().min(1, "Phone is needed").max(40),
+    phone2: z.string().trim().max(40),
+  }),
+});
+export type ParcelCorrectionInput = z.input<typeof parcelCorrectionSchema>;
+
+export const roundFileSchema = z.object({
+  round_id: uuid,
+  path: z.string().max(120),
+  file_name: z.string().max(200),
+});
