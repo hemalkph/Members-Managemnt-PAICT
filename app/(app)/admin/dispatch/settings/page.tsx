@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { PeopleGrants, type DispatchPerson } from "@/components/dispatch/people-grants";
 import { DispatchSettingsForm } from "@/components/dispatch/settings-form";
+import { TemplateCard, type StoredTemplate } from "@/components/dispatch/template-card";
+import { formatDateTime } from "@/lib/format";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { mainAdminUnlocked } from "@/lib/auth";
 import type { DispatchCapability } from "@/lib/database.types";
@@ -51,6 +53,25 @@ export default async function DispatchSettingsPage() {
       .filter((p) => p.page !== "none" || p.granted.length > 0);
   }
 
+  let template: StoredTemplate = null;
+  if (settings?.citypak_template_file) {
+    const { data: t } = await supabase
+      .from("carrier_files")
+      .select("id, file_name, summary, created_at")
+      .eq("id", settings.citypak_template_file)
+      .maybeSingle();
+    if (t) {
+      const columns = ((t.summary ?? {}) as { columns?: unknown }).columns;
+      template = {
+        id: t.id,
+        fileName: t.file_name,
+        columns: Array.isArray(columns) ? columns.map(String) : [],
+        verified: settings.citypak_template_verified,
+        when: formatDateTime(t.created_at),
+      };
+    }
+  }
+
   const values = {
     sender_name: settings?.sender_name ?? "",
     sender_line1: settings?.sender_line1 ?? "",
@@ -75,6 +96,8 @@ export default async function DispatchSettingsPage() {
       <PageHeader title="Dispatch settings" description="Sender details, parcel defaults, privacy rules and who can do what." />
 
       <DispatchSettingsForm values={values} canEditDetails={canPlan} canEditPolicy={canPlan && mainUnlocked} />
+
+      <TemplateCard template={template} canChange={mainUnlocked} />
 
       <Card>
         <CardHeader>

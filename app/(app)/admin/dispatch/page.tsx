@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRightIcon, FileSpreadsheetIcon, MapPinOffIcon, PhoneOffIcon, ShieldCheckIcon, UsersIcon } from "lucide-react";
+import { ArrowRightIcon, FileSpreadsheetIcon, PackageIcon, MapPinOffIcon, PhoneOffIcon, ShieldCheckIcon, UsersIcon } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { Badge } from "@/components/ui/badge";
@@ -44,23 +44,41 @@ export default async function DispatchOverviewPage() {
   const missingCount = missingAddress.count ?? 0;
   const phoneCount = phoneCheck.count ?? 0;
 
+  // Rounds and parcels hold no personal data, so everyone with the page sees these.
+  const [{ data: openRounds }, { data: waitingParcels }] = await Promise.all([
+    supabase.from("dispatch_rounds").select("id, name, state").in("state", ["draft", "finalised", "active"]).order("created_at"),
+    supabase.from("parcels").select("round_id").eq("registration_state", "unregistered").limit(20000),
+  ]);
+  const waitingByRound = new Map<string, number>();
+  for (const p of waitingParcels ?? []) waitingByRound.set(p.round_id, (waitingByRound.get(p.round_id) ?? 0) + 1);
+  const needsTracking = (openRounds ?? []).find((r) => r.state !== "draft" && (waitingByRound.get(r.id) ?? 0) > 0);
+
   // The next step, worked out from what is actually saved.
   let next: NextAction | null = null;
-  if (caps.has("plan") && activeCount === 0) {
+  if (needsTracking && caps.has("courier")) {
+    const n = waitingByRound.get(needsTracking.id) ?? 0;
+    next = {
+      title: `${n} parcel${n === 1 ? "" : "s"} in “${needsTracking.name}” need tracking numbers`,
+      detail: "Register them with Citypak, then upload the processed sheet Citypak gives back.",
+      href: `/admin/dispatch/rounds/${needsTracking.id}/courier`,
+      label: "Import tracking sheet",
+    };
+  }
+  if (next === null && caps.has("plan") && activeCount === 0) {
     next = {
       title: "Add your students",
       detail: "Import the student list from a Citypak sheet or CSV. Nothing is saved until you check the preview.",
       href: "/admin/dispatch/students/import",
       label: "Import students",
     };
-  } else if (canSeeStudents && missingCount > 0) {
+  } else if (next === null && canSeeStudents && missingCount > 0) {
     next = {
       title: `Review ${missingCount} ${missingCount === 1 ? "address" : "addresses"}`,
       detail: "These active students have no address or city, so a parcel can't be sent to them yet.",
       href: "/admin/dispatch/students?problem=address",
       label: "Review addresses",
     };
-  } else if (canSeeStudents && phoneCount > 0) {
+  } else if (next === null && canSeeStudents && phoneCount > 0) {
     next = {
       title: `Add ${phoneCount} phone ${phoneCount === 1 ? "number" : "numbers"}`,
       detail: "Citypak needs a contact number for each parcel.",
@@ -73,7 +91,7 @@ export default async function DispatchOverviewPage() {
     <div className="space-y-6">
       <PageHeader
         title="Tute dispatch"
-        description="Student delivery details today; dispatch rounds, packing and Citypak tracking come in the next phases."
+        description="Plan tute rounds, freeze each parcel's contents and add Citypak tracking numbers. Packing and handover come next."
         actions={
           caps.has("plan") ? (
             <Button asChild>
@@ -86,7 +104,8 @@ export default async function DispatchOverviewPage() {
       />
 
       {canSeeStudents ? (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <StatCard label="Open rounds" value={(openRounds ?? []).length} icon={PackageIcon} hint="Draft, finalised or active" />
           <StatCard label="Active students" value={activeCount} icon={UsersIcon} hint="In the delivery register" />
           <StatCard
             label="Missing address"
