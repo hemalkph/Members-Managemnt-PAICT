@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRightIcon, PencilIcon, TruckIcon } from "lucide-react";
+import { PencilIcon, TruckIcon } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { ContentsMatrix } from "@/components/dispatch/contents-matrix";
 import { ParcelCorrectDialog } from "@/components/dispatch/parcel-correct-dialog";
@@ -18,13 +18,15 @@ import { RoundClosePanel, type CloseCheck } from "@/components/dispatch/round-cl
 import { mainAdminUnlocked } from "@/lib/auth";
 import { requireDispatch } from "@/lib/dispatch/access";
 import { reviewRound } from "@/lib/dispatch/review";
-import { monthLabelFromDate, nextStep, ROUND_STATE } from "@/lib/dispatch/rounds";
+import { monthLabelFromDate, ROUND_STATE } from "@/lib/dispatch/rounds";
 import { formatLKR } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import { uuid } from "@/lib/validation";
-import { CheckCircle2Icon, HashIcon, PackageCheckIcon, PackageIcon, ScanBarcodeIcon } from "lucide-react";
+import { CheckCircle2Icon, HashIcon, PackageCheckIcon, PackageIcon } from "lucide-react";
 
+import { getT } from "@/lib/dispatch/i18n/server";
+import { plural } from "@/lib/dispatch/i18n";
 export const metadata: Metadata = { title: "Round – Tute dispatch" };
 
 const STEPS = [
@@ -37,6 +39,7 @@ const STEPS = [
 type Step = (typeof STEPS)[number]["key"];
 
 export default async function RoundPage({ params, searchParams }: PageProps<"/admin/dispatch/rounds/[id]">) {
+  const t = await getT();
   const { id } = await params;
   if (!uuid.safeParse(id).success) notFound();
   const { caps, profile } = await requireDispatch();
@@ -59,10 +62,11 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
       title={round.name}
       description={
         <>
-          {batch?.name ?? "—"} · {monthLabelFromDate(round.sending_month)} · prefix <span className="font-mono">{round.ref_prefix}</span>
+          {batch?.name ?? "—"} · {monthLabelFromDate(round.sending_month)} · {t("prefix")}{" "}
+          <span className="font-mono">{round.ref_prefix}</span>
         </>
       }
-      actions={<Badge variant={state.variant}>{state.label}</Badge>}
+      actions={<Badge variant={state.variant}>{t(state.label)}</Badge>}
     />
   );
 
@@ -74,8 +78,10 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
           {header}
           <Card>
             <CardHeader>
-              <CardTitle>Being planned</CardTitle>
-              <CardDescription>This round is still a draft. Parcels appear here once a planner finalises it.</CardDescription>
+              <CardTitle>{t("Being planned")}</CardTitle>
+              <CardDescription>
+                {t("This round is still a draft. Parcels appear here once a planner finalises it.")}
+              </CardDescription>
             </CardHeader>
           </Card>
         </div>
@@ -93,15 +99,26 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
         .order("student_no")
         .limit(5000),
       supabase.from("batches").select("id, name").eq("is_active", true).order("sort_order").order("name"),
-      supabase.from("papers").select("id, title, exam:exams(name)").eq("kind", "tute").eq("status", "done").order("completed_at", { ascending: false }).limit(200),
+      supabase
+        .from("papers")
+        .select("id, title, exam:exams(name)")
+        .eq("kind", "tute")
+        .eq("status", "done")
+        .order("completed_at", { ascending: false })
+        .limit(200),
     ]);
     const chosen: Record<string, ChosenSettings> = Object.fromEntries(
-      (chosenRows ?? []).map((r) => [r.student_id, { cod_amount: r.cod_amount, note: r.note, excluded_tute_ids: r.excluded_tute_ids }]),
+      (chosenRows ?? []).map((r) => [
+        r.student_id,
+        { cod_amount: r.cod_amount, note: r.note, excluded_tute_ids: r.excluded_tute_ids },
+      ]),
     );
     const studentList = students ?? [];
     const byId = new Map(studentList.map((s) => [s.id, s]));
     const problems = (s: (typeof studentList)[number]) =>
-      [!s.address_line1 || !s.city ? "No address" : null, !s.phone1 ? "No phone" : null].filter((x): x is string => x !== null);
+      [!s.address_line1 || !s.city ? "No address" : null, !s.phone1 ? "No phone" : null].filter(
+        (x): x is string => x !== null,
+      );
 
     let body: React.ReactNode = null;
     if (step === "details") {
@@ -129,13 +146,13 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
       body = (
         <RoundTutesEditor
           roundId={id}
-          initial={tutes.map((t) => ({
-            id: t.id,
-            paper_id: t.paper_id ?? "",
-            manual_title: t.manual_title ?? "",
-            short_code: t.short_code,
-            version_label: t.version_label,
-            qty_per_parcel: t.qty_per_parcel,
+          initial={tutes.map((tute) => ({
+            id: tute.id,
+            paper_id: tute.paper_id ?? "",
+            manual_title: tute.manual_title ?? "",
+            short_code: tute.short_code,
+            version_label: tute.version_label,
+            qty_per_parcel: tute.qty_per_parcel,
           }))}
           finished={(finished ?? []).map((p) => {
             const exam = p.exam as unknown as { name: string } | null;
@@ -148,7 +165,13 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
         <RoundStudentsPicker
           roundId={id}
           chosen={chosen}
-          students={studentList.map((s) => ({ id: s.id, no: s.student_no, name: s.full_name, city: s.city, problems: problems(s) }))}
+          students={studentList.map((s) => ({
+            id: s.id,
+            no: s.student_no,
+            name: s.full_name,
+            city: s.city,
+            problems: problems(s),
+          }))}
         />
       );
     } else if (step === "contents") {
@@ -156,14 +179,14 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
         <ContentsMatrix
           roundId={id}
           defaultCod={Number(round.default_cod)}
-          tutes={tutes.map((t) => ({ id: t.id, code: t.short_code, title: t.title }))}
+          tutes={tutes.map((tute) => ({ id: tute.id, code: tute.short_code, title: tute.title }))}
           initial={(chosenRows ?? [])
             .map((r) => ({ r, s: byId.get(r.student_id) }))
             .sort((a, b) => (a.s?.student_no ?? "").localeCompare(b.s?.student_no ?? ""))
             .map(({ r, s }) => ({
               student_id: r.student_id,
               no: s?.student_no ?? "?",
-              name: s?.full_name ?? "No longer active",
+              name: s?.full_name ?? t("No longer active"),
               cod: r.cod_amount === null ? "" : String(r.cod_amount),
               note: r.note,
               excluded: r.excluded_tute_ids,
@@ -174,20 +197,34 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
       // Inactive or removed students are fetched separately so the review can flag them.
       const missing = (chosenRows ?? []).filter((r) => !byId.has(r.student_id)).map((r) => r.student_id);
       const { data: extra } = missing.length
-        ? await supabase.from("students").select("id, student_no, full_name, address_line1, city, phone1, is_active").in("id", missing)
+        ? await supabase
+            .from("students")
+            .select("id, student_no, full_name, address_line1, city, phone1, is_active")
+            .in("id", missing)
         : { data: [] };
-      const all = new Map([...studentList, ...(extra ?? []).map((s) => ({ ...s, is_active: false }))].map((s) => [s.id, s]));
+      const all = new Map(
+        [...studentList, ...(extra ?? []).map((s) => ({ ...s, is_active: false }))].map((s) => [s.id, s]),
+      );
       const refs = (chosenRows ?? []).map((r) => round.ref_prefix + (all.get(r.student_id)?.student_no ?? ""));
       // Looked up in chunks so a big round doesn't make an over-long request.
       const used: { reference: string }[] = [];
       for (let i = 0; i < refs.length; i += 200) {
-        const { data } = await supabase.from("parcels").select("reference").in("reference", refs.slice(i, i + 200));
+        const { data } = await supabase
+          .from("parcels")
+          .select("reference")
+          .in("reference", refs.slice(i, i + 200));
         used.push(...(data ?? []));
       }
       const review = reviewRound({
         prefix: round.ref_prefix,
         defaultCod: Number(round.default_cod),
-        tutes: tutes.map((t) => ({ id: t.id, title: t.title, shortCode: t.short_code, qty: t.qty_per_parcel, fromPapers: Boolean(t.paper_id) })),
+        tutes: tutes.map((tute) => ({
+          id: tute.id,
+          title: tute.title,
+          shortCode: tute.short_code,
+          qty: tute.qty_per_parcel,
+          fromPapers: Boolean(tute.paper_id),
+        })),
         chosen: (chosenRows ?? []).map((r) => {
           const s = all.get(r.student_id);
           return {
@@ -211,18 +248,24 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
     return (
       <div className="space-y-6">
         {header}
-        <nav aria-label="Plan steps" className="flex flex-wrap gap-2">
+        <nav aria-label={t("Plan steps")} className="flex flex-wrap gap-2">
           {STEPS.map((s) => (
             <Button key={s.key} asChild size="sm" variant={s.key === step ? "default" : "outline"}>
-              <Link href={`/admin/dispatch/rounds/${id}?step=${s.key}`} aria-current={s.key === step ? "step" : undefined}>
-                {s.label}
+              <Link
+                href={`/admin/dispatch/rounds/${id}?step=${s.key}`}
+                aria-current={s.key === step ? "step" : undefined}
+              >
+                {t(s.label)}
               </Link>
             </Button>
           ))}
         </nav>
         <p className="text-muted-foreground text-sm">
-          {tutes.length} tute{tutes.length === 1 ? "" : "s"} · {Object.keys(chosen).length} student{Object.keys(chosen).length === 1 ? "" : "s"} chosen ·
-          Save each step before moving on.
+          {t(plural(tutes.length, "{n} tute", "{n} tutes"), { n: tutes.length })} ·{" "}
+          {t(plural(Object.keys(chosen).length, "{n} student chosen", "{n} students chosen"), {
+            n: Object.keys(chosen).length,
+          })}{" "}
+          · {t("Save each step before moving on.")}
         </p>
         <Card>
           <CardContent>{body}</CardContent>
@@ -242,7 +285,11 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
       .eq("round_id", id)
       .order("reference")
       .limit(5000),
-    supabase.from("parcel_items").select("parcel_id, round_tute_id, parcels!inner(round_id)").eq("parcels.round_id", id).limit(50000),
+    supabase
+      .from("parcel_items")
+      .select("parcel_id, round_tute_id, parcels!inner(round_id)")
+      .eq("parcels.round_id", id)
+      .limit(50000),
     supabase.rpc("round_close_check", { p_round: id }),
     profile.is_main_admin ? mainAdminUnlocked(profile) : Promise.resolve(false),
   ]);
@@ -259,10 +306,12 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
   const recipientOf = new Map(
     list.map((p) => [p.id, (seesPeople ? (p.parcel_recipients as unknown as Recipient | null) : null) ?? undefined]),
   );
-  const noOf = new Map(list.map((p) => [p.student_id, (p.students as unknown as { student_no: string } | null)?.student_no]));
+  const noOf = new Map(
+    list.map((p) => [p.student_id, (p.students as unknown as { student_no: string } | null)?.student_no]),
+  );
   const itemsOf = new Map<string, string[]>();
   for (const it of items ?? []) itemsOf.set(it.parcel_id, [...(itemsOf.get(it.parcel_id) ?? []), it.round_tute_id]);
-  const codeOf = new Map(tutes.map((t) => [t.id, t.short_code]));
+  const codeOf = new Map(tutes.map((tute) => [tute.id, tute.short_code]));
 
   const counts = {
     parcels: list.length,
@@ -279,92 +328,78 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
     canClose: Boolean((closeCheck as { can_close?: boolean } | null)?.can_close),
   };
   const waiting = counts.parcels - counts.registered - counts.voided;
-  const codTotal = list.filter((p) => p.registration_state !== "voided").reduce((s, p) => s + Number(p.cod_expected), 0);
+  const codTotal = list
+    .filter((p) => p.registration_state !== "voided")
+    .reduce((s, p) => s + Number(p.cod_expected), 0);
 
   return (
     <div className="space-y-6">
       {header}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <StatCard label="Parcels" value={counts.parcels - counts.voided} icon={PackageIcon} />
-        <StatCard label="With tracking" value={counts.registered} icon={CheckCircle2Icon} tone="success" delay={0.1} />
-        <StatCard label="Waiting for tracking" value={waiting} icon={HashIcon} tone={waiting > 0 ? "warning" : "success"} delay={0.2} />
-        <StatCard label="Packed" value={counts.packed} icon={PackageCheckIcon} tone="success" delay={0.3} hint={`${counts.verified} verified · ${counts.onHold} on hold`} />
+        <StatCard label={t("Parcels")} value={counts.parcels - counts.voided} icon={PackageIcon} />
+        <StatCard
+          label={t("With tracking")}
+          value={counts.registered}
+          icon={CheckCircle2Icon}
+          tone="success"
+          delay={0.1}
+        />
+        <StatCard
+          label={t("Waiting for tracking")}
+          value={waiting}
+          icon={HashIcon}
+          tone={waiting > 0 ? "warning" : "success"}
+          delay={0.2}
+        />
+        <StatCard
+          label={t("Packed")}
+          value={counts.packed}
+          icon={PackageCheckIcon}
+          tone="success"
+          delay={0.3}
+          hint={t("{verified} verified · {onHold} on hold", { verified: counts.verified, onHold: counts.onHold })}
+        />
         {counts.handedOver > 0 ? (
           <StatCard
-            label="With the courier"
+            label={t("With the courier")}
             value={counts.handedOver}
             icon={TruckIcon}
             tone={counts.problems > 0 ? "warning" : "info"}
             delay={0.4}
-            hint={`${counts.delivered} delivered · ${counts.returned} returned · ${counts.problems} failed`}
+            hint={t("{delivered} delivered · {returned} returned · {failed} failed", {
+              delivered: counts.delivered,
+              returned: counts.returned,
+              failed: counts.problems,
+            })}
           />
         ) : (
-          <StatCard label="COD expected" value={codTotal} prefix="Rs. " icon={TruckIcon} tone="info" delay={0.4} />
+          <StatCard label={t("COD expected")} value={codTotal} prefix="Rs. " icon={TruckIcon} tone="info" delay={0.4} />
         )}
       </div>
 
-      <Card className="border-primary/40 gap-3">
-        <CardHeader>
-          <CardDescription className="text-primary text-xs font-semibold tracking-wide uppercase">Next step</CardDescription>
-          <CardTitle>{nextStep(round.state, counts)}</CardTitle>
-        </CardHeader>
-        {(round.state === "finalised" || round.state === "active") && (
-          <CardContent className="flex flex-wrap gap-2">
-            {caps.has("courier") && (
-              <Button asChild variant="outline">
-                <Link href={`/admin/dispatch/rounds/${id}/courier`}>
-                  Courier files <ArrowRightIcon />
-                </Link>
-              </Button>
-            )}
-            {canPlan && (
-              <Button asChild variant="outline">
-                <Link href={`/admin/dispatch/rounds/${id}/packing`}>
-                  Packing <ArrowRightIcon />
-                </Link>
-              </Button>
-            )}
-            {(caps.has("pack") || caps.has("verify")) && counts.registered > 0 && (
-              <Button asChild>
-                <Link href={`/admin/dispatch/rounds/${id}/scan`}>
-                  <ScanBarcodeIcon /> Packing station
-                </Link>
-              </Button>
-            )}
-            {caps.has("verify") && counts.packed > 0 && (
-              <Button asChild variant="outline">
-                <Link href={`/admin/dispatch/rounds/${id}/handover`}>
-                  Handover <ArrowRightIcon />
-                </Link>
-              </Button>
-            )}
-            {caps.has("courier") && counts.handedOver > 0 && (
-              <Button asChild variant="outline">
-                <Link href={`/admin/dispatch/rounds/${id}/delivery`}>
-                  Delivery <ArrowRightIcon />
-                </Link>
-              </Button>
-            )}
-          </CardContent>
-        )}
-      </Card>
-
       {closeCheck && (counts.handedOver > 0 || round.state === "closed") && (
-        <RoundClosePanel roundId={id} check={closeCheck as unknown as CloseCheck} canClose={canPlan} canReopen={canReopen} />
+        <div id="close" className="scroll-mt-20">
+          <RoundClosePanel
+            roundId={id}
+            check={closeCheck as unknown as CloseCheck}
+            canClose={canPlan}
+            canReopen={canReopen}
+          />
+        </div>
       )}
 
       <Card className="py-0">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="pl-4">Reference</TableHead>
-              {seesPeople && <TableHead className="hidden md:table-cell">Recipient</TableHead>}
-              <TableHead>Tutes</TableHead>
-              <TableHead className="hidden sm:table-cell text-right">COD</TableHead>
-              <TableHead>Tracking</TableHead>
+              <TableHead className="pl-4">{t("Reference")}</TableHead>
+              {seesPeople && <TableHead className="hidden md:table-cell">{t("Recipient")}</TableHead>}
+              <TableHead>{t("Tutes")}</TableHead>
+              <TableHead className="hidden sm:table-cell text-right">{t("COD")}</TableHead>
+              <TableHead>{t("Tracking")}</TableHead>
               {canPlan && (
                 <TableHead className="w-12 pr-4">
-                  <span className="sr-only">Correct</span>
+                  <span className="sr-only">{t("Correct")}</span>
                 </TableHead>
               )}
             </TableRow>
@@ -382,27 +417,32 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
                   {seesPeople && (
                     <TableCell className="hidden max-w-[260px] md:table-cell">
                       <p className="truncate">
-                        <span className="text-muted-foreground font-mono text-xs">{noOf.get(p.student_id)}</span> {r?.name}
+                        <span className="text-muted-foreground font-mono text-xs">{noOf.get(p.student_id)}</span>{" "}
+                        {r?.name}
                       </p>
                       <p className="text-muted-foreground truncate text-xs">{r?.city}</p>
                     </TableCell>
                   )}
-                  <TableCell className="font-mono text-xs">{tuteIds.map((t) => codeOf.get(t)).join(" ")}</TableCell>
-                  <TableCell className="hidden text-right tabular-nums sm:table-cell">{formatLKR(Number(p.cod_expected))}</TableCell>
+                  <TableCell className="font-mono text-xs">
+                    {tuteIds.map((tute) => codeOf.get(tute)).join(" ")}
+                  </TableCell>
+                  <TableCell className="hidden text-right tabular-nums sm:table-cell">
+                    {formatLKR(Number(p.cod_expected))}
+                  </TableCell>
                   <TableCell>
                     {p.registration_state === "voided" ? (
-                      <Badge variant="secondary">Voided</Badge>
+                      <Badge variant="secondary">{t("Voided")}</Badge>
                     ) : p.tracking_no ? (
                       <span className="font-mono text-sm">{p.tracking_no}</span>
                     ) : (
-                      <Badge variant="outline">Waiting</Badge>
+                      <Badge variant="outline">{t("Waiting")}</Badge>
                     )}
                   </TableCell>
                   {canPlan && (
                     <TableCell className="pr-4">
                       {p.registration_state === "unregistered" && r && (
                         <ParcelCorrectDialog
-                          tutes={tutes.map((t) => ({ id: t.id, code: t.short_code }))}
+                          tutes={tutes.map((tute) => ({ id: tute.id, code: tute.short_code }))}
                           parcel={{
                             id: p.id,
                             reference: p.reference,

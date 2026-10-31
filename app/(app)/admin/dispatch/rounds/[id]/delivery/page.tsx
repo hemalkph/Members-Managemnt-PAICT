@@ -10,9 +10,11 @@ import type { DeliveryState } from "@/lib/dispatch/delivery";
 import { createClient } from "@/lib/supabase/server";
 import { uuid } from "@/lib/validation";
 
+import { getT } from "@/lib/dispatch/i18n/server";
 export const metadata: Metadata = { title: "Delivery – Tute dispatch" };
 
 export default async function DeliveryPage({ params }: PageProps<"/admin/dispatch/rounds/[id]/delivery">) {
+  const t = await getT();
   const { id } = await params;
   if (!uuid.safeParse(id).success) notFound();
   const { caps } = await requireDispatch("courier");
@@ -28,7 +30,12 @@ export default async function DeliveryPage({ params }: PageProps<"/admin/dispatc
       .order("reference")
       .limit(20000),
     supabase.from("round_tutes").select("id, short_code, title").eq("round_id", id).order("sort_order"),
-    supabase.from("handover_parcels").select("parcel_id, handovers!inner(state, round_id)").eq("handovers.round_id", id).eq("handovers.state", "open").is("released_at", null),
+    supabase
+      .from("handover_parcels")
+      .select("parcel_id, handovers!inner(state, round_id)")
+      .eq("handovers.round_id", id)
+      .eq("handovers.state", "open")
+      .is("released_at", null),
   ]);
   if (!round) notFound();
   const inOpen = new Set((openLinks ?? []).map((l) => l.parcel_id));
@@ -37,27 +44,37 @@ export default async function DeliveryPage({ params }: PageProps<"/admin/dispatc
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Delivery"
-        description={`${round.name} · update what Citypak reports, handle returns, send parcels again`}
+        title={t("Delivery")}
+        description={`${round.name} · ${t("update what Citypak reports, handle returns, send parcels again")}`}
         actions={
           <Button asChild variant="outline">
             <Link href={`/admin/dispatch/rounds/${id}`}>
-              <ArrowLeftIcon /> Round
+              <ArrowLeftIcon /> {t("Round")}
             </Link>
           </Button>
         }
       />
       <p className="text-muted-foreground text-sm">
-        Set statuses from the Citypak portal or the rider. Importing Citypak&apos;s status report will come once we have a real sample file.
+        {t(
+          "Set statuses from the Citypak portal or the rider. Importing Citypak's status report will come once we have a real sample file.",
+        )}
       </p>
       <DeliveryBoard
         roundId={id}
         canSet={caps.has("courier")}
         canCorrect={caps.has("correct")}
-        tutes={(tutes ?? []).map((t) => ({ id: t.id, code: t.short_code, title: t.title }))}
+        tutes={(tutes ?? []).map((tute) => ({ id: tute.id, code: tute.short_code, title: tute.title }))}
         rows={(parcels ?? []).map((p) => {
           const r = (Array.isArray(p.parcel_recipients) ? p.parcel_recipients[0] : p.parcel_recipients) as
-            | { name: string; address_line1: string; address_line2: string; address_line3: string; city: string; phone1: string | null; phone2: string | null }
+            | {
+                name: string;
+                address_line1: string;
+                address_line2: string;
+                address_line3: string;
+                city: string;
+                phone1: string | null;
+                phone2: string | null;
+              }
             | null
             | undefined;
           return {

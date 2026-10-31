@@ -13,9 +13,11 @@ import { SETTLEMENT_STATE } from "@/lib/dispatch/money";
 import { formatDate, formatLKR } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 
+import { getT } from "@/lib/dispatch/i18n/server";
 export const metadata: Metadata = { title: "COD money – Tute dispatch" };
 
 export default async function MoneyPage() {
+  const t = await getT();
   await requireDispatch("finance");
   const supabase = await createClient();
   const [{ data: settlements }, { data: attention }] = await Promise.all([
@@ -31,20 +33,48 @@ export default async function MoneyPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="COD money"
-        description="Record what Citypak actually pays and match it to parcels. A delivered parcel counts as paid only after its settlement is confirmed."
+        title={t("COD money")}
+        description={t(
+          "Record what Citypak actually pays and match it to parcels. A delivered parcel counts as paid only after its settlement is confirmed.",
+        )}
       />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Still owed" value={Math.round(owed)} prefix="Rs. " icon={BanknoteIcon} tone={owed > 0 ? "warning" : "success"} hint="Delivered, not yet paid" />
-        <StatCard label="Parcels owing" value={rows.filter((r) => r.status === "unpaid" || r.status === "part_paid").length} icon={ClockIcon} delay={0.1} />
-        <StatCard label="Paid too much" value={over.length} icon={AlertTriangleIcon} tone={over.length > 0 ? "warning" : "success"} hint="Check these with Citypak" delay={0.2} />
-        <StatCard label="Draft settlements" value={drafts.length} icon={ReceiptIcon} tone={drafts.length > 0 ? "info" : "success"} hint="Not counted until confirmed" delay={0.3} />
+        <StatCard
+          label={t("Still owed")}
+          value={Math.round(owed)}
+          prefix="Rs. "
+          icon={BanknoteIcon}
+          tone={owed > 0 ? "warning" : "success"}
+          hint={t("Delivered, not yet paid")}
+        />
+        <StatCard
+          label={t("Parcels owing")}
+          value={rows.filter((r) => r.status === "unpaid" || r.status === "part_paid").length}
+          icon={ClockIcon}
+          delay={0.1}
+        />
+        <StatCard
+          label={t("Paid too much")}
+          value={over.length}
+          icon={AlertTriangleIcon}
+          tone={over.length > 0 ? "warning" : "success"}
+          hint={t("Check these with Citypak")}
+          delay={0.2}
+        />
+        <StatCard
+          label={t("Draft settlements")}
+          value={drafts.length}
+          icon={ReceiptIcon}
+          tone={drafts.length > 0 ? "info" : "success"}
+          hint={t("Not counted until confirmed")}
+          delay={0.3}
+        />
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>New settlement</CardTitle>
-          <CardDescription>Enter Citypak&apos;s payment, then add the parcels it covers.</CardDescription>
+          <CardTitle>{t("New settlement")}</CardTitle>
+          <CardDescription>{t("Enter Citypak's payment, then add the parcels it covers.")}</CardDescription>
         </CardHeader>
         <CardContent>
           <SettlementForm initial={{ id: null, reference: "", settled_on: today, remitted: 0, note: "" }} />
@@ -52,23 +82,23 @@ export default async function MoneyPage() {
       </Card>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Settlements</h2>
+        <h2 className="text-lg font-semibold">{t("Settlements")}</h2>
         <Card className="py-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="pl-4">Reference</TableHead>
-                <TableHead>Paid on</TableHead>
-                <TableHead className="hidden sm:table-cell">Parcels</TableHead>
-                <TableHead>Received</TableHead>
-                <TableHead className="pr-4">State</TableHead>
+                <TableHead className="pl-4">{t("Reference")}</TableHead>
+                <TableHead>{t("Paid on")}</TableHead>
+                <TableHead className="hidden sm:table-cell">{t("Parcels")}</TableHead>
+                <TableHead>{t("Received")}</TableHead>
+                <TableHead className="pr-4">{t("State")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {(settlements ?? []).length === 0 && (
                 <TableRow>
                   <TableCell colSpan={5} className="text-muted-foreground py-6 text-center text-sm">
-                    No settlements yet.
+                    {t("No settlements yet.")}
                   </TableCell>
                 </TableRow>
               )}
@@ -77,18 +107,23 @@ export default async function MoneyPage() {
                 return (
                   <TableRow key={s.id}>
                     <TableCell className="pl-4">
-                      <Link href={`/admin/dispatch/money/${s.id}`} className="font-medium underline-offset-4 hover:underline">
+                      <Link
+                        href={`/admin/dispatch/money/${s.id}`}
+                        className="font-medium underline-offset-4 hover:underline"
+                      >
                         {s.reference}
                       </Link>
                       {s.state !== "cancelled" && diff !== 0 && (
-                        <span className="block text-xs text-amber-700 dark:text-warning">Differs by {formatLKR(Math.abs(diff))}</span>
+                        <span className="block text-xs text-amber-700 dark:text-warning">
+                          {t("Differs by")} {formatLKR(Math.abs(diff))}
+                        </span>
                       )}
                     </TableCell>
                     <TableCell className="text-sm">{formatDate(s.settled_on)}</TableCell>
                     <TableCell className="hidden text-sm tabular-nums sm:table-cell">{s.parcels}</TableCell>
                     <TableCell className="text-sm tabular-nums">{formatLKR(Number(s.remitted))}</TableCell>
                     <TableCell className="pr-4">
-                      <Badge variant={SETTLEMENT_STATE[s.state].variant}>{SETTLEMENT_STATE[s.state].label}</Badge>
+                      <Badge variant={SETTLEMENT_STATE[s.state].variant}>{t(SETTLEMENT_STATE[s.state].label)}</Badge>
                     </TableCell>
                   </TableRow>
                 );
@@ -99,7 +134,7 @@ export default async function MoneyPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Needs attention</h2>
+        <h2 className="text-lg font-semibold">{t("Needs attention")}</h2>
         <CodAttention
           rows={rows.map((r) => ({
             parcelId: r.parcel_id,

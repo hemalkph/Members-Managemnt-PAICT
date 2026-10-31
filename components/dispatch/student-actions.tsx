@@ -15,6 +15,7 @@ import { setStudentActiveAction } from "@/lib/actions/dispatch";
 import type { StudentInput } from "@/lib/validation";
 import { StudentDialog, type BatchOption } from "./student-dialog";
 
+import { useT } from "@/components/dispatch/lang";
 export function StudentActions({
   student,
   active,
@@ -24,35 +25,41 @@ export function StudentActions({
   active: boolean;
   batches: BatchOption[];
 }) {
+  const t = useT();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const toggle = () =>
     startTransition(async () => {
       const result = await setStudentActiveAction({ id: student.id, active: !active });
       if (!result.ok) {
-        toast.error(result.error);
+        toast.error(t(result.error));
         return;
       }
-      toast.success(result.message);
+      toast.success(t(result.message));
       router.refresh();
     });
 
   return (
     <div className="flex items-center justify-end gap-1">
       <StudentDialog student={student} batches={batches}>
-        <Button variant="ghost" size="icon-sm" aria-label={`Edit ${student.student_no}`}>
+        <Button variant="ghost" size="icon-sm" aria-label={t("Edit {no}", { no: student.student_no })}>
           <PencilIcon />
         </Button>
       </StudentDialog>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon-sm" aria-label={`More for ${student.student_no}`} disabled={pending}>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t("More for {no}", { no: student.student_no })}
+            disabled={pending}
+          >
             <MoreHorizontalIcon />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem onSelect={toggle}>
-            {active ? <UserXIcon /> : <UserCheckIcon />} {active ? "Mark inactive" : "Mark active"}
+            {active ? <UserXIcon /> : <UserCheckIcon />} {active ? t("Mark inactive") : t("Mark active")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

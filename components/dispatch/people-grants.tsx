@@ -23,6 +23,7 @@ import { setDispatchGrantAction } from "@/lib/actions/dispatch";
 import { CAPABILITIES } from "@/lib/dispatch/capabilities";
 import type { DispatchCapability } from "@/lib/database.types";
 
+import { useT } from "@/components/dispatch/lang";
 export type DispatchPerson = {
   id: string;
   name: string;
@@ -36,6 +37,7 @@ type Pending = { person: DispatchPerson; cap: DispatchCapability; grant: boolean
 
 /** Who can do what in Tute dispatch. Main admins (two-step done) change it. */
 export function PeopleGrants({ people, canChange }: { people: DispatchPerson[]; canChange: boolean }) {
+  const t = useT();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [ask, setAsk] = useState<Pending>(null);
@@ -50,8 +52,8 @@ export function PeopleGrants({ people, canChange }: { people: DispatchPerson[]; 
         grant: ask.grant,
         reason,
       });
-      if (!result.ok) return void toast.error(result.error);
-      toast.success(result.message);
+      if (!result.ok) return void toast.error(t(result.error));
+      toast.success(t(result.message));
       setAsk(null);
       router.refresh();
     });
@@ -69,10 +71,10 @@ export function PeopleGrants({ people, canChange }: { people: DispatchPerson[]; 
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="pl-4">Person</TableHead>
+              <TableHead className="pl-4">{t("Person")}</TableHead>
               {CAPABILITIES.map((c) => (
-                <TableHead key={c.key} className="text-center" title={c.description}>
-                  {c.title}
+                <TableHead key={c.key} className="text-center" title={t(c.description)}>
+                  {t(c.title)}
                 </TableHead>
               ))}
             </TableRow>
@@ -83,12 +85,16 @@ export function PeopleGrants({ people, canChange }: { people: DispatchPerson[]; 
                 <TableCell className="pl-4">
                   <p className="font-medium">{p.name}</p>
                   <p className="text-muted-foreground text-xs">
-                    {p.kind} ·{" "}
-                    {p.page === "edit" ? "dispatch page: edit" : p.page === "view" ? "dispatch page: view only" : "no dispatch page"}
+                    {t(p.kind)} ·{" "}
+                    {p.page === "edit"
+                      ? t("dispatch page: edit")
+                      : p.page === "view"
+                        ? t("dispatch page: view only")
+                        : t("no dispatch page")}
                   </p>
                   {p.page !== "edit" && p.granted.length > 0 && (
                     <Badge variant="warning" className="mt-1">
-                      Permissions inactive until given dispatch edit access
+                      {t("Permissions inactive until given dispatch edit access")}
                     </Badge>
                   )}
                 </TableCell>
@@ -98,10 +104,10 @@ export function PeopleGrants({ people, canChange }: { people: DispatchPerson[]; 
                   return (
                     <TableCell key={c.key} className="text-center">
                       <Checkbox
-                        aria-label={`${c.title} for ${p.name}`}
+                        aria-label={t("{permission} for {name}", { permission: t(c.title), name: p.name })}
                         checked={state.on}
                         disabled={!canChange || fixed || pending}
-                        title={fixed ? `Included as ${state.why}` : c.description}
+                        title={fixed ? t("Included as {why}", { why: t(state.why ?? "") }) : t(c.description)}
                         onCheckedChange={(v) => {
                           setReason("");
                           setAsk({ person: p, cap: c.key, grant: v === true });
@@ -120,23 +126,38 @@ export function PeopleGrants({ people, canChange }: { people: DispatchPerson[]; 
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {ask?.grant ? "Give" : "Remove"} {CAPABILITIES.find((c) => c.key === ask?.cap)?.title} permission
+              {t(ask?.grant ? "Give the {title} permission" : "Remove the {title} permission", {
+                title: t(CAPABILITIES.find((c) => c.key === ask?.cap)?.title),
+              })}
             </DialogTitle>
             <DialogDescription>
-              {ask?.grant ? "For" : "From"} {ask?.person.name}. This is recorded in the activity log.
+              {t(
+                ask?.grant
+                  ? "For {name}. This is recorded in the activity log."
+                  : "From {name}. This is recorded in the activity log.",
+                {
+                  name: ask?.person.name,
+                },
+              )}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-2">
-            <Label htmlFor="grant-reason">Reason (optional)</Label>
-            <Input id="grant-reason" value={reason} maxLength={300} onChange={(e) => setReason(e.target.value)} placeholder="e.g. LMS admin packs parcels" />
+            <Label htmlFor="grant-reason">{t("Reason (optional)")}</Label>
+            <Input
+              id="grant-reason"
+              value={reason}
+              maxLength={300}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder={t("e.g. LMS admin packs parcels")}
+            />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAsk(null)} disabled={pending}>
-              Cancel
+              {t("Cancel")}
             </Button>
             <Button onClick={confirm} disabled={pending}>
               {pending && <Loader2Icon className="animate-spin" />}
-              {ask?.grant ? "Give permission" : "Remove permission"}
+              {ask?.grant ? t("Give permission") : t("Remove permission")}
             </Button>
           </DialogFooter>
         </DialogContent>

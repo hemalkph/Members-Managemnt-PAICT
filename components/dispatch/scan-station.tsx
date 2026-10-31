@@ -34,12 +34,26 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress as Bar } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { confirmScanAction, lookupScanAction, reportProblemAction, roundProgressAction } from "@/lib/actions/dispatch-packing";
-import { PROBLEM_KINDS, type ConfirmResult, type LookupResult, type ParcelCard, type Progress, type ScanMode } from "@/lib/dispatch/packing";
+import {
+  confirmScanAction,
+  lookupScanAction,
+  reportProblemAction,
+  roundProgressAction,
+} from "@/lib/actions/dispatch-packing";
+import {
+  PROBLEM_KINDS,
+  PROBLEM_LABEL,
+  type ConfirmResult,
+  type LookupResult,
+  type ParcelCard,
+  type Progress,
+  type ScanMode,
+} from "@/lib/dispatch/packing";
 import { canConfirm, CONFIRM_DELAY_MS, isConfirmShortcut } from "@/lib/dispatch/scanner";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { CameraScanner } from "./camera-scanner";
+import { useT } from "./lang";
 
 type Tone = "info" | "success" | "warning" | "error";
 type Feedback = { tone: Tone; title: string; detail?: string } | null;
@@ -147,6 +161,7 @@ export function ScanStation({
   verificationOn: boolean;
   initialProgress: Progress;
 }) {
+  const t = useT();
   const [mode, setMode] = useState<ScanMode>(canPack ? "pack" : "verify");
   const [code, setCode] = useState("");
   const [card, setCard] = useState<ParcelCard | null>(null);
@@ -154,13 +169,21 @@ export function ScanStation({
   const [openedAt, setOpenedAt] = useState(0);
   const [ticked, setTicked] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<"lookup" | "confirm" | null>(null);
-  const [feedback, setFeedback] = useState<Feedback>({ tone: "info", title: "Ready", detail: "Scan a Citypak label or type a reference." });
+  const [feedback, setFeedback] = useState<Feedback>({
+    tone: "info",
+    title: "Ready",
+    detail: "Scan a Citypak label or type a reference.",
+  });
   const [retry, setRetry] = useState(false);
   const [recent, setRecent] = useState<Recent[]>([]);
   const [progress, setProgress] = useState(initialProgress);
   const [camera, setCamera] = useState(false);
   const sound = useSyncExternalStore(subscribeSound, readSound, () => true);
-  const online = useSyncExternalStore(subscribeOnline, () => navigator.onLine, () => true);
+  const online = useSyncExternalStore(
+    subscribeOnline,
+    () => navigator.onLine,
+    () => true,
+  );
   const [now, setNow] = useState(0);
   const [problemOpen, setProblemOpen] = useState(false);
   const [problemKind, setProblemKind] = useState<string>("missing_item");
@@ -184,10 +207,14 @@ export function ScanStation({
     let timer: ReturnType<typeof setTimeout> | null = null;
     const channel = supabase
       .channel(`parcels-${roundId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "parcels", filter: `round_id=eq.${roundId}` }, () => {
-        if (timer) clearTimeout(timer);
-        timer = setTimeout(refreshProgress, 500);
-      })
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "parcels", filter: `round_id=eq.${roundId}` },
+        () => {
+          if (timer) clearTimeout(timer);
+          timer = setTimeout(refreshProgress, 500);
+        },
+      )
       .subscribe();
     return () => {
       if (timer) clearTimeout(timer);
@@ -198,16 +225,17 @@ export function ScanStation({
   // ------------------------------------------------------------------ clock for the confirm delay
   useEffect(() => {
     if (!ready) return;
-    const t = setTimeout(() => setNow(Date.now()), CONFIRM_DELAY_MS + 20);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setNow(Date.now()), CONFIRM_DELAY_MS + 20);
+    return () => clearTimeout(timer);
   }, [ready, openedAt]);
 
   const say = useCallback(
     (f: Feedback, ok?: boolean) => {
-      setFeedback(f);
+      // Titles and details are English keys (or already translated text); show them in the chosen language.
+      setFeedback(f && { ...f, title: t(f.title), detail: f.detail === undefined ? undefined : t(f.detail) });
       if (sound && ok !== undefined) beep(ok);
     },
-    [sound],
+    [sound, t],
   );
 
   // ------------------------------------------------------------------ 1. look up (the only thing Enter does)
@@ -226,7 +254,10 @@ export function ScanStation({
           return;
         }
         const r = result.data!;
-        const notice = unconfirmed && unconfirmed !== r.card?.reference ? ` (${unconfirmed} was not confirmed – it is unchanged)` : "";
+        const notice =
+          unconfirmed && unconfirmed !== r.card?.reference
+            ? ` ${t("({ref} was not confirmed – it is unchanged)", { ref: unconfirmed })}`
+            : "";
         if (r.result === "ready" && r.card) {
           setCard(r.card);
           setTicked(new Set());
@@ -234,7 +265,11 @@ export function ScanStation({
           const opened = Date.now();
           setOpenedAt(opened);
           setNow(opened);
-          say({ tone: "info", title: `${r.card.reference} – check the tutes`, detail: `Tick each tute as it goes in.${notice}` });
+          say({
+            tone: "info",
+            title: t("{ref} – check the tutes", { ref: r.card.reference }),
+            detail: `${t("Tick each tute as it goes in.")}${notice}`,
+          });
         } else {
           setCard(r.card ?? null);
           setCardKey("");
@@ -242,20 +277,33 @@ export function ScanStation({
             {
               tone: LOOKUP_TONE[r.result],
               title: LOOKUP_TITLE[r.result],
-              detail: `${r.message ?? ""}${r.result === "unknown" || r.result === "wrong_round" ? ` Scanned: ${r.code ?? scanned}` : ""}${notice}`,
+              detail: `${t(r.message ?? "")}${r.result === "unknown" || r.result === "wrong_round" ? ` ${t("Scanned: {code}", { code: r.code ?? scanned })}` : ""}${notice}`,
             },
             false,
           );
-          setRecent((list) => [{ reference: r.card?.reference ?? r.code ?? scanned, result: LOOKUP_TITLE[r.result], tone: LOOKUP_TONE[r.result], at: new Date().toLocaleTimeString() }, ...list].slice(0, 12));
+          setRecent((list) =>
+            [
+              {
+                reference: r.card?.reference ?? r.code ?? scanned,
+                result: LOOKUP_TITLE[r.result],
+                tone: LOOKUP_TONE[r.result],
+                at: new Date().toLocaleTimeString(),
+              },
+              ...list,
+            ].slice(0, 12),
+          );
         }
       } catch {
-        say({ tone: "error", title: "Not connected", detail: "The lookup didn't reach the server. Scan again." }, false);
+        say(
+          { tone: "error", title: "Not connected", detail: "The lookup didn't reach the server. Scan again." },
+          false,
+        );
       } finally {
         setBusy(null);
         focusScan();
       }
     },
-    [busy, card, device, focusScan, mode, ready, roundId, say],
+    [busy, card, device, focusScan, mode, ready, roundId, say, t],
   );
 
   // ------------------------------------------------------------------ 3. confirm (button, Ctrl+Enter or F9 – never plain Enter)
@@ -281,13 +329,37 @@ export function ScanStation({
       const r: ConfirmResult = result.data!;
       setRetry(false);
       if (r.result === "ok") {
-        say({ tone: "success", title: r.message, detail: r.replayed ? "Already saved earlier – nothing changed." : "Saved. Scan the next parcel." }, true);
-        setRecent((list) => [{ reference: card.reference, result: mode === "pack" ? "Packed" : "Verified", tone: "success" as Tone, at: new Date().toLocaleTimeString() }, ...list].slice(0, 12));
+        say(
+          {
+            tone: "success",
+            title: r.message,
+            detail: r.replayed ? "Already saved earlier – nothing changed." : "Saved. Scan the next parcel.",
+          },
+          true,
+        );
+        setRecent((list) =>
+          [
+            {
+              reference: card.reference,
+              result: mode === "pack" ? "Packed" : "Verified",
+              tone: "success" as Tone,
+              at: new Date().toLocaleTimeString(),
+            },
+            ...list,
+          ].slice(0, 12),
+        );
         setCard(null);
         setCardKey("");
         refreshProgress();
       } else {
-        say({ tone: r.result === "items" ? "warning" : "error", title: r.result === "changed" ? "Changed meanwhile" : "Not saved", detail: r.message }, false);
+        say(
+          {
+            tone: r.result === "items" ? "warning" : "error",
+            title: r.result === "changed" ? "Changed meanwhile" : "Not saved",
+            detail: r.message,
+          },
+          false,
+        );
         if (r.result !== "items") {
           setCard(null);
           setCardKey("");
@@ -313,7 +385,8 @@ export function ScanStation({
         return;
       }
       const target = e.target as HTMLElement | null;
-      const typing = target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
+      const typing =
+        target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
       if (!typing && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
         input.current?.focus();
       }
@@ -327,8 +400,15 @@ export function ScanStation({
     const result = await reportProblemAction({ parcel_id: card.id, kind: problemKind, note: problemNote });
     setProblemOpen(false);
     setProblemNote("");
-    if (!result.ok) return void toast.error(result.error);
-    say({ tone: "warning", title: `${card.reference} is on hold`, detail: "A planner will sort it out. Scan the next parcel." }, false);
+    if (!result.ok) return void toast.error(t(result.error));
+    say(
+      {
+        tone: "warning",
+        title: t("{ref} is on hold", { ref: card.reference }),
+        detail: "A planner will sort it out. Scan the next parcel.",
+      },
+      false,
+    );
     setCard(null);
     setCardKey("");
     refreshProgress();
@@ -346,12 +426,16 @@ export function ScanStation({
       <div className="space-y-3">
         <div className="text-muted-foreground flex items-center justify-between text-xs">
           <span className="truncate">{roundName}</span>
-          <span className={cn("inline-flex items-center gap-1", online ? "text-success" : "text-destructive")} role="status">
-            {online ? <WifiIcon className="size-3.5" /> : <WifiOffIcon className="size-3.5" />} {online ? "Online" : "Offline"}
+          <span
+            className={cn("inline-flex items-center gap-1", online ? "text-success" : "text-destructive")}
+            role="status"
+          >
+            {online ? <WifiIcon className="size-3.5" /> : <WifiOffIcon className="size-3.5" />}{" "}
+            {online ? t("Online") : t("Offline")}
           </span>
         </div>
         {canPack && canVerify && verificationOn && (
-          <div className="grid grid-cols-2 gap-1 rounded-lg border p-1" role="radiogroup" aria-label="Mode">
+          <div className="grid grid-cols-2 gap-1 rounded-lg border p-1" role="radiogroup" aria-label={t("Mode")}>
             {(["pack", "verify"] as const).map((m) => (
               <Button
                 key={m}
@@ -366,7 +450,7 @@ export function ScanStation({
                   focusScan();
                 }}
               >
-                {m === "pack" ? "Pack" : "Verify"}
+                {m === "pack" ? t("Pack") : t("Verify")}
               </Button>
             ))}
           </div>
@@ -378,7 +462,7 @@ export function ScanStation({
           }}
           className="space-y-1.5"
         >
-          <Label htmlFor="scan-code">Scan or type a label</Label>
+          <Label htmlFor="scan-code">{t("Scan or type a label")}</Label>
           <Input
             id="scan-code"
             ref={input}
@@ -389,24 +473,18 @@ export function ScanStation({
             autoCapitalize="characters"
             spellCheck={false}
             enterKeyHint="search"
-            placeholder="D16950069 or reference"
+            placeholder={t("D16950069 or reference")}
             className="h-12 font-mono text-lg"
             disabled={!online}
           />
-          <p className="text-muted-foreground text-xs">Enter only looks the parcel up. It never confirms.</p>
+          <p className="text-muted-foreground text-xs">{t("Enter only looks the parcel up. It never confirms.")}</p>
         </form>
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant={camera ? "default" : "outline"} size="sm" onClick={() => setCamera((c) => !c)}>
-            <CameraIcon /> {camera ? "Close camera" : "Camera"}
+            <CameraIcon /> {camera ? t("Close camera") : t("Camera")}
           </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            aria-pressed={sound}
-            onClick={() => writeSound(!sound)}
-          >
-            {sound ? <Volume2Icon /> : <VolumeXIcon />} Sound
+          <Button type="button" variant="ghost" size="sm" aria-pressed={sound} onClick={() => writeSound(!sound)}>
+            {sound ? <Volume2Icon /> : <VolumeXIcon />} {t("Sound")}
           </Button>
         </div>
         {camera && <CameraScanner onCode={(c) => lookup(c)} onClose={() => setCamera(false)} />}
@@ -415,13 +493,17 @@ export function ScanStation({
       {/* ------------------------------------------------------------ centre: parcel */}
       <div className="space-y-3">
         <div className={cn("flex gap-3 rounded-lg border-2 p-3", tone.box)} role="status" aria-live="assertive">
-          {busy ? <Loader2Icon className="mt-0.5 size-5 shrink-0 animate-spin" /> : <ToneIcon className="mt-0.5 size-5 shrink-0" />}
+          {busy ? (
+            <Loader2Icon className="mt-0.5 size-5 shrink-0 animate-spin" />
+          ) : (
+            <ToneIcon className="mt-0.5 size-5 shrink-0" />
+          )}
           <div className="min-w-0">
-            <p className="font-semibold">{feedback?.title}</p>
-            {feedback?.detail && <p className="text-sm">{feedback.detail}</p>}
+            <p className="font-semibold">{t(feedback?.title)}</p>
+            {feedback?.detail && <p className="text-sm">{t(feedback.detail)}</p>}
             {retry && card && (
               <Button size="sm" className="mt-2" onClick={confirm}>
-                <RotateCcwIcon /> Retry
+                <RotateCcwIcon /> {t("Retry")}
               </Button>
             )}
           </div>
@@ -432,16 +514,16 @@ export function ScanStation({
             <CardHeader>
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <CardTitle className="font-mono text-2xl tracking-tight sm:text-3xl">{card.reference}</CardTitle>
-                <span className="text-muted-foreground font-mono text-sm">{card.tracking_no ?? "no tracking"}</span>
+                <span className="text-muted-foreground font-mono text-sm">{card.tracking_no ?? t("no tracking")}</span>
               </div>
               <p className="text-muted-foreground text-sm">
-                Student <span className="text-foreground font-mono font-semibold">{card.student_no}</span>
-                {card.assigned_name ? ` · assigned to ${card.assigned_name}` : ""}
-                {card.packed_name ? ` · packed by ${card.packed_name}` : ""}
+                {t("Student")} <span className="text-foreground font-mono font-semibold">{card.student_no}</span>
+                {card.assigned_name ? ` · ${t("assigned to {name}", { name: card.assigned_name })}` : ""}
+                {card.packed_name ? ` · ${t("packed by {name}", { name: card.packed_name })}` : ""}
               </p>
             </CardHeader>
             <CardContent className="space-y-3">
-              <ul className="space-y-2" aria-label="Tutes in this parcel">
+              <ul className="space-y-2" aria-label={t("Tutes in this parcel")}>
                 {card.items.map((item) => (
                   <li key={item.id}>
                     <label
@@ -473,16 +555,33 @@ export function ScanStation({
               </ul>
               {card.exceptions.length > 0 && (
                 <p className="text-sm text-amber-700 dark:text-warning">
-                  On hold: {card.exceptions.map((e) => `${e.kind.replace("_", " ")}${e.note ? ` – ${e.note}` : ""}`).join("; ")}
+                  {t("On hold:")}{" "}
+                  {card.exceptions
+                    .map(
+                      (e) => `${t(PROBLEM_LABEL[e.kind] ?? e.kind.replace("_", " "))}${e.note ? ` – ${e.note}` : ""}`,
+                    )
+                    .join("; ")}
                 </p>
               )}
               {ready && (
                 <div className="flex flex-wrap gap-2">
-                  <Button type="button" variant="outline" size="sm" onClick={() => setTicked(new Set(itemIds))} disabled={busy !== null}>
-                    <CheckIcon /> All present
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setTicked(new Set(itemIds))}
+                    disabled={busy !== null}
+                  >
+                    <CheckIcon /> {t("All present")}
                   </Button>
-                  <Button type="button" variant="ghost" size="sm" onClick={() => setProblemOpen(true)} disabled={busy !== null}>
-                    <AlertTriangleIcon /> Report problem
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setProblemOpen(true)}
+                    disabled={busy !== null}
+                  >
+                    <AlertTriangleIcon /> {t("Report problem")}
                   </Button>
                 </div>
               )}
@@ -504,8 +603,8 @@ export function ScanStation({
               }}
             >
               {busy === "confirm" ? <Loader2Icon className="animate-spin" /> : <PackageCheckIcon />}
-              {mode === "pack" ? "Confirm packed" : "Confirm verified"}
-              <span className="hidden text-xs font-normal opacity-80 sm:inline">Ctrl+Enter / F9</span>
+              {mode === "pack" ? t("Confirm packed") : t("Confirm verified")}
+              <span className="hidden text-xs font-normal opacity-80 sm:inline">{t("Ctrl+Enter / F9")}</span>
             </Button>
           </div>
         )}
@@ -516,26 +615,30 @@ export function ScanStation({
         <Card className="gap-2 py-4">
           <CardContent className="space-y-2">
             <div className="flex items-baseline justify-between">
-              <span className="text-sm font-medium">{mode === "pack" ? "Packed" : "Verified"}</span>
+              <span className="text-sm font-medium">{mode === "pack" ? t("Packed") : t("Verified")}</span>
               <span className="text-2xl font-semibold tabular-nums">
                 {doneCount}
                 <span className="text-muted-foreground text-base">/{target}</span>
               </span>
             </div>
-            <Bar value={target > 0 ? (doneCount / target) * 100 : 0} aria-label="Progress" />
+            <Bar value={target > 0 ? (doneCount / target) * 100 : 0} aria-label={t("Progress")} />
             <div className="text-muted-foreground grid grid-cols-2 gap-1 text-xs">
-              <span>Remaining: {Math.max(target - doneCount, 0)}</span>
-              <span>By you: {progress.mine}</span>
-              <span>On hold: {progress.onHold}</span>
-              <span>No tracking: {progress.total - progress.registered}</span>
+              <span>
+                {t("Remaining:")} {Math.max(target - doneCount, 0)}
+              </span>
+              <span>{t("By you: {mine}", { mine: progress.mine })}</span>
+              <span>{t("On hold: {onHold}", { onHold: progress.onHold })}</span>
+              <span>
+                {t("No tracking:")} {progress.total - progress.registered}
+              </span>
             </div>
           </CardContent>
         </Card>
         <Card className="gap-2 py-4">
           <CardContent>
-            <p className="mb-2 text-sm font-medium">Recent scans</p>
+            <p className="mb-2 text-sm font-medium">{t("Recent scans")}</p>
             {recent.length === 0 ? (
-              <p className="text-muted-foreground text-xs">Nothing yet.</p>
+              <p className="text-muted-foreground text-xs">{t("Nothing yet.")}</p>
             ) : (
               <ul className="space-y-1 text-xs">
                 {recent.map((r, i) => (
@@ -549,7 +652,7 @@ export function ScanStation({
                         r.tone === "error" && "text-destructive",
                       )}
                     >
-                      {r.result} · {r.at}
+                      {t(r.result)} · {r.at}
                     </span>
                   </li>
                 ))}
@@ -562,29 +665,34 @@ export function ScanStation({
       <Dialog open={problemOpen} onOpenChange={setProblemOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Report a problem with {card?.reference}</DialogTitle>
-            <DialogDescription>The parcel goes on hold until a planner marks it fixed.</DialogDescription>
+            <DialogTitle>{t("Report a problem with {reference}", { reference: card?.reference })}</DialogTitle>
+            <DialogDescription>{t("The parcel goes on hold until a planner marks it fixed.")}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-3">
             <Select value={problemKind} onValueChange={setProblemKind}>
-              <SelectTrigger className="w-full" aria-label="Problem">
+              <SelectTrigger className="w-full" aria-label={t("Problem")}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {PROBLEM_KINDS.map((k) => (
                   <SelectItem key={k.key} value={k.key}>
-                    {k.label}
+                    {t(k.label)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Input value={problemNote} onChange={(e) => setProblemNote(e.target.value)} placeholder="e.g. T06 copies ran out" maxLength={300} />
+            <Input
+              value={problemNote}
+              onChange={(e) => setProblemNote(e.target.value)}
+              placeholder={t("e.g. T06 copies ran out")}
+              maxLength={300}
+            />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setProblemOpen(false)}>
-              Cancel
+              {t("Cancel")}
             </Button>
-            <Button onClick={report}>Put on hold</Button>
+            <Button onClick={report}>{t("Put on hold")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

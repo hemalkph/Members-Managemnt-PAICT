@@ -6,22 +6,33 @@ import { GraduationCapIcon } from "lucide-react";
 import { requireDispatch } from "@/lib/dispatch/access";
 import { createClient } from "@/lib/supabase/server";
 
+import { getT } from "@/lib/dispatch/i18n/server";
 export const metadata: Metadata = { title: "Import students – Tute dispatch" };
 
 export default async function ImportStudentsPage() {
+  const t = await getT();
   await requireDispatch("plan");
   const supabase = await createClient();
-  const { data } = await supabase.from("batches").select("id, name").eq("is_active", true).order("sort_order").order("name");
+  const { data } = await supabase
+    .from("batches")
+    .select("id, name")
+    .eq("is_active", true)
+    .order("sort_order")
+    .order("name");
   const batches = data ?? [];
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Import students"
-        description="Upload → match columns → check → preview → confirm. Only the rows you tick are saved."
+        title={t("Import students")}
+        description={t("Upload → match columns → check → preview → confirm. Only the rows you tick are saved.")}
       />
       {batches.length === 0 ? (
-        <EmptyState icon={GraduationCapIcon} title="Add a batch first" description="Students belong to a batch. Add one under Batches & exams." />
+        <EmptyState
+          icon={GraduationCapIcon}
+          title={t("Add a batch first")}
+          description={t("Students belong to a batch. Add one under Batches & exams.")}
+        />
       ) : (
         <ImportWizard batches={batches} />
       )}

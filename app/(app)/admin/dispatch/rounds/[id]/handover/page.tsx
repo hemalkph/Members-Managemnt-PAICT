@@ -12,9 +12,12 @@ import { formatDateTime } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import { uuid } from "@/lib/validation";
 
+import { getT } from "@/lib/dispatch/i18n/server";
+import { plural } from "@/lib/dispatch/i18n";
 export const metadata: Metadata = { title: "Handover – Tute dispatch" };
 
 export default async function HandoverPage({ params }: PageProps<"/admin/dispatch/rounds/[id]/handover">) {
+  const t = await getT();
   const { id } = await params;
   if (!uuid.safeParse(id).success) notFound();
   await requireDispatch("verify");
@@ -43,7 +46,9 @@ export default async function HandoverPage({ params }: PageProps<"/admin/dispatc
     .is("released_at", null)
     .limit(20000);
   const live = new Set((links ?? []).map((l) => l.parcel_id));
-  const ready = (candidates ?? []).filter((p) => (verification ? p.pack_state === "verified" : p.pack_state !== "planned") && !live.has(p.id)).length;
+  const ready = (candidates ?? []).filter(
+    (p) => (verification ? p.pack_state === "verified" : p.pack_state !== "planned") && !live.has(p.id),
+  ).length;
   const inOpen = (links ?? [])
     .filter((l) => open && l.handover_id === open.id)
     .map((l) => {
@@ -57,54 +62,75 @@ export default async function HandoverPage({ params }: PageProps<"/admin/dispatc
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Handover to Citypak"
-        description={`${round.name} · scan the parcels the courier takes, count them, confirm`}
+        title={t("Handover to Citypak")}
+        description={`${round.name} · ${t("scan the parcels the courier takes, count them, confirm")}`}
         actions={
           <Button asChild variant="outline">
             <Link href={`/admin/dispatch/rounds/${id}`}>
-              <ArrowLeftIcon /> Round
+              <ArrowLeftIcon /> {t("Round")}
             </Link>
           </Button>
         }
       />
       {!roundOpen ? (
-        <p className="text-muted-foreground text-sm">This round is not open for handovers.</p>
+        <p className="text-muted-foreground text-sm">{t("This round is not open for handovers.")}</p>
       ) : open ? (
-        <HandoverStation key={open.id} roundId={id} handoverId={open.id} initial={inOpen} ready={ready + inOpen.length} />
+        <HandoverStation
+          key={open.id}
+          roundId={id}
+          handoverId={open.id}
+          initial={inOpen}
+          ready={ready + inOpen.length}
+        />
       ) : (
         <StartHandover roundId={id} ready={ready} />
       )}
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Earlier handovers</CardTitle>
+          <CardTitle className="text-base">{t("Earlier handovers")}</CardTitle>
         </CardHeader>
         <CardContent>
           {past.length === 0 ? (
-            <p className="text-muted-foreground text-sm">None yet.</p>
+            <p className="text-muted-foreground text-sm">{t("None yet.")}</p>
           ) : (
             <ul className="divide-y rounded-md border">
               {past.map((h) => (
-                <li key={h.id} className="flex flex-col gap-1 px-3 py-2.5 text-sm sm:flex-row sm:items-center sm:justify-between">
+                <li
+                  key={h.id}
+                  className="flex flex-col gap-1 px-3 py-2.5 text-sm sm:flex-row sm:items-center sm:justify-between"
+                >
                   <div className="min-w-0">
                     <p className="font-medium">
-                      {h.state === "confirmed" ? `${h.parcels} parcel${h.parcels === 1 ? "" : "s"} handed over` : "Cancelled"}
+                      {h.state === "confirmed"
+                        ? t(plural(h.parcels, "{n} parcel handed over", "{n} parcels handed over"), { n: h.parcels })
+                        : t("Cancelled")}
                       {h.courier_rep && <span className="text-muted-foreground font-normal"> · {h.courier_rep}</span>}
-                      {h.courier_ref && <span className="text-muted-foreground font-normal"> · ref {h.courier_ref}</span>}
+                      {h.courier_ref && (
+                        <span className="text-muted-foreground font-normal">
+                          {" "}
+                          · {t("ref {ref}", { ref: h.courier_ref })}
+                        </span>
+                      )}
                     </p>
                     <p className="text-muted-foreground text-xs">
                       {h.state === "confirmed"
-                        ? `${formatDateTime(h.confirmed_at)} by ${h.confirmed_name ?? "someone"}`
+                        ? t("{when} by {name}", {
+                            when: formatDateTime(h.confirmed_at),
+                            name: h.confirmed_name ?? t("someone"),
+                          })
                         : `${formatDateTime(h.cancelled_at)}${h.cancel_reason ? ` – ${h.cancel_reason}` : ""}`}
                       {h.note && ` · ${h.note}`}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant={h.state === "confirmed" ? "success" : "secondary"}>{h.state === "confirmed" ? "Confirmed" : "Cancelled"}</Badge>
+                    <Badge variant={h.state === "confirmed" ? "success" : "secondary"}>
+                      {h.state === "confirmed" ? t("Confirmed") : t("Cancelled")}
+                    </Badge>
                     {h.receipt_file && (
                       <Button asChild size="sm" variant="ghost">
                         <a href={`/admin/dispatch/files/${h.receipt_file}`} target="_blank" rel="noopener">
-                          <FileIcon /> Receipt
+                          <FileIcon /> {t("Receipt")}
                         </a>
                       </Button>
                     )}

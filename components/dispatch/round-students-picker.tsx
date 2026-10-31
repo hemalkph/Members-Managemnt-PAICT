@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { setRoundStudentsAction } from "@/lib/actions/dispatch-rounds";
 
+import { useT } from "@/components/dispatch/lang";
+import { plural } from "@/lib/dispatch/i18n";
 export type PickStudent = { id: string; no: string; name: string; city: string; problems: string[] };
 export type ChosenSettings = { cod_amount: number | null; note: string; excluded_tute_ids: string[] };
 
@@ -26,6 +28,7 @@ export function RoundStudentsPicker({
   students: PickStudent[];
   chosen: Record<string, ChosenSettings>;
 }) {
+  const t = useT();
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set(Object.keys(chosen)));
   const [q, setQ] = useState("");
@@ -55,8 +58,8 @@ export function RoundStudentsPicker({
           excluded_tute_ids: chosen[s.id]?.excluded_tute_ids ?? [],
         }));
       const result = await setRoundStudentsAction({ round_id: roundId, rows });
-      if (!result.ok) return void toast.error(result.error);
-      toast.success(result.message);
+      if (!result.ok) return void toast.error(t(result.error));
+      toast.success(t(result.message));
       router.refresh();
     });
 
@@ -65,14 +68,20 @@ export function RoundStudentsPicker({
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative sm:w-72">
           <SearchIcon className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search number or name" className="pl-9" aria-label="Search students" />
+          <Input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder={t("Search number or name")}
+            className="pl-9"
+            aria-label={t("Search students")}
+          />
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => setSelected(new Set(complete.map((s) => s.id)))}>
-            Select all with complete details ({complete.length})
+            {t("Select all with complete details ({length})", { length: complete.length })}
           </Button>
           <Button variant="outline" size="sm" onClick={() => setSelected(new Set())}>
-            Clear
+            {t("Clear")}
           </Button>
         </div>
       </div>
@@ -82,26 +91,30 @@ export function RoundStudentsPicker({
           <TableHeader className="bg-background sticky top-0 z-10">
             <TableRow>
               <TableHead className="w-10 pl-4">
-                <span className="sr-only">In round</span>
+                <span className="sr-only">{t("In round")}</span>
               </TableHead>
-              <TableHead>No.</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead className="hidden sm:table-cell">City</TableHead>
-              <TableHead>Details</TableHead>
+              <TableHead>{t("No.")}</TableHead>
+              <TableHead>{t("Name")}</TableHead>
+              <TableHead className="hidden sm:table-cell">{t("City")}</TableHead>
+              <TableHead>{t("Details")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {shown.map((s) => (
               <TableRow key={s.id} data-state={selected.has(s.id) ? "selected" : undefined}>
                 <TableCell className="pl-4">
-                  <Checkbox checked={selected.has(s.id)} onCheckedChange={(v) => toggle(s.id, v === true)} aria-label={`Include ${s.no}`} />
+                  <Checkbox
+                    checked={selected.has(s.id)}
+                    onCheckedChange={(v) => toggle(s.id, v === true)}
+                    aria-label={`Include ${s.no}`}
+                  />
                 </TableCell>
                 <TableCell className="font-mono text-sm">{s.no}</TableCell>
                 <TableCell className="max-w-[180px] truncate">{s.name}</TableCell>
                 <TableCell className="text-muted-foreground hidden text-sm sm:table-cell">{s.city || "—"}</TableCell>
                 <TableCell>
                   {s.problems.length === 0 ? (
-                    <span className="text-muted-foreground text-xs">Complete</span>
+                    <span className="text-muted-foreground text-xs">{t("Complete")}</span>
                   ) : (
                     <div className="flex flex-wrap gap-1">
                       {s.problems.map((p) => (
@@ -117,7 +130,7 @@ export function RoundStudentsPicker({
             {shown.length === 0 && (
               <TableRow>
                 <TableCell colSpan={5} className="text-muted-foreground py-6 text-center text-sm">
-                  No students match.
+                  {t("No students match.")}
                 </TableCell>
               </TableRow>
             )}
@@ -127,9 +140,12 @@ export function RoundStudentsPicker({
 
       <div className="flex flex-wrap items-center gap-3">
         <Button onClick={save} disabled={pending}>
-          {pending && <Loader2Icon className="animate-spin" />} Save {selected.size} student{selected.size === 1 ? "" : "s"}
+          {pending && <Loader2Icon className="animate-spin" />}{" "}
+          {t(plural(selected.size, "Save {n} student", "Save {n} students"), { n: selected.size })}
         </Button>
-        <p className="text-muted-foreground text-sm">Students with missing details can be chosen now but block finalising until fixed.</p>
+        <p className="text-muted-foreground text-sm">
+          {t("Students with missing details can be chosen now but block finalising until fixed.")}
+        </p>
       </div>
     </div>
   );

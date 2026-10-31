@@ -20,6 +20,8 @@ import {
 import type { TrackingStatus } from "@/lib/dispatch/tracking";
 import { createClient } from "@/lib/supabase/client";
 
+import { useT } from "@/components/dispatch/lang";
+import { plural } from "@/lib/dispatch/i18n";
 const MAX = 15 * 1024 * 1024;
 
 const STATUS: Record<TrackingStatus, { label: string; variant: "success" | "outline" | "destructive" | "warning" }> = {
@@ -33,7 +35,17 @@ const STATUS: Record<TrackingStatus, { label: string; variant: "success" | "outl
   invalid: { label: "Looks wrong", variant: "destructive" },
   voided: { label: "Voided", variant: "warning" },
 };
-const ORDER: TrackingStatus[] = ["conflict", "used", "unknown", "duplicate", "invalid", "missing", "voided", "new", "same"];
+const ORDER: TrackingStatus[] = [
+  "conflict",
+  "used",
+  "unknown",
+  "duplicate",
+  "invalid",
+  "missing",
+  "voided",
+  "new",
+  "same",
+];
 
 async function uploadTo(path: string, file: File, contentType: string) {
   const { error } = await createClient().storage.from("dispatch").upload(path, file, { contentType, upsert: false });
@@ -42,6 +54,7 @@ async function uploadTo(path: string, file: File, contentType: string) {
 
 /** Upload the processed Citypak sheet, check it against the manifest, then add the tracking numbers. */
 export function TrackingImport({ roundId }: { roundId: string }) {
+  const t = useT();
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<TrackingPreview | null>(null);
@@ -53,16 +66,20 @@ export function TrackingImport({ roundId }: { roundId: string }) {
       if (!file) return;
       const lower = file.name.toLowerCase();
       const ext = lower.endsWith(".xlsx") ? "xlsx" : lower.endsWith(".csv") ? "csv" : null;
-      if (!ext) return void toast.error("Upload the Citypak sheet as .xlsx or .csv.");
-      if (file.size > MAX) return void toast.error("The file is larger than 15 MB.");
+      if (!ext) return void toast.error(t("Upload the Citypak sheet as .xlsx or .csv."));
+      if (file.size > MAX) return void toast.error(t("The file is larger than 15 MB."));
       const path = `rounds/${roundId}/${crypto.randomUUID()}.${ext}`;
       try {
-        await uploadTo(path, file, ext === "csv" ? "text/csv" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        await uploadTo(
+          path,
+          file,
+          ext === "csv" ? "text/csv" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        );
       } catch (e) {
-        return void toast.error((e as Error).message);
+        return void toast.error(t((e as Error).message));
       }
       const result = await startTrackingImportAction({ round_id: roundId, path, file_name: file.name });
-      if (!result.ok) return void toast.error(result.error);
+      if (!result.ok) return void toast.error(t(result.error));
       setPreview(result.data!);
       setChecked(false);
     });
@@ -71,8 +88,8 @@ export function TrackingImport({ roundId }: { roundId: string }) {
     startTransition(async () => {
       if (!preview) return;
       const result = await applyTrackingAction({ round_id: roundId, file_id: preview.fileId });
-      if (!result.ok) return void toast.error(result.error);
-      toast.success(result.message);
+      if (!result.ok) return void toast.error(t(result.error));
+      toast.success(t(result.message));
       setPreview(null);
       setFile(null);
       router.refresh();
@@ -85,9 +102,15 @@ export function TrackingImport({ roundId }: { roundId: string }) {
     <div className="space-y-4">
       {!preview && (
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <Input type="file" accept=".xlsx,.csv" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="sm:max-w-sm" aria-label="Citypak sheet" />
+          <Input
+            type="file"
+            accept=".xlsx,.csv"
+            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            className="sm:max-w-sm"
+            aria-label={t("Citypak sheet")}
+          />
           <Button onClick={read} disabled={!file || pending}>
-            {pending ? <Loader2Icon className="animate-spin" /> : <UploadIcon />} Upload and check
+            {pending ? <Loader2Icon className="animate-spin" /> : <UploadIcon />} {t("Upload and check")}
           </Button>
         </div>
       )}
@@ -103,24 +126,25 @@ export function TrackingImport({ roundId }: { roundId: string }) {
             ].map(([label, n]) => (
               <div key={label as string} className="rounded-lg border p-3">
                 <p className="text-2xl font-semibold tabular-nums">{n}</p>
-                <p className="text-muted-foreground text-xs">{label}</p>
+                <p className="text-muted-foreground text-xs">{t(label as string)}</p>
               </div>
             ))}
           </div>
 
           {preview.blocking > 0 ? (
             <p className="text-destructive flex gap-2 text-sm">
-              <XCircleIcon className="mt-0.5 size-4 shrink-0" /> Nothing can be added until the problems below are fixed in the file (or with Citypak).
+              <XCircleIcon className="mt-0.5 size-4 shrink-0" />{" "}
+              {t("Nothing can be added until the problems below are fixed in the file (or with Citypak).")}
             </p>
           ) : (
             <p className="text-success flex gap-2 text-sm">
-              <CheckCircle2Icon className="mt-0.5 size-4 shrink-0" /> The file matches this round&apos;s manifest.
+              <CheckCircle2Icon className="mt-0.5 size-4 shrink-0" /> {t("The file matches this round's manifest.")}
             </p>
           )}
           {preview.notInFile.length > 0 && (
             <p className="text-muted-foreground text-sm">
-              Not in this file yet: {preview.notInFile.slice(0, 12).join(", ")}
-              {preview.notInFile.length > 12 ? ` +${preview.notInFile.length - 12} more` : ""}
+              {t("Not in this file yet:")} {preview.notInFile.slice(0, 12).join(", ")}
+              {preview.notInFile.length > 12 ? ` ${t("+{n} more", { n: preview.notInFile.length - 12 })}` : ""}
             </p>
           )}
 
@@ -128,10 +152,10 @@ export function TrackingImport({ roundId }: { roundId: string }) {
             <Table>
               <TableHeader className="bg-background sticky top-0">
                 <TableRow>
-                  <TableHead className="pl-4">Reference</TableHead>
-                  <TableHead>Tracking</TableHead>
-                  <TableHead>Result</TableHead>
-                  <TableHead className="hidden md:table-cell">Differences (not changed)</TableHead>
+                  <TableHead className="pl-4">{t("Reference")}</TableHead>
+                  <TableHead>{t("Tracking")}</TableHead>
+                  <TableHead>{t("Result")}</TableHead>
+                  <TableHead className="hidden md:table-cell">{t("Differences (not changed)")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -140,8 +164,8 @@ export function TrackingImport({ roundId }: { roundId: string }) {
                     <TableCell className="pl-4 font-mono text-sm">{r.reference || "—"}</TableCell>
                     <TableCell className="font-mono text-sm">{r.trackingNo || "—"}</TableCell>
                     <TableCell>
-                      <Badge variant={STATUS[r.status].variant} title={r.message}>
-                        {STATUS[r.status].label}
+                      <Badge variant={STATUS[r.status].variant} title={t(r.message)}>
+                        {t(STATUS[r.status].label)}
                       </Badge>
                     </TableCell>
                     <TableCell className="hidden max-w-[360px] text-xs md:table-cell">
@@ -161,20 +185,31 @@ export function TrackingImport({ roundId }: { roundId: string }) {
             <label className="flex items-start gap-2 text-sm">
               <Checkbox checked={checked} onCheckedChange={(v) => setChecked(v === true)} className="mt-0.5" />
               <span>
-                I checked the {withDifferences} difference{withDifferences === 1 ? "" : "s"}. Only tracking numbers are added; names,
-                addresses and COD in our records stay as they are.
+                {t(
+                  plural(
+                    withDifferences,
+                    "I checked the {n} difference. Only tracking numbers are added; names, addresses and COD in our records stay as they are.",
+                    "I checked the {n} differences. Only tracking numbers are added; names, addresses and COD in our records stay as they are.",
+                  ),
+                  { n: withDifferences },
+                )}
               </span>
             </label>
           )}
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => setPreview(null)} disabled={pending}>
-              Choose another file
+              {t("Choose another file")}
             </Button>
             <Button
               onClick={apply}
-              disabled={pending || preview.blocking > 0 || preview.counts.new === 0 || (withDifferences > 0 && !checked)}
+              disabled={
+                pending || preview.blocking > 0 || preview.counts.new === 0 || (withDifferences > 0 && !checked)
+              }
             >
-              {pending && <Loader2Icon className="animate-spin" />} Add {preview.counts.new} tracking number{preview.counts.new === 1 ? "" : "s"}
+              {pending && <Loader2Icon className="animate-spin" />}{" "}
+              {t(plural(preview.counts.new, "Add {n} tracking number", "Add {n} tracking numbers"), {
+                n: preview.counts.new,
+              })}
             </Button>
           </div>
         </>
@@ -185,6 +220,7 @@ export function TrackingImport({ roundId }: { roundId: string }) {
 
 /** Store Citypak's official waybill PDF privately and cross-check its labels. */
 export function WaybillUpload({ roundId }: { roundId: string }) {
+  const t = useT();
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [summary, setSummary] = useState<WaybillSummary | null>(null);
@@ -193,17 +229,17 @@ export function WaybillUpload({ roundId }: { roundId: string }) {
   const upload = () =>
     startTransition(async () => {
       if (!file) return;
-      if (!file.name.toLowerCase().endsWith(".pdf")) return void toast.error("Upload the waybills as a PDF.");
-      if (file.size > MAX) return void toast.error("The file is larger than 15 MB.");
+      if (!file.name.toLowerCase().endsWith(".pdf")) return void toast.error(t("Upload the waybills as a PDF."));
+      if (file.size > MAX) return void toast.error(t("The file is larger than 15 MB."));
       const path = `rounds/${roundId}/${crypto.randomUUID()}.pdf`;
       try {
         await uploadTo(path, file, "application/pdf");
       } catch (e) {
-        return void toast.error((e as Error).message);
+        return void toast.error(t((e as Error).message));
       }
       const result = await recordWaybillAction({ round_id: roundId, path, file_name: file.name });
-      if (!result.ok) return void toast.error(result.error);
-      toast.success(result.message);
+      if (!result.ok) return void toast.error(t(result.error));
+      toast.success(t(result.message));
       setSummary(result.data!);
       setFile(null);
       router.refresh();
@@ -212,29 +248,53 @@ export function WaybillUpload({ roundId }: { roundId: string }) {
   return (
     <div className="space-y-3">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <Input type="file" accept="application/pdf,.pdf" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="sm:max-w-sm" aria-label="Waybill PDF" />
+        <Input
+          type="file"
+          accept="application/pdf,.pdf"
+          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+          className="sm:max-w-sm"
+          aria-label={t("Waybill PDF")}
+        />
         <Button onClick={upload} disabled={!file || pending}>
-          {pending ? <Loader2Icon className="animate-spin" /> : <UploadIcon />} Upload PDF
+          {pending ? <Loader2Icon className="animate-spin" /> : <UploadIcon />} {t("Upload PDF")}
         </Button>
       </div>
       {summary && (
         <div className="rounded-lg border p-3 text-sm">
           <p className="font-medium">
-            {summary.labels} labels on {summary.pages} pages · {summary.matched} match our records
+            {t("{labels} labels on {pages} pages · {matched} match our records", {
+              labels: summary.labels,
+              pages: summary.pages,
+              matched: summary.matched,
+            })}
           </p>
           {summary.mismatched + summary.unknown + summary.missingLabels > 0 ? (
             <div className="mt-1 space-y-0.5 text-amber-700 dark:text-warning">
-              {summary.mismatched > 0 && <p>{summary.mismatched} label(s) don&apos;t match our tracking/reference pairs</p>}
-              {summary.unknown > 0 && <p>{summary.unknown} label(s) aren&apos;t in this round</p>}
-              {summary.missingLabels > 0 && <p>{summary.missingLabels} registered parcel(s) have no label in this PDF</p>}
+              {summary.mismatched > 0 && (
+                <p>
+                  {t("{mismatched} label(s) don't match our tracking/reference pairs", {
+                    mismatched: summary.mismatched,
+                  })}
+                </p>
+              )}
+              {summary.unknown > 0 && (
+                <p>{t("{unknown} label(s) aren't in this round", { unknown: summary.unknown })}</p>
+              )}
+              {summary.missingLabels > 0 && (
+                <p>
+                  {t("{missingLabels} registered parcel(s) have no label in this PDF", {
+                    missingLabels: summary.missingLabels,
+                  })}
+                </p>
+              )}
               {summary.examples.map((e) => (
                 <p key={e} className="text-xs">
-                  {e}
+                  {t(e)}
                 </p>
               ))}
             </div>
           ) : (
-            <p className="text-success mt-1">Every label matches.</p>
+            <p className="text-success mt-1">{t("Every label matches.")}</p>
           )}
         </div>
       )}

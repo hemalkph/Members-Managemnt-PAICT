@@ -23,8 +23,18 @@ import { cancelRoundAction, finaliseRoundAction } from "@/lib/actions/dispatch-r
 import type { RoundReview } from "@/lib/dispatch/review";
 import { formatLKR } from "@/lib/format";
 
+import { useT } from "@/components/dispatch/lang";
 /** The final manifest check. Finalising is blocked while any blocking problem remains. */
-export function RoundReviewPanel({ roundId, review, canEdit }: { roundId: string; review: RoundReview; canEdit: boolean }) {
+export function RoundReviewPanel({
+  roundId,
+  review,
+  canEdit,
+}: {
+  roundId: string;
+  review: RoundReview;
+  canEdit: boolean;
+}) {
+  const t = useT();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [confirm, setConfirm] = useState(false);
@@ -36,16 +46,16 @@ export function RoundReviewPanel({ roundId, review, canEdit }: { roundId: string
     startTransition(async () => {
       const result = await finaliseRoundAction({ round_id: roundId });
       setConfirm(false);
-      if (!result.ok) return void toast.error(result.error);
-      toast.success(result.message);
+      if (!result.ok) return void toast.error(t(result.error));
+      toast.success(t(result.message));
       router.refresh();
     });
   const cancelDraft = () =>
     startTransition(async () => {
       const result = await cancelRoundAction({ round_id: roundId, reason });
       setCancel(false);
-      if (!result.ok) return void toast.error(result.error);
-      toast.success(result.message);
+      if (!result.ok) return void toast.error(t(result.error));
+      toast.success(t(result.message));
       router.push("/admin/dispatch/rounds");
     });
 
@@ -58,17 +68,17 @@ export function RoundReviewPanel({ roundId, review, canEdit }: { roundId: string
           ["COD total", formatLKR(review.codTotal)],
         ].map(([label, value]) => (
           <div key={label} className="rounded-lg border p-3">
-            <p className="text-muted-foreground text-xs">{label}</p>
+            <p className="text-muted-foreground text-xs">{t(label)}</p>
             <p className="mt-1 truncate font-semibold tabular-nums">{value}</p>
           </div>
         ))}
         <div className="rounded-lg border p-3">
-          <p className="text-muted-foreground text-xs">References</p>
+          <p className="text-muted-foreground text-xs">{t("References")}</p>
           {review.firstReference ? (
             <p className="mt-1 font-mono text-xs leading-5 break-all">
               {review.firstReference}
               <br />
-              to {review.lastReference}
+              {t("to {ref}", { ref: review.lastReference })}
             </p>
           ) : (
             <p className="mt-1 font-semibold">—</p>
@@ -78,26 +88,26 @@ export function RoundReviewPanel({ roundId, review, canEdit }: { roundId: string
 
       <Card className="gap-3">
         <CardHeader>
-          <CardTitle>Tutes needed</CardTitle>
-          <CardDescription>Print and count these before packing.</CardDescription>
+          <CardTitle>{t("Tutes needed")}</CardTitle>
+          <CardDescription>{t("Print and count these before packing.")}</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Code</TableHead>
-                <TableHead>Tute</TableHead>
-                <TableHead className="hidden text-right sm:table-cell">Parcels</TableHead>
-                <TableHead className="text-right">Copies</TableHead>
+                <TableHead>{t("Code")}</TableHead>
+                <TableHead>{t("Tute")}</TableHead>
+                <TableHead className="hidden text-right sm:table-cell">{t("Parcels")}</TableHead>
+                <TableHead className="text-right">{t("Copies")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {review.tuteTotals.map((t) => (
-                <TableRow key={t.code}>
-                  <TableCell className="font-mono">{t.code}</TableCell>
-                  <TableCell>{t.title}</TableCell>
-                  <TableCell className="hidden text-right tabular-nums sm:table-cell">{t.parcels}</TableCell>
-                  <TableCell className="text-right font-semibold tabular-nums">{t.copies}</TableCell>
+              {review.tuteTotals.map((tute) => (
+                <TableRow key={tute.code}>
+                  <TableCell className="font-mono">{tute.code}</TableCell>
+                  <TableCell>{tute.title}</TableCell>
+                  <TableCell className="hidden text-right tabular-nums sm:table-cell">{tute.parcels}</TableCell>
+                  <TableCell className="text-right font-semibold tabular-nums">{tute.copies}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -110,12 +120,12 @@ export function RoundReviewPanel({ roundId, review, canEdit }: { roundId: string
           <CardContent className="space-y-2 text-sm">
             {review.blocking.map((b) => (
               <p key={b} className="text-destructive flex gap-2">
-                <XCircleIcon className="mt-0.5 size-4 shrink-0" /> {b}
+                <XCircleIcon className="mt-0.5 size-4 shrink-0" /> {t(b)}
               </p>
             ))}
             {review.warnings.map((w) => (
               <p key={w} className="flex gap-2 text-amber-700 dark:text-warning">
-                <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" /> {w}
+                <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" /> {t(w)}
               </p>
             ))}
           </CardContent>
@@ -123,17 +133,22 @@ export function RoundReviewPanel({ roundId, review, canEdit }: { roundId: string
       )}
       {!blocked && (
         <p className="text-success flex items-center gap-2 text-sm">
-          <CheckCircle2Icon className="size-4" /> Ready to finalise.
+          <CheckCircle2Icon className="size-4" /> {t("Ready to finalise.")}
         </p>
       )}
 
       {canEdit && (
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => setConfirm(true)} disabled={blocked || pending}>
-            <LockIcon /> Finalise round
+            <LockIcon /> {t("Finalise round")}
           </Button>
-          <Button variant="outline" className="text-destructive hover:text-destructive" onClick={() => setCancel(true)} disabled={pending}>
-            Cancel draft
+          <Button
+            variant="outline"
+            className="text-destructive hover:text-destructive"
+            onClick={() => setCancel(true)}
+            disabled={pending}
+          >
+            {t("Cancel draft")}
           </Button>
         </div>
       )}
@@ -141,16 +156,17 @@ export function RoundReviewPanel({ roundId, review, canEdit }: { roundId: string
       <AlertDialog open={confirm} onOpenChange={setConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Finalise {review.parcels} parcels?</AlertDialogTitle>
+            <AlertDialogTitle>{t("Finalise {parcels} parcels?", { parcels: review.parcels })}</AlertDialogTitle>
             <AlertDialogDescription>
-              References, addresses, contents and COD are frozen. Later changes to students won&apos;t affect these parcels; a
-              parcel can still be corrected (with a reason) until Citypak gives it a tracking number.
+              {t(
+                "References, addresses, contents and COD are frozen. Later changes to students won't affect these parcels; a parcel can still be corrected (with a reason) until Citypak gives it a tracking number.",
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={pending}>Back</AlertDialogCancel>
+            <AlertDialogCancel disabled={pending}>{t("Back")}</AlertDialogCancel>
             <Button onClick={finalise} disabled={pending}>
-              {pending && <Loader2Icon className="animate-spin" />} Finalise
+              {pending && <Loader2Icon className="animate-spin" />} {t("Finalise")}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -159,17 +175,19 @@ export function RoundReviewPanel({ roundId, review, canEdit }: { roundId: string
       <AlertDialog open={cancel} onOpenChange={setCancel}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Cancel this draft?</AlertDialogTitle>
-            <AlertDialogDescription>It stays in the list as cancelled. No parcels were made.</AlertDialogDescription>
+            <AlertDialogTitle>{t("Cancel this draft?")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("It stays in the list as cancelled. No parcels were made.")}
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="grid gap-2">
-            <Label htmlFor="cancel-reason">Reason (optional)</Label>
+            <Label htmlFor="cancel-reason">{t("Reason (optional)")}</Label>
             <Input id="cancel-reason" value={reason} onChange={(e) => setReason(e.target.value)} maxLength={500} />
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={pending}>Keep draft</AlertDialogCancel>
+            <AlertDialogCancel disabled={pending}>{t("Keep draft")}</AlertDialogCancel>
             <Button variant="destructive" onClick={cancelDraft} disabled={pending}>
-              Cancel draft
+              {t("Cancel draft")}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

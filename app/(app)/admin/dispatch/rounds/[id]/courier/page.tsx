@@ -12,11 +12,19 @@ import { formatDateTime } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import { uuid } from "@/lib/validation";
 
+import { getT } from "@/lib/dispatch/i18n/server";
 export const metadata: Metadata = { title: "Courier files – Tute dispatch" };
 
-type WaybillSummaryJson = { labels?: number; matched?: number; mismatched?: number; unknown?: number; missingLabels?: number };
+type WaybillSummaryJson = {
+  labels?: number;
+  matched?: number;
+  mismatched?: number;
+  unknown?: number;
+  missingLabels?: number;
+};
 
 export default async function CourierPage({ params }: PageProps<"/admin/dispatch/rounds/[id]/courier">) {
+  const t = await getT();
   const { id } = await params;
   if (!uuid.safeParse(id).success) notFound();
   await requireDispatch("courier");
@@ -37,12 +45,12 @@ export default async function CourierPage({ params }: PageProps<"/admin/dispatch
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Courier files"
+        title={t("Courier files")}
         description={round.name}
         actions={
           <Button asChild variant="outline">
             <Link href={`/admin/dispatch/rounds/${id}`}>
-              <ArrowLeftIcon /> Round
+              <ArrowLeftIcon /> {t("Round")}
             </Link>
           </Button>
         }
@@ -51,12 +59,16 @@ export default async function CourierPage({ params }: PageProps<"/admin/dispatch
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <LockIcon className="text-muted-foreground size-5" /> 1. Citypak upload file
+            <LockIcon className="text-muted-foreground size-5" /> {t("1. Citypak upload file")}
           </CardTitle>
           <CardDescription>
             {settings?.citypak_template_verified
-              ? "Citypak's template has been verified. The export will be switched on once its column mapping is approved."
-              : "Switched off until Citypak's blank upload template is stored and verified in Dispatch settings, so no column value is guessed. Until then, register the parcels in the Citypak portal as you do today."}
+              ? t(
+                  "Citypak's template has been verified. The export will be switched on once its column mapping is approved.",
+                )
+              : t(
+                  "Switched off until Citypak's blank upload template is stored and verified in Dispatch settings, so no column value is guessed. Until then, register the parcels in the Citypak portal as you do today.",
+                )}
           </CardDescription>
         </CardHeader>
       </Card>
@@ -64,33 +76,47 @@ export default async function CourierPage({ params }: PageProps<"/admin/dispatch
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <FileSpreadsheetIcon className="text-primary size-5" /> 2. Tracking numbers
+            <FileSpreadsheetIcon className="text-primary size-5" /> {t("2. Tracking numbers")}
           </CardTitle>
           <CardDescription>
-            Upload the processed sheet Citypak gives back (with “Citypak Tracking” and “Your Reference”). It is matched to this
-            round by reference; nothing is saved until you confirm, and names, addresses and COD are never changed.
+            {t(
+              "Upload the processed sheet Citypak gives back (with “Citypak Tracking” and “Your Reference”). It is matched to this round by reference; nothing is saved until you confirm, and names, addresses and COD are never changed.",
+            )}
           </CardDescription>
         </CardHeader>
-        <CardContent>{open ? <TrackingImport roundId={id} /> : <p className="text-muted-foreground text-sm">This round is not open.</p>}</CardContent>
+        <CardContent>
+          {open ? (
+            <TrackingImport roundId={id} />
+          ) : (
+            <p className="text-muted-foreground text-sm">{t("This round is not open.")}</p>
+          )}
+        </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <FileTextIcon className="text-primary size-5" /> 3. Waybill PDF
+            <FileTextIcon className="text-primary size-5" /> {t("3. Waybill PDF")}
           </CardTitle>
           <CardDescription>
-            Store Citypak&apos;s official labels privately for printing. The labels are cross-checked against our tracking numbers;
-            the sheet stays the source of truth.
+            {t(
+              "Store Citypak's official labels privately for printing. The labels are cross-checked against our tracking numbers; the sheet stays the source of truth.",
+            )}
           </CardDescription>
         </CardHeader>
-        <CardContent>{open ? <WaybillUpload roundId={id} /> : <p className="text-muted-foreground text-sm">This round is not open.</p>}</CardContent>
+        <CardContent>
+          {open ? (
+            <WaybillUpload roundId={id} />
+          ) : (
+            <p className="text-muted-foreground text-sm">{t("This round is not open.")}</p>
+          )}
+        </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Files</CardTitle>
-          <CardDescription>Private. Every download is recorded in the activity log.</CardDescription>
+          <CardTitle>{t("Files")}</CardTitle>
+          <CardDescription>{t("Private. Every download is recorded in the activity log.")}</CardDescription>
         </CardHeader>
         <CardContent>
           {files && files.length > 0 ? (
@@ -103,11 +129,13 @@ export default async function CourierPage({ params }: PageProps<"/admin/dispatch
                       <p className="truncate font-medium">{f.file_name}</p>
                       <p className="text-muted-foreground text-xs">
                         {formatDateTime(f.created_at)} ·{" "}
-                        {f.kind === "waybill_pdf" ? `${s.labels ?? 0} labels, ${s.matched ?? 0} matched` : `${f.row_count ?? 0} rows`}
+                        {f.kind === "waybill_pdf"
+                          ? `${s.labels ?? 0} labels, ${s.matched ?? 0} matched`
+                          : `${f.row_count ?? 0} rows`}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline">{f.kind === "waybill_pdf" ? "Waybills" : "Tracking sheet"}</Badge>
+                      <Badge variant="outline">{f.kind === "waybill_pdf" ? t("Waybills") : t("Tracking sheet")}</Badge>
                       <Button asChild variant="ghost" size="icon-sm" aria-label={`Download ${f.file_name}`}>
                         <a href={`/admin/dispatch/files/${f.id}`}>
                           <DownloadIcon />
@@ -119,7 +147,7 @@ export default async function CourierPage({ params }: PageProps<"/admin/dispatch
               })}
             </ul>
           ) : (
-            <p className="text-muted-foreground text-sm">No files yet.</p>
+            <p className="text-muted-foreground text-sm">{t("No files yet.")}</p>
           )}
         </CardContent>
       </Card>

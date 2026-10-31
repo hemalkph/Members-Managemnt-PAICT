@@ -11,9 +11,11 @@ import { requireDispatch } from "@/lib/dispatch/access";
 import { monthLabelFromDate, nextStep, ROUND_STATE, type RoundCounts } from "@/lib/dispatch/rounds";
 import { createClient } from "@/lib/supabase/server";
 
+import { getT } from "@/lib/dispatch/i18n/server";
 export const metadata: Metadata = { title: "Rounds – Tute dispatch" };
 
 export default async function RoundsPage() {
+  const t = await getT();
   const { caps } = await requireDispatch();
   const supabase = await createClient();
   const [{ data: rounds }, { data: parcels }, { data: batches }] = await Promise.all([
@@ -41,20 +43,24 @@ export default async function RoundsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Dispatch rounds"
-        description="Each round sends a set of tutes to chosen students of one batch."
+        title={t("Dispatch rounds")}
+        description={t("Each round sends a set of tutes to chosen students of one batch.")}
         actions={
           caps.has("plan") ? (
             <Button asChild>
               <Link href="/admin/dispatch/rounds/new">
-                <PlusIcon /> New round
+                <PlusIcon /> {t("New round")}
               </Link>
             </Button>
           ) : undefined
         }
       />
       {!rounds || rounds.length === 0 ? (
-        <EmptyState icon={PackageIcon} title="No rounds yet" description="Create a round to plan which tutes go to which students." />
+        <EmptyState
+          icon={PackageIcon}
+          title={t("No rounds yet")}
+          description={t("Create a round to plan which tutes go to which students.")}
+        />
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {rounds.map((r) => {
@@ -66,7 +72,7 @@ export default async function RoundsPage() {
                   <CardHeader>
                     <div className="flex items-start justify-between gap-2">
                       <CardTitle className="leading-snug">{r.name}</CardTitle>
-                      <Badge variant={ROUND_STATE[r.state].variant}>{ROUND_STATE[r.state].label}</Badge>
+                      <Badge variant={ROUND_STATE[r.state].variant}>{t(ROUND_STATE[r.state].label)}</Badge>
                     </div>
                     <CardDescription>
                       {batchName.get(r.batch_id) ?? "—"} · {monthLabelFromDate(r.sending_month)} ·{" "}
@@ -77,7 +83,7 @@ export default async function RoundsPage() {
                     {r.state !== "draft" && r.state !== "cancelled" && (
                       <div className="space-y-1">
                         <div className="text-muted-foreground flex justify-between text-xs">
-                          <span>Tracking numbers</span>
+                          <span>{t("Tracking numbers")}</span>
                           <span className="tabular-nums">
                             {c.registered}/{live}
                           </span>
@@ -85,7 +91,7 @@ export default async function RoundsPage() {
                         <Progress value={live > 0 ? (c.registered / live) * 100 : 0} />
                       </div>
                     )}
-                    <p className="text-sm">{nextStep(r.state, c)}</p>
+                    <p className="text-sm">{nextStep(r.state, c, t)}</p>
                   </CardContent>
                 </Card>
               </Link>

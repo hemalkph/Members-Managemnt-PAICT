@@ -12,9 +12,11 @@ import { requireDispatch } from "@/lib/dispatch/access";
 import { pageAccess } from "@/lib/page-access";
 import { createClient } from "@/lib/supabase/server";
 
+import { getT } from "@/lib/dispatch/i18n/server";
 export const metadata: Metadata = { title: "Settings – Tute dispatch" };
 
 export default async function DispatchSettingsPage() {
+  const t = await getT();
   const { profile, caps } = await requireDispatch();
   const canPlan = caps.has("plan");
   const mainUnlocked = await mainAdminUnlocked(profile);
@@ -93,7 +95,10 @@ export default async function DispatchSettingsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Dispatch settings" description="Sender details, parcel defaults, privacy rules and who can do what." />
+      <PageHeader
+        title={t("Dispatch settings")}
+        description={t("Sender details, parcel defaults, privacy rules and who can do what.")}
+      />
 
       <DispatchSettingsForm values={values} canEditDetails={canPlan} canEditPolicy={canPlan && mainUnlocked} />
 
@@ -101,10 +106,11 @@ export default async function DispatchSettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>People</CardTitle>
+          <CardTitle>{t("People")}</CardTitle>
           <CardDescription>
-            Give the Tute dispatch page first (Members → Edit → Page access), then choose what each person may do here.
-            Admins have Plan, Courier, Pack and Verify by default; Correct and Finance are given one by one.
+            {t(
+              "Give the Tute dispatch page first (Members → Edit → Page access), then choose what each person may do here. Admins have Plan, Courier, Pack and Verify by default; Correct and Finance are given one by one.",
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -112,11 +118,11 @@ export default async function DispatchSettingsPage() {
             rows.length > 0 ? (
               <PeopleGrants people={rows} canChange={mainUnlocked} />
             ) : (
-              <p className="text-muted-foreground text-sm">Nobody has the Tute dispatch page yet.</p>
+              <p className="text-muted-foreground text-sm">{t("Nobody has the Tute dispatch page yet.")}</p>
             )
           ) : (
             <p className="text-muted-foreground text-sm">
-              Only main admins with two-step login can see and change dispatch permissions.
+              {t("Only main admins with two-step login can see and change dispatch permissions.")}
             </p>
           )}
         </CardContent>

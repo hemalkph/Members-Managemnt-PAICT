@@ -7,9 +7,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { requireDispatch } from "@/lib/dispatch/access";
 import { createClient } from "@/lib/supabase/server";
 
+import { getT } from "@/lib/dispatch/i18n/server";
 export const metadata: Metadata = { title: "New round – Tute dispatch" };
 
 export default async function NewRoundPage() {
+  const t = await getT();
   await requireDispatch("plan");
   const supabase = await createClient();
   const [{ data: batches }, { data: settings }] = await Promise.all([
@@ -21,9 +23,16 @@ export default async function NewRoundPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="New dispatch round" description="Step 1 of 5: round details. Next you choose tutes, students and what each parcel holds." />
+      <PageHeader
+        title={t("New dispatch round")}
+        description={t("Step 1 of 5: round details. Next you choose tutes, students and what each parcel holds.")}
+      />
       {!batches || batches.length === 0 ? (
-        <EmptyState icon={GraduationCapIcon} title="Add a batch first" description="Rounds belong to a batch. Add one under Batches & exams." />
+        <EmptyState
+          icon={GraduationCapIcon}
+          title={t("Add a batch first")}
+          description={t("Rounds belong to a batch. Add one under Batches & exams.")}
+        />
       ) : (
         <Card>
           <CardContent>

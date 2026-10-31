@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { assignParcelsAction, unpackParcelAction } from "@/lib/actions/dispatch-packing";
 import { cn } from "@/lib/utils";
 
+import { useT } from "@/components/dispatch/lang";
 export type PackRow = {
   id: string;
   reference: string;
@@ -48,6 +49,7 @@ export function PackingBoard({
   packers: { id: string; name: string }[];
   canUnpack: boolean;
 }) {
+  const t = useT();
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState("all");
@@ -78,10 +80,11 @@ export function PackingBoard({
     startTransition(async () => {
       const ids = chosen.map((r) => r.id);
       const packerIds = target === SPLIT ? [...split] : [target === NONE ? null : target];
-      if (target === SPLIT && packerIds.length < 2) return void toast.error("Choose at least two packers to split between.");
+      if (target === SPLIT && packerIds.length < 2)
+        return void toast.error(t("Choose at least two packers to split between."));
       const result = await assignParcelsAction({ round_id: roundId, parcel_ids: ids, packer_ids: packerIds });
-      if (!result.ok) return void toast.error(result.error);
-      toast.success(result.message);
+      if (!result.ok) return void toast.error(t(result.error));
+      toast.success(t(result.message));
       setSelected(new Set());
       router.refresh();
     });
@@ -89,9 +92,14 @@ export function PackingBoard({
   const doUnpack = () =>
     startTransition(async () => {
       if (!unpack) return;
-      const result = await unpackParcelAction({ parcel_id: unpack.row.id, round_id: roundId, reason: unpack.reason, row_version: unpack.row.rowVersion });
-      if (!result.ok) return void toast.error(result.error);
-      toast.success(result.message);
+      const result = await unpackParcelAction({
+        parcel_id: unpack.row.id,
+        round_id: roundId,
+        reason: unpack.reason,
+        row_version: unpack.row.rowVersion,
+      });
+      if (!result.ok) return void toast.error(t(result.error));
+      toast.success(t(result.message));
       setUnpack(null);
       router.refresh();
     });
@@ -100,41 +108,46 @@ export function PackingBoard({
     <div className="space-y-4">
       <div className="flex flex-col gap-2 print:hidden lg:flex-row lg:items-center lg:justify-between">
         <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger className="w-full sm:w-56" aria-label="Show">
+          <SelectTrigger className="w-full sm:w-56" aria-label={t("Show")}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All parcels ({rows.length})</SelectItem>
-            <SelectItem value="todo">Still to pack ({rows.filter((r) => r.packState === "planned").length})</SelectItem>
-            <SelectItem value="unassigned">Not assigned</SelectItem>
-            <SelectItem value="hold">On hold ({rows.filter((r) => r.onHold).length})</SelectItem>
+            <SelectItem value="all">{t("All parcels ({length})", { length: rows.length })}</SelectItem>
+            <SelectItem value="todo">
+              {t("Still to pack ({length})", { length: rows.filter((r) => r.packState === "planned").length })}
+            </SelectItem>
+            <SelectItem value="unassigned">{t("Not assigned")}</SelectItem>
+            <SelectItem value="hold">
+              {t("On hold ({length})", { length: rows.filter((r) => r.onHold).length })}
+            </SelectItem>
             {packers.map((p) => (
               <SelectItem key={p.id} value={p.id}>
-                {p.name}&apos;s parcels
+                {t("{name}'s parcels", { name: p.name })}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
         <div className="flex flex-wrap items-center gap-2">
           <Select value={target} onValueChange={setTarget}>
-            <SelectTrigger className="w-full sm:w-52" aria-label="Assign to">
+            <SelectTrigger className="w-full sm:w-52" aria-label={t("Assign to")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {packers.map((p) => (
                 <SelectItem key={p.id} value={p.id}>
-                  Assign to {p.name}
+                  {t("Assign to {name}", { name: p.name })}
                 </SelectItem>
               ))}
-              {packers.length > 1 && <SelectItem value={SPLIT}>Split evenly between…</SelectItem>}
-              <SelectItem value={NONE}>Unassign</SelectItem>
+              {packers.length > 1 && <SelectItem value={SPLIT}>{t("Split evenly between…")}</SelectItem>}
+              <SelectItem value={NONE}>{t("Unassign")}</SelectItem>
             </SelectContent>
           </Select>
           <Button onClick={assign} disabled={pending || chosen.length === 0}>
-            {pending ? <Loader2Icon className="animate-spin" /> : <UsersIcon />} Apply to {chosen.length}
+            {pending ? <Loader2Icon className="animate-spin" /> : <UsersIcon />}{" "}
+            {t("Apply to {length}", { length: chosen.length })}
           </Button>
           <Button variant="outline" onClick={() => window.print()}>
-            <PrinterIcon /> Print list
+            <PrinterIcon /> {t("Print list")}
           </Button>
         </div>
       </div>
@@ -156,27 +169,29 @@ export function PackingBoard({
               {p.name}
             </label>
           ))}
-          <span className="text-muted-foreground">Parcels are split in reference order, in equal blocks.</span>
+          <span className="text-muted-foreground">{t("Parcels are split in reference order, in equal blocks.")}</span>
         </div>
       )}
 
-      <h2 className="hidden text-lg font-semibold print:block">Packing list – {roundName}</h2>
+      <h2 className="hidden text-lg font-semibold print:block">
+        {t("Packing list – {roundName}", { roundName: roundName })}
+      </h2>
       <Card className="py-0 print:border-0 print:shadow-none">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead className="w-10 pl-4 print:hidden">
                 <Checkbox
-                  aria-label="Select all shown"
+                  aria-label={t("Select all shown")}
                   checked={assignable.length > 0 && assignable.every((r) => selected.has(r.id))}
                   onCheckedChange={(v) => setSelected(v === true ? new Set(assignable.map((r) => r.id)) : new Set())}
                 />
               </TableHead>
-              <TableHead>Reference</TableHead>
-              <TableHead>No.</TableHead>
-              <TableHead>Tutes</TableHead>
-              <TableHead>Packer</TableHead>
-              <TableHead>State</TableHead>
+              <TableHead>{t("Reference")}</TableHead>
+              <TableHead>{t("No.")}</TableHead>
+              <TableHead>{t("Tutes")}</TableHead>
+              <TableHead>{t("Packer")}</TableHead>
+              <TableHead>{t("State")}</TableHead>
               <TableHead className="hidden print:table-cell">✓</TableHead>
               {canUnpack && <TableHead className="w-10 pr-4 print:hidden" />}
             </TableRow>
@@ -205,22 +220,27 @@ export function PackingBoard({
                 <TableCell className="text-sm">{r.assignedName ?? "—"}</TableCell>
                 <TableCell>
                   {r.onHold ? (
-                    <Badge variant="warning">On hold</Badge>
+                    <Badge variant="warning">{t("On hold")}</Badge>
                   ) : r.packState === "verified" ? (
-                    <Badge variant="success">Verified</Badge>
+                    <Badge variant="success">{t("Verified")}</Badge>
                   ) : r.packState === "packed" ? (
-                    <Badge variant="secondary">Packed</Badge>
+                    <Badge variant="secondary">{t("Packed")}</Badge>
                   ) : !r.registered ? (
-                    <Badge variant="outline">No tracking</Badge>
+                    <Badge variant="outline">{t("No tracking")}</Badge>
                   ) : (
-                    <Badge variant="outline">To pack</Badge>
+                    <Badge variant="outline">{t("To pack")}</Badge>
                   )}
                 </TableCell>
                 <TableCell className="hidden print:table-cell">☐</TableCell>
                 {canUnpack && (
                   <TableCell className="pr-4 print:hidden">
                     {r.packState !== "planned" && (
-                      <Button variant="ghost" size="icon-sm" aria-label={`Undo packing of ${r.reference}`} onClick={() => setUnpack({ row: r, reason: "" })}>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={t("Undo packing of {ref}", { ref: r.reference })}
+                        onClick={() => setUnpack({ row: r, reason: "" })}
+                      >
                         <RotateCcwIcon />
                       </Button>
                     )}
@@ -234,14 +254,21 @@ export function PackingBoard({
 
       {unpack && (
         <Card className="space-y-2 p-4 print:hidden">
-          <p className="text-sm font-medium">Undo packing of {unpack.row.reference}?</p>
-          <Input value={unpack.reason} onChange={(e) => setUnpack({ ...unpack, reason: e.target.value })} placeholder="Reason, e.g. wrong tute packed" maxLength={300} />
+          <p className="text-sm font-medium">
+            {t("Undo packing of {reference}?", { reference: unpack.row.reference })}
+          </p>
+          <Input
+            value={unpack.reason}
+            onChange={(e) => setUnpack({ ...unpack, reason: e.target.value })}
+            placeholder={t("Reason, e.g. wrong tute packed")}
+            maxLength={300}
+          />
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setUnpack(null)}>
-              Cancel
+              {t("Cancel")}
             </Button>
             <Button onClick={doUnpack} disabled={pending || unpack.reason.trim().length < 3}>
-              Undo packing
+              {t("Undo packing")}
             </Button>
           </div>
         </Card>
