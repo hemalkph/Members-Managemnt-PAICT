@@ -152,3 +152,41 @@ export async function handOver(client: pg.Client, verifier: Actor, round: string
   await asOwner(client);
   return hid;
 }
+
+/** A round whose parcels were handed over and marked delivered (COD 500 each). Runs as owner at the end. */
+export async function deliveredRound(
+  client: pg.Client,
+  main: Actor,
+  verifier: Actor,
+  batch: string,
+  prefix: string,
+  count: number,
+): Promise<{ round: string; parcels: ReadyParcel[] }> {
+  const r = await verifiedRound(client, main, verifier, batch, prefix, count);
+  await handOver(client, verifier, r.round, r.parcels);
+  await actAs(client, main);
+  await client.query("select public.delivery_set($1::uuid[], 'delivered', '')", [r.parcels.map((p) => p.id)]);
+  await asOwner(client);
+  return r;
+}
+
+/** Record and confirm a settlement paying `rows` (code, collected?, fee?) with `remitted`. Returns its id. */
+export async function settle(
+  client: pg.Client,
+  finance: Actor,
+  reference: string,
+  rows: { code: string; collected?: number; fee?: number }[],
+  remitted: number,
+  dispute?: string,
+): Promise<string> {
+  await actAs(client, finance);
+  const id = (
+    await client.query("select public.settlement_save(null, $1::jsonb) as id", [
+      JSON.stringify({ reference, settled_on: "2026-11-20", remitted }),
+    ])
+  ).rows[0].id as string;
+  await client.query("select public.settlement_add_lines($1, $2::jsonb)", [id, JSON.stringify(rows)]);
+  await client.query("select public.settlement_confirm($1, $2)", [id, dispute ?? null]);
+  await asOwner(client);
+  return id;
+}
