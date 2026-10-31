@@ -3,6 +3,8 @@
 // After changing the schema you can regenerate them with:
 //   npx supabase gen types typescript --project-id <id> > lib/database.types.ts
 
+export type DispatchCapability = "plan" | "courier" | "pack" | "verify" | "correct" | "finance";
+
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type SubmissionStatus = "pending" | "approved" | "rejected";
@@ -341,6 +343,102 @@ export type Database = {
         };
         Insert: { [_ in never]: never };
         Update: { [_ in never]: never };
+        Relationships: [];
+      };
+      dispatch_grants: {
+        Row: {
+          id: string;
+          user_id: string;
+          capability: DispatchCapability;
+          reason: string | null;
+          granted_by: string | null;
+          granted_at: string;
+          revoked_by: string | null;
+          revoked_at: string | null;
+          revoke_reason: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      dispatch_settings: {
+        Row: {
+          id: boolean;
+          sender_name: string;
+          sender_line1: string;
+          sender_line2: string;
+          sender_line3: string;
+          sender_city: string;
+          sender_contact_name: string;
+          sender_phone1: string;
+          sender_phone2: string;
+          default_cod: number;
+          default_weight_g: number;
+          default_pieces: number;
+          require_verification: boolean;
+          student_retention_months: number;
+          recipient_retention_days: number;
+          courier_file_retention_days: number;
+          import_file_retention_days: number;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      students: {
+        Row: {
+          id: string;
+          batch_id: string;
+          student_no: string;
+          full_name: string;
+          address_line1: string;
+          address_line2: string;
+          address_line3: string;
+          city: string;
+          region: string;
+          phone1: string | null;
+          phone2: string | null;
+          phone1_raw: string | null;
+          delivery_note: string;
+          is_active: boolean;
+          anonymised_at: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "students_batch_id_fkey";
+            columns: ["batch_id"];
+            isOneToOne: false;
+            referencedRelation: "batches";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      student_imports: {
+        Row: {
+          id: string;
+          batch_id: string | null;
+          file_name: string;
+          storage_path: string | null;
+          sha256: string;
+          size_bytes: number;
+          row_count: number;
+          counts: Json;
+          applied_at: string | null;
+          applied_count: number | null;
+          file_deleted_at: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: never;
+        Update: { file_deleted_at?: string | null };
         Relationships: [];
       };
       batches: {
@@ -961,6 +1059,25 @@ export type Database = {
       };
     };
     Functions: {
+      has_dispatch: { Args: { p_cap: string }; Returns: boolean };
+      dispatch_my_caps: { Args: Record<PropertyKey, never>; Returns: string[] };
+      dispatch_grant: { Args: { p_user: string; p_cap: string; p_reason?: string | null }; Returns: undefined };
+      dispatch_revoke: { Args: { p_user: string; p_cap: string; p_reason?: string | null }; Returns: undefined };
+      dispatch_settings_save: { Args: { p: Json }; Returns: undefined };
+      student_save: { Args: { p: Json; p_expected_updated_at?: string | null }; Returns: string };
+      student_set_active: { Args: { p_id: string; p_active: boolean }; Returns: undefined };
+      student_import_start: {
+        Args: {
+          p_batch: string;
+          p_file_name: string;
+          p_storage_path: string | null;
+          p_sha256: string;
+          p_size: number;
+          p_rows: number;
+        };
+        Returns: string;
+      };
+      students_import_apply: { Args: { p_import: string; p_rows: Json; p_counts?: Json }; Returns: number };
       is_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
       is_active_member: { Args: Record<PropertyKey, never>; Returns: boolean };
       nic_birth_date: { Args: { nic: string }; Returns: string | null };
