@@ -8,6 +8,8 @@ export default async function DispatchLayout({ children }: LayoutProps<"/admin/d
     { href: "/admin/dispatch/rounds", label: "Rounds" },
   ];
   if (caps.has("plan") || caps.has("courier")) items.push({ href: "/admin/dispatch/students", label: "Students" });
+  if (caps.has("finance")) items.push({ href: "/admin/dispatch/money", label: "COD money" });
+  if (caps.has("plan") || caps.has("finance") || caps.has("courier")) items.push({ href: "/admin/dispatch/reports", label: "Reports" });
   if (caps.has("plan") || profile.is_main_admin) items.push({ href: "/admin/dispatch/settings", label: "Settings" });
 
   return (

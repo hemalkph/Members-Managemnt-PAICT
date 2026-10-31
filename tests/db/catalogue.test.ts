@@ -42,6 +42,21 @@ const FUNCTIONS = [
   "delivery_set",
   "parcel_void",
   "parcel_replace",
+  "dispatch_cod_rows",
+  "settlement_save",
+  "settlement_add_lines",
+  "settlement_set_line",
+  "settlement_remove_line",
+  "settlement_attach",
+  "settlement_confirm",
+  "settlement_cancel",
+  "cod_writeoff_set",
+  "dispatch_settlements",
+  "round_close_check",
+  "round_close",
+  "round_reopen",
+  "dispatch_report_rounds",
+  "dispatch_report_people",
 ];
 /** Privileged helpers used only inside other functions: nobody may call them directly. */
 const INTERNAL = [
@@ -53,6 +68,11 @@ const INTERNAL = [
   "dispatch_block_reason",
   "sync_parcel_hold",
   "dispatch_handover_block",
+  "dispatch_round_totals",
+  "dispatch_settlement_draft",
+  "dispatch_retention_run",
+  "dispatch_retention_files",
+  "dispatch_retention_mark_deleted",
 ];
 const TABLES = [
   "dispatch_grants",
@@ -71,6 +91,8 @@ const TABLES = [
   "parcel_scans",
   "handovers",
   "handover_parcels",
+  "cod_settlements",
+  "cod_settlement_lines",
 ];
 
 let db: pg.Client;

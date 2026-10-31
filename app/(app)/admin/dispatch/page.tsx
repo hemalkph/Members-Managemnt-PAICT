@@ -91,7 +91,7 @@ export default async function DispatchOverviewPage() {
     <div className="space-y-6">
       <PageHeader
         title="Tute dispatch"
-        description="Plan tute rounds, freeze each parcel's contents and add Citypak tracking numbers. Packing and handover come next."
+        description="Plan tute rounds, add Citypak tracking numbers, pack and hand parcels over, track delivery and COD, then close each round."
         actions={
           caps.has("plan") ? (
             <Button asChild>

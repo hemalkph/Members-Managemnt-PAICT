@@ -14,6 +14,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { RoundClosePanel, type CloseCheck } from "@/components/dispatch/round-close-panel";
+import { mainAdminUnlocked } from "@/lib/auth";
 import { requireDispatch } from "@/lib/dispatch/access";
 import { reviewRound } from "@/lib/dispatch/review";
 import { monthLabelFromDate, nextStep, ROUND_STATE } from "@/lib/dispatch/rounds";
@@ -37,7 +39,7 @@ type Step = (typeof STEPS)[number]["key"];
 export default async function RoundPage({ params, searchParams }: PageProps<"/admin/dispatch/rounds/[id]">) {
   const { id } = await params;
   if (!uuid.safeParse(id).success) notFound();
-  const { caps } = await requireDispatch();
+  const { caps, profile } = await requireDispatch();
   const canPlan = caps.has("plan");
   const seesPeople = canPlan || caps.has("courier");
   const sp = await searchParams;
@@ -231,7 +233,7 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
 
   // ------------------------------------------------------------------ finalised and later: the parcels
   // Recipients and student numbers come embedded; the database hides them from view-only users.
-  const [{ data: parcels }, { data: items }] = await Promise.all([
+  const [{ data: parcels }, { data: items }, { data: closeCheck }, canReopen] = await Promise.all([
     supabase
       .from("parcels")
       .select(
@@ -241,6 +243,8 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
       .order("reference")
       .limit(5000),
     supabase.from("parcel_items").select("parcel_id, round_tute_id, parcels!inner(round_id)").eq("parcels.round_id", id).limit(50000),
+    supabase.rpc("round_close_check", { p_round: id }),
+    profile.is_main_admin ? mainAdminUnlocked(profile) : Promise.resolve(false),
   ]);
   type Recipient = {
     name: string;
@@ -269,7 +273,10 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
     onHold: list.filter((p) => p.on_hold).length,
     handedOver: list.filter((p) => p.registration_state !== "voided" && p.delivery_state !== "awaiting_pickup").length,
     delivered: list.filter((p) => p.registration_state !== "voided" && p.delivery_state === "delivered").length,
-    problems: list.filter((p) => p.registration_state !== "voided" && (p.delivery_state === "failed" || p.delivery_state === "returned")).length,
+    problems: list.filter((p) => p.registration_state !== "voided" && p.delivery_state === "failed").length,
+    returned: list.filter((p) => p.registration_state !== "voided" && p.delivery_state === "returned").length,
+    codOwing: Number((closeCheck as { cod_outstanding?: number } | null)?.cod_outstanding ?? 0),
+    canClose: Boolean((closeCheck as { can_close?: boolean } | null)?.can_close),
   };
   const waiting = counts.parcels - counts.registered - counts.voided;
   const codTotal = list.filter((p) => p.registration_state !== "voided").reduce((s, p) => s + Number(p.cod_expected), 0);
@@ -289,7 +296,7 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
             icon={TruckIcon}
             tone={counts.problems > 0 ? "warning" : "info"}
             delay={0.4}
-            hint={`${counts.delivered} delivered · ${counts.problems} failed or returned`}
+            hint={`${counts.delivered} delivered · ${counts.returned} returned · ${counts.problems} failed`}
           />
         ) : (
           <StatCard label="COD expected" value={codTotal} prefix="Rs. " icon={TruckIcon} tone="info" delay={0.4} />
@@ -341,6 +348,10 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
           </CardContent>
         )}
       </Card>
+
+      {closeCheck && (counts.handedOver > 0 || round.state === "closed") && (
+        <RoundClosePanel roundId={id} check={closeCheck as unknown as CloseCheck} canClose={canPlan} canReopen={canReopen} />
+      )}
 
       <Card className="py-0">
         <Table>

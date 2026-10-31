@@ -543,6 +543,8 @@ export type Database = {
           row_version: number;
           handover_id: string | null;
           delivery_note: string | null;
+          cod_writeoff: number;
+          cod_writeoff_reason: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -687,6 +689,50 @@ export type Database = {
         Insert: never;
         Update: never;
         Relationships: [];
+      };
+      cod_settlements: {
+        Row: {
+          id: string;
+          reference: string;
+          settled_on: string;
+          remitted: number;
+          note: string;
+          file_id: string | null;
+          state: "draft" | "confirmed" | "cancelled";
+          dispute_note: string | null;
+          created_by: string | null;
+          created_at: string;
+          confirmed_by: string | null;
+          confirmed_at: string | null;
+          cancelled_by: string | null;
+          cancelled_at: string | null;
+          cancel_reason: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      cod_settlement_lines: {
+        Row: {
+          id: string;
+          settlement_id: string;
+          parcel_id: string;
+          collected: number;
+          fee: number;
+          added_by: string | null;
+          added_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "cod_settlement_lines_parcel_id_fkey";
+            columns: ["parcel_id"];
+            isOneToOne: false;
+            referencedRelation: "parcels";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       handover_parcels: {
         Row: {
@@ -1387,6 +1433,86 @@ export type Database = {
         }[];
       };
       delivery_set: { Args: { p_parcels: string[]; p_state: string; p_reason: string; p_evidence?: string | null }; Returns: Json };
+      dispatch_cod_rows: {
+        Args: { p_round: string | null; p_attention_only?: boolean };
+        Returns: {
+          parcel_id: string;
+          round_id: string;
+          round_name: string;
+          reference: string;
+          tracking_no: string | null;
+          delivery_state: string;
+          registration_state: string;
+          cod_expected: number;
+          due: number;
+          paid: number;
+          fees: number;
+          pending: number;
+          written_off: number;
+          writeoff_reason: string | null;
+          outstanding: number;
+          status: "voided" | "waiting" | "in_draft" | "over" | "nothing_due" | "settled" | "unpaid" | "part_paid";
+        }[];
+      };
+      settlement_save: { Args: { p_id: string | null; p: Json }; Returns: string };
+      settlement_add_lines: { Args: { p_id: string; p_rows: Json }; Returns: Json };
+      settlement_set_line: { Args: { p_line: string; p_collected: number; p_fee: number }; Returns: undefined };
+      settlement_remove_line: { Args: { p_line: string }; Returns: undefined };
+      settlement_attach: { Args: { p_id: string; p_file: string | null }; Returns: undefined };
+      settlement_confirm: { Args: { p_id: string; p_dispute_note?: string | null }; Returns: Json };
+      settlement_cancel: { Args: { p_id: string; p_reason: string }; Returns: undefined };
+      cod_writeoff_set: { Args: { p_parcel: string; p_amount: number; p_reason: string }; Returns: undefined };
+      dispatch_settlements: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          id: string;
+          reference: string;
+          settled_on: string;
+          remitted: number;
+          note: string;
+          state: "draft" | "confirmed" | "cancelled";
+          dispute_note: string | null;
+          file_id: string | null;
+          parcels: number;
+          collected: number;
+          fees: number;
+          created_name: string | null;
+          confirmed_name: string | null;
+          confirmed_at: string | null;
+        }[];
+      };
+      round_close_check: { Args: { p_round: string }; Returns: Json };
+      round_close: { Args: { p_round: string; p_note: string }; Returns: undefined };
+      round_reopen: { Args: { p_round: string; p_reason: string }; Returns: undefined };
+      dispatch_report_rounds: {
+        Args: { p_from: string; p_to: string };
+        Returns: {
+          round_id: string;
+          name: string;
+          sending_month: string;
+          state: string;
+          live: number;
+          voided: number;
+          replacements: number;
+          handed_over: number;
+          delivered: number;
+          returned: number;
+          unresolved: number;
+          open_exceptions: number;
+          cod_expected: number;
+          cod_paid: number | null;
+          cod_fees: number | null;
+          cod_written_off: number | null;
+          cod_outstanding: number | null;
+        }[];
+      };
+      dispatch_report_people: {
+        Args: { p_from: string; p_to: string };
+        Returns: { name: string | null; packed: number; verified: number; handed_over: number }[];
+      };
+      dispatch_retention_run: { Args: { p_now?: string }; Returns: Json };
+      dispatch_retention_files: { Args: { p_now?: string }; Returns: { id: string; storage_path: string }[] };
+      dispatch_retention_mark_deleted: { Args: { p_ids: string[] }; Returns: number };
       parcel_void: { Args: { p_parcel: string; p_reason: string }; Returns: undefined };
       parcel_replace: { Args: { p_parcel: string; p_reason: string; p?: Json }; Returns: string };
       exception_open: { Args: { p_parcel: string; p_kind: string; p_note: string }; Returns: string };

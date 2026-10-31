@@ -40,3 +40,30 @@ export async function cleanupDispatchImports(admin: SupabaseClient<Database>, no
   }
   return { importFilesDeleted: old.length, importRetentionDays: days };
 }
+
+/**
+ * Retention for closed rounds: removes names, addresses and phone numbers that
+ * are past their keep time (done inside the database), then deletes old courier
+ * files (Citypak sheets, waybills, receipts) from storage. Settlement reports
+ * are financial records and are kept. Runs from the nightly cleanup hook.
+ */
+export async function cleanupDispatchRetention(admin: SupabaseClient<Database>) {
+  const { data: anonymised, error } = await admin.rpc("dispatch_retention_run", {});
+  if (error) throw new Error(`Retention failed: ${error.message}`);
+
+  let filesDeleted = 0;
+  for (let pass = 0; pass < 20; pass++) {
+    const { data: files, error: listError } = await admin.rpc("dispatch_retention_files", {});
+    if (listError) throw new Error(`Could not list old courier files: ${listError.message}`);
+    if (!files || files.length === 0) break;
+    for (let i = 0; i < files.length; i += 100) {
+      const chunk = files.slice(i, i + 100);
+      const { error: rmError } = await admin.storage.from(BUCKET).remove(chunk.map((f) => f.storage_path));
+      if (rmError) throw new Error(`Could not delete courier files: ${rmError.message}`);
+      const { data: n } = await admin.rpc("dispatch_retention_mark_deleted", { p_ids: chunk.map((f) => f.id) });
+      filesDeleted += n ?? 0;
+    }
+    if (files.length < 1000) break;
+  }
+  return { ...(anonymised as { recipients: number; students: number }), courierFilesDeleted: filesDeleted };
+}
