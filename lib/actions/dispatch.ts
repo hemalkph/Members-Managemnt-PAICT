@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { friendlyDbError, type ActionResult } from "@/lib/action-result";
 import { getActionContext, NOT_ALLOWED } from "@/lib/auth";
+import { createAdminClient, hasServiceRoleKey } from "@/lib/supabase/admin";
 import { dispatchActionContext } from "@/lib/dispatch/access";
 import {
   buildCandidates,
@@ -72,7 +73,10 @@ export async function saveStudentAction(input: StudentInput): Promise<ActionResu
   if (error) {
     return {
       ok: false,
-      error: error.code === "23505" ? `Student number ${v.student_no} is already used in this batch.` : friendlyDbError(error),
+      error:
+        error.code === "23505"
+          ? `Student number ${v.student_no} is already used in this batch.`
+          : friendlyDbError(error),
     };
   }
   revalidateDispatch();
@@ -82,11 +86,63 @@ export async function saveStudentAction(input: StudentInput): Promise<ActionResu
 export async function setStudentActiveAction(input: { id: string; active: boolean }): Promise<ActionResult> {
   const ctx = await dispatchActionContext("plan");
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
-  if (!uuid.safeParse(input.id).success || typeof input.active !== "boolean") return { ok: false, error: "Student not found." };
+  if (!uuid.safeParse(input.id).success || typeof input.active !== "boolean")
+    return { ok: false, error: "Student not found." };
   const { error } = await ctx.supabase.rpc("student_set_active", { p_id: input.id, p_active: input.active });
   if (error) return { ok: false, error: friendlyDbError(error) };
   revalidateDispatch();
   return { ok: true, message: input.active ? "Student is active again" : "Student marked inactive" };
+}
+
+/** Delete a student who is in no parcel (planners). */
+export async function deleteStudentAction(input: { id: string }): Promise<ActionResult> {
+  const ctx = await dispatchActionContext("plan");
+  if (!ctx) return { ok: false, error: NOT_ALLOWED };
+  if (!uuid.safeParse(input.id).success) return { ok: false, error: "Student not found." };
+  const { error } = await ctx.supabase.rpc("student_delete", { p_student: input.id });
+  if (error) return { ok: false, error: friendlyDbError(error) };
+  revalidateDispatch();
+  return { ok: true, message: "Student deleted" };
+}
+
+/**
+ * Clear a batch's dispatch data (main admins, typing the batch name). A TEST
+ * batch is wiped completely; other batches only while they have no sent round.
+ * Uploaded files of the batch are then removed from storage.
+ */
+export async function clearBatchAction(input: {
+  batch_id: string;
+  confirm: string;
+}): Promise<ActionResult<{ students: number; rounds: number; parcels: number; filesLeft: number }>> {
+  if (!uuid.safeParse(input.batch_id).success || typeof input.confirm !== "string" || input.confirm.length > 200)
+    return { ok: false, error: "Batch not found." };
+  const ctx = await getActionContext({ page: "dispatch", edit: true, mainAdmin: true });
+  if (!ctx) return { ok: false, error: NOT_ALLOWED };
+  const { data, error } = await ctx.supabase.rpc("dispatch_batch_clear", {
+    p_batch: input.batch_id,
+    p_confirm: input.confirm,
+  });
+  if (error) return { ok: false, error: friendlyDbError(error) };
+  const r = data as unknown as { students: number; rounds: number; parcels: number; files: string[] };
+  // Only the paths the database just released, all in the private dispatch bucket.
+  const files = (r.files ?? []).filter((f) => /^(imports|rounds|receipts|settlements)\/[0-9a-f/-]+\.\w+$/.test(f));
+  let filesLeft = files.length;
+  if (files.length && hasServiceRoleKey()) {
+    const admin = createAdminClient();
+    for (let i = 0; i < files.length; i += 100) {
+      const { error: rmError } = await admin.storage.from("dispatch").remove(files.slice(i, i + 100));
+      if (!rmError) filesLeft -= Math.min(100, files.length - i);
+    }
+  }
+  revalidateDispatch();
+  return {
+    ok: true,
+    message:
+      filesLeft > 0
+        ? "Batch cleared. Some uploaded files could not be removed – delete them in Storage, or they go automatically later."
+        : "Batch cleared",
+    data: { students: r.students, rounds: r.rounds, parcels: r.parcels, filesLeft },
+  };
 }
 
 // ---------------------------------------------------------------- import
@@ -161,7 +217,10 @@ export async function startImportAction(input: {
   if (!IMPORT_PATH.test(input.path) || !uuid.safeParse(input.batchId).success) {
     return { ok: false, error: "Upload an Excel (.xlsx) or CSV file and choose a batch." };
   }
-  const fileName = String(input.fileName ?? "").replace(/[\\/\u0000-\u001f]/g, "").slice(0, 200) || "students";
+  const fileName =
+    String(input.fileName ?? "")
+      .replace(/[\\/\u0000-\u001f]/g, "")
+      .slice(0, 200) || "students";
 
   const { data: blob, error: dlError } = await ctx.supabase.storage.from(BUCKET).download(input.path);
   if (dlError || !blob) return { ok: false, error: "The upload did not arrive. Please try again." };
@@ -200,7 +259,10 @@ export async function startImportAction(input: {
 }
 
 /** Steps 2–4: validate with the chosen columns and compare with saved students. Saves nothing. */
-export async function previewImportAction(input: { import_id: string; mapping: Mapping }): Promise<ActionResult<ImportPreview>> {
+export async function previewImportAction(input: {
+  import_id: string;
+  mapping: Mapping;
+}): Promise<ActionResult<ImportPreview>> {
   const ctx = await dispatchActionContext("plan");
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
   const parsed = importStepSchema.safeParse(input);

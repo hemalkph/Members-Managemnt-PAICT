@@ -3,6 +3,7 @@ import Link from "next/link";
 import { FileSpreadsheetIcon, UserPlusIcon, UsersIcon } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
+import { BatchClear } from "@/components/dispatch/batch-clear";
 import { StudentActions } from "@/components/dispatch/student-actions";
 import { StudentDialog } from "@/components/dispatch/student-dialog";
 import { StudentFilters } from "@/components/dispatch/student-filters";
@@ -23,7 +24,7 @@ const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) 
 
 export default async function DispatchStudentsPage({ searchParams }: PageProps<"/admin/dispatch/students">) {
   const t = await getT();
-  const { caps } = await requireDispatch(["plan", "courier"]);
+  const { caps, profile } = await requireDispatch(["plan", "courier"]);
   const canEdit = caps.has("plan");
   const sp = await searchParams;
   // Search text goes into a PostgREST filter, so keep only plain characters.
@@ -58,6 +59,18 @@ export default async function DispatchStudentsPage({ searchParams }: PageProps<"
   ]);
   const batches = (batchRows ?? []).map((b) => ({ id: b.id, name: b.name }));
   const batchName = new Map(batches.map((b) => [b.id, b.name]));
+  // Main admins can clear a batch's student details (checked again on the server).
+  const clearable = profile.is_main_admin
+    ? await Promise.all(
+        batches.map(async (b) => {
+          const { count: n } = await supabase
+            .from("students")
+            .select("id", { count: "exact", head: true })
+            .eq("batch_id", b.id);
+          return { ...b, students: n ?? 0 };
+        }),
+      )
+    : [];
   const activeBatches = (batchRows ?? []).filter((b) => b.is_active).map((b) => ({ id: b.id, name: b.name }));
   const rows = students ?? [];
 
@@ -74,6 +87,7 @@ export default async function DispatchStudentsPage({ searchParams }: PageProps<"
                   <FileSpreadsheetIcon /> {t("Import")}
                 </Link>
               </Button>
+              {profile.is_main_admin && <BatchClear batches={clearable.filter((b) => b.students > 0)} />}
               <StudentDialog batches={activeBatches}>
                 <Button disabled={activeBatches.length === 0}>
                   <UserPlusIcon /> {t("Add student")}

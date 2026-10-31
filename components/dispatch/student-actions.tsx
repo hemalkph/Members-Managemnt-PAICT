@@ -1,8 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
-import { MoreHorizontalIcon, PencilIcon, UserCheckIcon, UserXIcon } from "lucide-react";
+import { useState, useTransition } from "react";
+import { MoreHorizontalIcon, PencilIcon, Trash2Icon, UserCheckIcon, UserXIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,7 +11,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { setStudentActiveAction } from "@/lib/actions/dispatch";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { deleteStudentAction, setStudentActiveAction } from "@/lib/actions/dispatch";
 import type { StudentInput } from "@/lib/validation";
 import { StudentDialog, type BatchOption } from "./student-dialog";
 
@@ -28,6 +38,15 @@ export function StudentActions({
   const t = useT();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const remove = () =>
+    startTransition(async () => {
+      const result = await deleteStudentAction({ id: student.id! });
+      setConfirmDelete(false);
+      if (!result.ok) return void toast.error(t(result.error));
+      toast.success(t(result.message));
+      router.refresh();
+    });
   const toggle = () =>
     startTransition(async () => {
       const result = await setStudentActiveAction({ id: student.id, active: !active });
@@ -61,8 +80,36 @@ export function StudentActions({
           <DropdownMenuItem onSelect={toggle}>
             {active ? <UserXIcon /> : <UserCheckIcon />} {active ? t("Mark inactive") : t("Mark active")}
           </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setConfirmDelete(true)} className="text-destructive">
+            <Trash2Icon /> {t("Delete…")}
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("Delete {name}?", { name: student.full_name })}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t(
+                "Their name, address and phone are removed for good. A student who is already in a sent round can't be deleted – mark them inactive instead.",
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("Keep")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                remove();
+              }}
+              disabled={pending}
+              className="bg-destructive hover:bg-destructive/90 text-white"
+            >
+              {t("Delete student")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
