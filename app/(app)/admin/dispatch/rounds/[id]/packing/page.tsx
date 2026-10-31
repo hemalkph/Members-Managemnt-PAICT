@@ -12,9 +12,11 @@ import { formatDateTime } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import { uuid } from "@/lib/validation";
 
+import { getT } from "@/lib/dispatch/i18n/server";
 export const metadata: Metadata = { title: "Packing – Tute dispatch" };
 
 export default async function PackingPage({ params }: PageProps<"/admin/dispatch/rounds/[id]/packing">) {
+  const t = await getT();
   const { id } = await params;
   if (!uuid.safeParse(id).success) notFound();
   const { caps } = await requireDispatch("plan");
@@ -36,19 +38,19 @@ export default async function PackingPage({ params }: PageProps<"/admin/dispatch
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Packing"
-        description={`${round.name} · assign parcels, print the packing list, sort out problems`}
+        title={t("Packing")}
+        description={`${round.name} · ${t("assign parcels, print the packing list, sort out problems")}`}
         actions={
           <>
             <Button asChild variant="outline" className="print:hidden">
               <Link href={`/admin/dispatch/rounds/${id}`}>
-                <ArrowLeftIcon /> Round
+                <ArrowLeftIcon /> {t("Round")}
               </Link>
             </Button>
             {(caps.has("pack") || caps.has("verify")) && (
               <Button asChild className="print:hidden">
                 <Link href={`/admin/dispatch/rounds/${id}/scan`}>
-                  <ScanBarcodeIcon /> Packing station
+                  <ScanBarcodeIcon /> {t("Packing station")}
                 </Link>
               </Button>
             )}
@@ -57,8 +59,10 @@ export default async function PackingPage({ params }: PageProps<"/admin/dispatch
       />
       <Card className="print:hidden">
         <CardHeader>
-          <CardTitle>Parcels on hold</CardTitle>
-          <CardDescription>Reported at the packing station. Mark each one fixed when it is sorted.</CardDescription>
+          <CardTitle>{t("Parcels on hold")}</CardTitle>
+          <CardDescription>
+            {t("Reported at the packing station. Mark each one fixed when it is sorted.")}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <ProblemList
@@ -69,7 +73,7 @@ export default async function PackingPage({ params }: PageProps<"/admin/dispatch
               reference: (p.parcels as unknown as { reference: string }).reference,
               kind: p.kind,
               note: p.note,
-              openedBy: (p.opened_by && nameOf.get(p.opened_by)) || "A packer",
+              openedBy: (p.opened_by && nameOf.get(p.opened_by)) || t("A packer"),
               when: formatDateTime(p.opened_at),
             }))}
           />

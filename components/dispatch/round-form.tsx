@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { saveRoundAction } from "@/lib/actions/dispatch-rounds";
 import { roundSchema, type RoundInput } from "@/lib/validation";
 
+import { useT } from "@/components/dispatch/lang";
 type Field = { name: keyof RoundInput; label: string; type?: string; hint?: string; placeholder?: string };
 
 const FIELDS: Field[] = [
@@ -44,6 +45,7 @@ export function RoundForm({
   lockBatch?: boolean;
   onSaved?: () => void;
 }) {
+  const t = useT();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const form = useForm<RoundInput>({ resolver: zodResolver(roundSchema), defaultValues: values });
@@ -51,8 +53,8 @@ export function RoundForm({
   const onSubmit = (v: RoundInput) =>
     startTransition(async () => {
       const result = await saveRoundAction(v);
-      if (!result.ok) return void toast.error(result.error);
-      toast.success(result.message);
+      if (!result.ok) return void toast.error(t(result.error));
+      toast.success(t(result.message));
       if (!v.id) router.push(`/admin/dispatch/rounds/${result.data!.id}?step=tutes`);
       else {
         onSaved?.();
@@ -68,9 +70,9 @@ export function RoundForm({
           name="name"
           render={({ field }) => (
             <FormItem className="sm:col-span-2">
-              <FormLabel>Round name</FormLabel>
+              <FormLabel>{t("Round name")}</FormLabel>
               <FormControl>
-                <Input {...field} placeholder="November – 2027 Theory" />
+                <Input {...field} placeholder={t("November – 2027 Theory")} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -81,11 +83,11 @@ export function RoundForm({
           name="batch_id"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Batch</FormLabel>
+              <FormLabel>{t("Batch")}</FormLabel>
               <Select value={field.value} onValueChange={field.onChange} disabled={lockBatch}>
                 <FormControl>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Choose a batch" />
+                    <SelectValue placeholder={t("Choose a batch")} />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
@@ -96,7 +98,7 @@ export function RoundForm({
                   ))}
                 </SelectContent>
               </Select>
-              {lockBatch && <FormDescription>Remove the chosen students to change the batch.</FormDescription>}
+              {lockBatch && <FormDescription>{t("Remove the chosen students to change the batch.")}</FormDescription>}
               <FormMessage />
             </FormItem>
           )}
@@ -108,7 +110,7 @@ export function RoundForm({
             name={f.name}
             render={({ field }) => (
               <FormItem className={f.name === "ref_prefix" ? "sm:col-span-2" : undefined}>
-                <FormLabel>{f.label}</FormLabel>
+                <FormLabel>{t(f.label)}</FormLabel>
                 <FormControl>
                   <Input
                     {...field}
@@ -118,7 +120,7 @@ export function RoundForm({
                     className={f.name === "ref_prefix" ? "font-mono uppercase" : undefined}
                   />
                 </FormControl>
-                {f.hint && <FormDescription>{f.hint}</FormDescription>}
+                {f.hint && <FormDescription>{t(f.hint)}</FormDescription>}
                 <FormMessage />
               </FormItem>
             )}
@@ -129,7 +131,7 @@ export function RoundForm({
           name="notes"
           render={({ field }) => (
             <FormItem className="sm:col-span-2">
-              <FormLabel>Notes (optional)</FormLabel>
+              <FormLabel>{t("Notes (optional)")}</FormLabel>
               <FormControl>
                 <Textarea {...field} rows={2} />
               </FormControl>
@@ -138,7 +140,7 @@ export function RoundForm({
           )}
         />
         <div className="sm:col-span-2">
-          <SubmitButton pending={pending}>{values.id ? "Save details" : "Create round"}</SubmitButton>
+          <SubmitButton pending={pending}>{values.id ? t("Save details") : t("Create round")}</SubmitButton>
         </div>
       </form>
     </Form>

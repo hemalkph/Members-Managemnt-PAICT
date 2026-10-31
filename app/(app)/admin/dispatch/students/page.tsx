@@ -15,17 +15,22 @@ import { formatDate } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import { uuid } from "@/lib/validation";
 
+import { getT } from "@/lib/dispatch/i18n/server";
 export const metadata: Metadata = { title: "Students – Tute dispatch" };
 
 const LIMIT = 500;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 
 export default async function DispatchStudentsPage({ searchParams }: PageProps<"/admin/dispatch/students">) {
+  const t = await getT();
   const { caps } = await requireDispatch(["plan", "courier"]);
   const canEdit = caps.has("plan");
   const sp = await searchParams;
   // Search text goes into a PostgREST filter, so keep only plain characters.
-  const q = one(sp.q).replace(/[^\p{L}\p{N} .'-]/gu, "").trim().slice(0, 60);
+  const q = one(sp.q)
+    .replace(/[^\p{L}\p{N} .'-]/gu, "")
+    .trim()
+    .slice(0, 60);
   const batch = uuid.safeParse(one(sp.batch)).success ? one(sp.batch) : "";
   const status = ["inactive", "any"].includes(one(sp.status)) ? one(sp.status) : "active";
   const problem = one(sp.problem);
@@ -59,19 +64,19 @@ export default async function DispatchStudentsPage({ searchParams }: PageProps<"
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Students"
-        description={`Delivery details for tute parcels · showing ${rows.length}${count && count > rows.length ? ` of ${count}` : ""}`}
+        title={t("Students")}
+        description={`${t("Delivery details for tute parcels")} · ${count && count > rows.length ? t("showing {n} of {total}", { n: rows.length, total: count }) : t("showing {n}", { n: rows.length })}`}
         actions={
           canEdit ? (
             <>
               <Button asChild variant="outline">
                 <Link href="/admin/dispatch/students/import">
-                  <FileSpreadsheetIcon /> Import
+                  <FileSpreadsheetIcon /> {t("Import")}
                 </Link>
               </Button>
               <StudentDialog batches={activeBatches}>
                 <Button disabled={activeBatches.length === 0}>
-                  <UserPlusIcon /> Add student
+                  <UserPlusIcon /> {t("Add student")}
                 </Button>
               </StudentDialog>
             </>
@@ -84,22 +89,26 @@ export default async function DispatchStudentsPage({ searchParams }: PageProps<"
       {rows.length === 0 ? (
         <EmptyState
           icon={UsersIcon}
-          title={q || batch || problem ? "No students match" : "No students yet"}
-          description={canEdit ? "Import a Citypak sheet or CSV, or add students one by one." : "Students added by planners will appear here."}
+          title={q || batch || problem ? t("No students match") : t("No students yet")}
+          description={
+            canEdit
+              ? t("Import a Citypak sheet or CSV, or add students one by one.")
+              : t("Students added by planners will appear here.")
+          }
         />
       ) : (
         <Card className="py-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="pl-4">No.</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead className="hidden md:table-cell">Address</TableHead>
-                <TableHead className="hidden sm:table-cell">Phone</TableHead>
-                <TableHead className="hidden lg:table-cell">Updated</TableHead>
+                <TableHead className="pl-4">{t("No.")}</TableHead>
+                <TableHead>{t("Name")}</TableHead>
+                <TableHead className="hidden md:table-cell">{t("Address")}</TableHead>
+                <TableHead className="hidden sm:table-cell">{t("Phone")}</TableHead>
+                <TableHead className="hidden lg:table-cell">{t("Updated")}</TableHead>
                 {canEdit && (
                   <TableHead className="w-20 pr-4">
-                    <span className="sr-only">Actions</span>
+                    <span className="sr-only">{t("Actions")}</span>
                   </TableHead>
                 )}
               </TableRow>
@@ -121,7 +130,7 @@ export default async function DispatchStudentsPage({ searchParams }: PageProps<"
                     </TableCell>
                     <TableCell className="hidden max-w-[280px] md:table-cell">
                       {missing ? (
-                        <Badge variant="warning">Missing address</Badge>
+                        <Badge variant="warning">{t("Missing address")}</Badge>
                       ) : (
                         <>
                           <p className="truncate text-sm">{address}</p>
@@ -131,15 +140,20 @@ export default async function DispatchStudentsPage({ searchParams }: PageProps<"
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">
                       {s.phone1 ? (
-                        <span className="font-mono text-sm" title={s.phone1_raw ? `Imported as "${s.phone1_raw}"` : undefined}>
+                        <span
+                          className="font-mono text-sm"
+                          title={s.phone1_raw ? t("Imported as “{raw}”", { raw: s.phone1_raw }) : undefined}
+                        >
                           {s.phone1}
                           {s.phone1_raw && <span className="text-muted-foreground ml-1 text-xs">*</span>}
                         </span>
                       ) : (
-                        <Badge variant="warning">No phone</Badge>
+                        <Badge variant="warning">{t("No phone")}</Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-muted-foreground hidden text-xs lg:table-cell">{formatDate(s.updated_at)}</TableCell>
+                    <TableCell className="text-muted-foreground hidden text-xs lg:table-cell">
+                      {formatDate(s.updated_at)}
+                    </TableCell>
                     {canEdit && (
                       <TableCell className="pr-4">
                         {!s.anonymised_at && (
@@ -173,7 +187,9 @@ export default async function DispatchStudentsPage({ searchParams }: PageProps<"
         </Card>
       )}
       {rows.some((s) => s.phone1_raw) && (
-        <p className="text-muted-foreground text-xs">* The phone number was cleaned on import; hover it to see what the file said.</p>
+        <p className="text-muted-foreground text-xs">
+          {t("* The phone number was cleaned on import; hover it to see what the file said.")}
+        </p>
       )}
     </div>
   );

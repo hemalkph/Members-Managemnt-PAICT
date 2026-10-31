@@ -35,9 +35,14 @@ import { issuesCsv, MAX_IMPORT_BYTES, STUDENT_FIELDS, type Mapping, type RowStat
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
+import { useT } from "@/components/dispatch/lang";
+import { plural } from "@/lib/dispatch/i18n";
 const STEPS = ["Upload", "Match columns", "Check", "Preview", "Confirm"] as const;
 
-const STATUS: Record<RowStatus, { label: string; variant: "success" | "secondary" | "outline" | "warning" | "destructive" }> = {
+const STATUS: Record<
+  RowStatus,
+  { label: string; variant: "success" | "secondary" | "outline" | "warning" | "destructive" }
+> = {
   new: { label: "New", variant: "success" },
   updated: { label: "Updated", variant: "secondary" },
   unchanged: { label: "Unchanged", variant: "outline" },
@@ -49,14 +54,15 @@ const NONE = "none";
 const REF = "ref:";
 
 function StepBar({ step }: { step: number }) {
+  const t = useT();
   return (
-    <ol className="grid grid-cols-5 gap-2" aria-label="Import steps">
+    <ol className="grid grid-cols-5 gap-2" aria-label={t("Import steps")}>
       {STEPS.map((label, i) => (
         <li key={label} className="space-y-1.5" aria-current={i === step ? "step" : undefined}>
           <div className={cn("h-1.5 rounded-full", i < step ? "bg-success" : i === step ? "bg-primary" : "bg-muted")} />
           <p className={cn("text-xs", i === step ? "font-semibold" : "text-muted-foreground")}>
             <span className="hidden sm:inline">{i + 1}. </span>
-            {label}
+            {t(label)}
           </p>
         </li>
       ))}
@@ -65,6 +71,7 @@ function StepBar({ step }: { step: number }) {
 }
 
 export function ImportWizard({ batches }: { batches: { id: string; name: string }[] }) {
+  const t = useT();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [batchId, setBatchId] = useState(batches[0]?.id ?? "");
@@ -83,15 +90,22 @@ export function ImportWizard({ batches }: { batches: { id: string; name: string 
   const upload = () =>
     startTransition(async () => {
       if (!file || !batchId) return;
-      const ext = file.name.toLowerCase().endsWith(".csv") ? "csv" : file.name.toLowerCase().endsWith(".xlsx") ? "xlsx" : null;
-      if (!ext) return void toast.error("Choose an Excel (.xlsx) or CSV file.");
-      if (file.size > MAX_IMPORT_BYTES) return void toast.error("The file is larger than 15 MB.");
+      const ext = file.name.toLowerCase().endsWith(".csv")
+        ? "csv"
+        : file.name.toLowerCase().endsWith(".xlsx")
+          ? "xlsx"
+          : null;
+      if (!ext) return void toast.error(t("Choose an Excel (.xlsx) or CSV file."));
+      if (file.size > MAX_IMPORT_BYTES) return void toast.error(t("The file is larger than 15 MB."));
       const path = `imports/${crypto.randomUUID()}.${ext}`;
-      const contentType = ext === "csv" ? "text/csv" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-      const { error } = await createClient().storage.from("dispatch").upload(path, file, { contentType, upsert: false });
-      if (error) return void toast.error("The upload failed. Check your connection and try again.");
+      const contentType =
+        ext === "csv" ? "text/csv" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+      const { error } = await createClient()
+        .storage.from("dispatch")
+        .upload(path, file, { contentType, upsert: false });
+      if (error) return void toast.error(t("The upload failed. Check your connection and try again."));
       const result = await startImportAction({ path, fileName: file.name, batchId });
-      if (!result.ok) return void toast.error(result.error);
+      if (!result.ok) return void toast.error(t(result.error));
       setStart(result.data!);
       setMapping(result.data!.mapping);
     });
@@ -101,7 +115,7 @@ export function ImportWizard({ batches }: { batches: { id: string; name: string 
     startTransition(async () => {
       if (!start) return;
       const result = await previewImportAction({ import_id: start.importId, mapping });
-      if (!result.ok) return void toast.error(result.error);
+      if (!result.ok) return void toast.error(t(result.error));
       const data = result.data!;
       setPreview(data);
       setSelected(new Set(data.rows.filter((r) => r.defaultSelected).map((r) => r.line)));
@@ -115,16 +129,19 @@ export function ImportWizard({ batches }: { batches: { id: string; name: string 
       if (!start) return;
       const result = await applyImportAction({ import_id: start.importId, mapping, lines: [...selected] });
       if (!result.ok) {
-        toast.error(result.error);
+        toast.error(t(result.error));
         setConfirming(false);
         return;
       }
-      toast.success(result.message);
+      toast.success(t(result.message));
       setSaved(result.data!.saved);
       router.refresh();
     });
 
-  const selectable = useMemo(() => (preview?.rows ?? []).filter((r) => r.status !== "invalid" && r.status !== "unchanged"), [preview]);
+  const selectable = useMemo(
+    () => (preview?.rows ?? []).filter((r) => r.status !== "invalid" && r.status !== "unchanged"),
+    [preview],
+  );
   const shown = (preview?.rows ?? []).filter((r) => filter === "all" || r.status === filter);
   const chosen = selectable.filter((r) => selected.has(r.line));
   const chosenCounts = {
@@ -164,18 +181,19 @@ export function ImportWizard({ batches }: { batches: { id: string; name: string 
       {step === 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Upload the student list</CardTitle>
+            <CardTitle>{t("Upload the student list")}</CardTitle>
             <CardDescription>
-              An Excel (.xlsx) or CSV file, up to 15 MB and 2,000 rows. A Citypak export works as it is. The file is kept
-              privately and deleted automatically later. Nothing is saved to the student list until you confirm.
+              {t(
+                "An Excel (.xlsx) or CSV file, up to 15 MB and 2,000 rows. A Citypak export works as it is. The file is kept privately and deleted automatically later. Nothing is saved to the student list until you confirm.",
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2">
-              <Label htmlFor="import-batch">Batch</Label>
+              <Label htmlFor="import-batch">{t("Batch")}</Label>
               <Select value={batchId} onValueChange={setBatchId}>
                 <SelectTrigger id="import-batch" className="w-full">
-                  <SelectValue placeholder="Choose a batch" />
+                  <SelectValue placeholder={t("Choose a batch")} />
                 </SelectTrigger>
                 <SelectContent>
                   {batches.map((b) => (
@@ -187,7 +205,7 @@ export function ImportWizard({ batches }: { batches: { id: string; name: string 
               </Select>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="import-file">File</Label>
+              <Label htmlFor="import-file">{t("File")}</Label>
               <Input
                 id="import-file"
                 type="file"
@@ -197,7 +215,7 @@ export function ImportWizard({ batches }: { batches: { id: string; name: string 
             </div>
             <div className="sm:col-span-2">
               <Button onClick={upload} disabled={!file || !batchId || pending}>
-                {pending ? <Loader2Icon className="animate-spin" /> : <UploadIcon />} Upload and read
+                {pending ? <Loader2Icon className="animate-spin" /> : <UploadIcon />} {t("Upload and read")}
               </Button>
             </div>
           </CardContent>
@@ -211,19 +229,28 @@ export function ImportWizard({ batches }: { batches: { id: string; name: string 
               <FileSpreadsheetIcon className="text-primary size-5" /> {start.fileName}
             </CardTitle>
             <CardDescription>
-              {start.rowCount} rows found. Check which column holds each detail; recognised columns are already chosen.
+              {t(
+                "{rowCount} rows found. Check which column holds each detail; recognised columns are already chosen.",
+                { rowCount: start.rowCount },
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-2">
               {STUDENT_FIELDS.map((f) => {
                 const src = mapping[f.key];
-                const sample = src ? start.sample.map((r) => r[src.column]).filter(Boolean).slice(0, 2).join(" · ") : "";
+                const sample = src
+                  ? start.sample
+                      .map((r) => r[src.column])
+                      .filter(Boolean)
+                      .slice(0, 2)
+                      .join(" · ")
+                  : "";
                 const required = f.key === "student_no" || f.key === "full_name";
                 return (
                   <div key={f.key} className="grid gap-1.5">
                     <Label>
-                      {f.label}
+                      {t(f.label)}
                       {required && <span className="text-destructive"> *</span>}
                     </Label>
                     <Select value={columnValue(f.key)} onValueChange={(v) => setColumn(f.key, v)}>
@@ -231,7 +258,7 @@ export function ImportWizard({ batches }: { batches: { id: string; name: string 
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value={NONE}>Not in this file</SelectItem>
+                        <SelectItem value={NONE}>{t("Not in this file")}</SelectItem>
                         {start.header.map((h, i) => (
                           <SelectItem key={i} value={String(i)}>
                             {h || `Column ${i + 1}`}
@@ -241,7 +268,7 @@ export function ImportWizard({ batches }: { batches: { id: string; name: string 
                           start.header.map((h, i) =>
                             /reference/i.test(h) ? (
                               <SelectItem key={`ref-${i}`} value={`${REF}${i}`}>
-                                Last digits of “{h}”
+                                {t("Last digits of “{h}”", { h: h })}
                               </SelectItem>
                             ) : null,
                           )}
@@ -260,10 +287,10 @@ export function ImportWizard({ batches }: { batches: { id: string; name: string 
                   setFile(null);
                 }}
               >
-                <ArrowLeftIcon /> Choose another file
+                <ArrowLeftIcon /> {t("Choose another file")}
               </Button>
               <Button onClick={runPreview} disabled={!mapping.student_no || !mapping.full_name || pending}>
-                {pending ? <Loader2Icon className="animate-spin" /> : <ArrowRightIcon />} Check rows
+                {pending ? <Loader2Icon className="animate-spin" /> : <ArrowRightIcon />} {t("Check rows")}
               </Button>
             </div>
           </CardContent>
@@ -276,20 +303,26 @@ export function ImportWizard({ batches }: { batches: { id: string; name: string 
             <button
               type="button"
               onClick={() => setFilter("all")}
-              className={cn("rounded-lg border p-3 text-left", filter === "all" && "border-primary ring-primary/30 ring-2")}
+              className={cn(
+                "rounded-lg border p-3 text-left",
+                filter === "all" && "border-primary ring-primary/30 ring-2",
+              )}
             >
               <p className="text-2xl font-semibold tabular-nums">{preview.rows.length}</p>
-              <p className="text-muted-foreground text-xs">All rows</p>
+              <p className="text-muted-foreground text-xs">{t("All rows")}</p>
             </button>
             {(Object.keys(STATUS) as RowStatus[]).map((s) => (
               <button
                 key={s}
                 type="button"
                 onClick={() => setFilter(s)}
-                className={cn("rounded-lg border p-3 text-left", filter === s && "border-primary ring-primary/30 ring-2")}
+                className={cn(
+                  "rounded-lg border p-3 text-left",
+                  filter === s && "border-primary ring-primary/30 ring-2",
+                )}
               >
                 <p className="text-2xl font-semibold tabular-nums">{preview.counts[s]}</p>
-                <p className="text-muted-foreground text-xs">{STATUS[s].label}</p>
+                <p className="text-muted-foreground text-xs">{t(STATUS[s].label)}</p>
               </button>
             ))}
           </div>
@@ -298,26 +331,32 @@ export function ImportWizard({ batches }: { batches: { id: string; name: string 
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" size="sm" onClick={() => setPreview(null)} disabled={pending}>
-                  <ArrowLeftIcon /> Change columns
+                  <ArrowLeftIcon /> {t("Change columns")}
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setSelected(new Set(selectable.filter((r) => r.baseStatus === "new" && r.status === "new").map((r) => r.line)))}
+                  onClick={() =>
+                    setSelected(
+                      new Set(
+                        selectable.filter((r) => r.baseStatus === "new" && r.status === "new").map((r) => r.line),
+                      ),
+                    )
+                  }
                 >
-                  Tick all new
+                  {t("Tick all new")}
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => setSelected(new Set())}>
-                  Untick all
+                  {t("Untick all")}
                 </Button>
                 {preview.counts.invalid + preview.counts.review > 0 && (
                   <Button variant="outline" size="sm" onClick={downloadIssues}>
-                    <DownloadIcon /> Problems (CSV)
+                    <DownloadIcon /> {t("Problems (CSV)")}
                   </Button>
                 )}
               </div>
               <Button onClick={() => setConfirming(true)} disabled={chosen.length === 0}>
-                Review {chosen.length} ticked <ArrowRightIcon />
+                {t("Review {length} ticked", { length: chosen.length })} <ArrowRightIcon />
               </Button>
             </div>
           )}
@@ -325,20 +364,21 @@ export function ImportWizard({ batches }: { batches: { id: string; name: string 
           {confirming && (
             <Card className="border-primary/40">
               <CardHeader>
-                <CardTitle>Save these changes?</CardTitle>
+                <CardTitle>{t("Save these changes?")}</CardTitle>
                 <CardDescription>
-                  {chosenCounts.add} new student{chosenCounts.add === 1 ? "" : "s"} and {chosenCounts.update} update
-                  {chosenCounts.update === 1 ? "" : "s"}. Unticked rows are left as they are. If someone changed a student
-                  since this preview, nothing is saved and you&apos;ll be asked to check again.
+                  {t("{add} new, {update} updated.", { add: chosenCounts.add, update: chosenCounts.update })}{" "}
+                  {t(
+                    "Unticked rows are left as they are. If someone changed a student since this preview, nothing is saved and you'll be asked to check again.",
+                  )}
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-wrap gap-2">
                 <Button variant="outline" onClick={() => setConfirming(false)} disabled={pending}>
-                  <ArrowLeftIcon /> Back
+                  <ArrowLeftIcon /> {t("Back")}
                 </Button>
                 <Button onClick={save} disabled={pending}>
-                  {pending ? <Loader2Icon className="animate-spin" /> : <CheckCircle2Icon />} Save {chosen.length} row
-                  {chosen.length === 1 ? "" : "s"}
+                  {pending ? <Loader2Icon className="animate-spin" /> : <CheckCircle2Icon />}{" "}
+                  {t(plural(chosen.length, "Save {n} row", "Save {n} rows"), { n: chosen.length })}
                 </Button>
               </CardContent>
             </Card>
@@ -364,21 +404,24 @@ export function ImportWizard({ batches }: { batches: { id: string; name: string 
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <CheckCircle2Icon className="text-success size-5" /> Saved {saved} student record{saved === 1 ? "" : "s"}
+              <CheckCircle2Icon className="text-success size-5" />{" "}
+              {t(plural(saved, "Saved {n} student record", "Saved {n} student records"), { n: saved })}
             </CardTitle>
             <CardDescription>
               {preview && preview.counts.invalid + preview.counts.review > 0
-                ? "Rows you didn't tick were not changed. Download the problems list to fix them in the file and import again."
-                : "Rows you didn't tick were not changed."}
+                ? t(
+                    "Rows you didn't tick were not changed. Download the problems list to fix them in the file and import again.",
+                  )
+                : t("Rows you didn't tick were not changed.")}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
             <Button asChild>
-              <Link href="/admin/dispatch/students">Open students</Link>
+              <Link href="/admin/dispatch/students">{t("Open students")}</Link>
             </Button>
             {preview && preview.counts.invalid + preview.counts.review > 0 && (
               <Button variant="outline" onClick={downloadIssues}>
-                <DownloadIcon /> Problems (CSV)
+                <DownloadIcon /> {t("Problems (CSV)")}
               </Button>
             )}
           </CardContent>
@@ -400,25 +443,26 @@ export function ImportPreviewTable({
   onToggle: (line: number, on: boolean) => void;
   locked?: boolean;
 }) {
+  const t = useT();
   return (
     <Card className="py-0">
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead className="w-10 pl-4">
-              <span className="sr-only">Save</span>
+              <span className="sr-only">{t("Save")}</span>
             </TableHead>
-            <TableHead className="w-14">Row</TableHead>
-            <TableHead>Student</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="hidden md:table-cell">Details</TableHead>
+            <TableHead className="w-14">{t("Row")}</TableHead>
+            <TableHead>{t("Student")}</TableHead>
+            <TableHead>{t("Status")}</TableHead>
+            <TableHead className="hidden md:table-cell">{t("Details")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {rows.length === 0 && (
             <TableRow>
               <TableCell colSpan={5} className="text-muted-foreground py-6 text-center text-sm">
-                No rows here.
+                {t("No rows here.")}
               </TableCell>
             </TableRow>
           )}
@@ -428,7 +472,7 @@ export function ImportPreviewTable({
               <TableRow key={r.line} data-state={selected.has(r.line) ? "selected" : undefined}>
                 <TableCell className="pl-4">
                   <Checkbox
-                    aria-label={`Save row ${r.line}`}
+                    aria-label={t("Save row {n}", { n: r.line })}
                     disabled={!canPick || locked}
                     checked={selected.has(r.line)}
                     onCheckedChange={(v) => onToggle(r.line, v === true)}
@@ -443,9 +487,11 @@ export function ImportPreviewTable({
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={STATUS[r.status].variant}>{STATUS[r.status].label}</Badge>
+                  <Badge variant={STATUS[r.status].variant}>{t(STATUS[r.status].label)}</Badge>
                   {r.status === "review" && (
-                    <p className="text-muted-foreground mt-1 text-xs">{r.baseStatus === "updated" ? "Update" : "New"}</p>
+                    <p className="text-muted-foreground mt-1 text-xs">
+                      {r.baseStatus === "updated" ? t("Update") : t("New")}
+                    </p>
                   )}
                 </TableCell>
                 <TableCell className="hidden max-w-[420px] space-y-1 text-xs md:table-cell">
@@ -461,22 +507,23 @@ export function ImportPreviewTable({
 }
 
 function RowDetails({ row }: { row: ImportPreview["rows"][number] }) {
+  const t = useT();
   return (
     <>
       {row.errors.map((e) => (
         <p key={e} className="text-destructive flex gap-1">
-          <XCircleIcon className="mt-0.5 size-3.5 shrink-0" /> {e}
+          <XCircleIcon className="mt-0.5 size-3.5 shrink-0" /> {t(e)}
         </p>
       ))}
       {row.warnings.map((w) => (
         <p key={w} className="flex gap-1 text-amber-700 dark:text-warning">
-          <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0" /> {w}
+          <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0" /> {t(w)}
         </p>
       ))}
       {row.changes.map((c) => (
         <p key={c.field}>
-          <span className="font-medium">{c.label}:</span>{" "}
-          <span className="text-muted-foreground line-through">{c.from || "empty"}</span> → {c.to}
+          <span className="font-medium">{t(c.label)}:</span>{" "}
+          <span className="text-muted-foreground line-through">{c.from || t("empty")}</span> → {c.to}
         </p>
       ))}
     </>

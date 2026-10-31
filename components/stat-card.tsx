@@ -1,4 +1,5 @@
-import type { LucideIcon } from "lucide-react";
+import type * as React from "react";
+import { AnimateIcon } from "@animate-ui/react/icons";
 import CountUp from "@/components/reactbits/count-up";
 import SpotlightCard from "@/components/reactbits/spotlight-card";
 import { cn } from "@/lib/utils";
@@ -23,7 +24,8 @@ export function StatCard({
 }: {
   label: string;
   value: number;
-  icon: LucideIcon;
+  /** A lucide icon, or an animated Hugeicon (it draws in when the card appears and on hover). */
+  icon: React.ComponentType<{ className?: string }>;
   hint?: string;
   tone?: keyof typeof TONES;
   delay?: number;
@@ -45,9 +47,13 @@ export function StatCard({
           </p>
           {hint && <p className="text-muted-foreground truncate text-xs">{hint}</p>}
         </div>
-        <div className={cn("hidden size-10 shrink-0 items-center justify-center rounded-lg sm:flex", TONES[tone])}>
+        <AnimateIcon
+          animateOnView
+          animateOnHover
+          className={cn("hidden size-10 shrink-0 items-center justify-center rounded-lg sm:flex", TONES[tone])}
+        >
           <Icon className="size-5" />
-        </div>
+        </AnimateIcon>
       </div>
     </SpotlightCard>
   );

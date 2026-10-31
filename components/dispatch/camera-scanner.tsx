@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CameraOffIcon, Loader2Icon } from "lucide-react";
 
+import { useT } from "@/components/dispatch/lang";
 type Detector = { detect: (source: HTMLVideoElement) => Promise<{ rawValue: string }[]> };
 type DetectorClass = new (opts: { formats: string[] }) => Detector;
 
@@ -14,8 +15,9 @@ const WASM = "/vendor/zxing/zxing_reader-3.1.3.wasm";
  * self-hosted WebAssembly reader (iPhone, desktop). Nothing is sent anywhere.
  */
 async function makeDetector(): Promise<Detector> {
-  const native = (globalThis as unknown as { BarcodeDetector?: DetectorClass & { getSupportedFormats?: () => Promise<string[]> } })
-    .BarcodeDetector;
+  const native = (
+    globalThis as unknown as { BarcodeDetector?: DetectorClass & { getSupportedFormats?: () => Promise<string[]> } }
+  ).BarcodeDetector;
   if (native?.getSupportedFormats) {
     const formats = await native.getSupportedFormats();
     if (formats.includes("code_128")) return new native({ formats: ["code_128"] });
@@ -28,6 +30,7 @@ async function makeDetector(): Promise<Detector> {
 }
 
 export function CameraScanner({ onCode, onClose }: { onCode: (code: string) => void; onClose: () => void }) {
+  const t = useT();
   const video = useRef<HTMLVideoElement>(null);
   const [status, setStatus] = useState<"starting" | "running" | "error">("starting");
   const [error, setError] = useState("");
@@ -44,7 +47,8 @@ export function CameraScanner({ onCode, onClose }: { onCode: (code: string) => v
 
     (async () => {
       try {
-        if (!navigator.mediaDevices?.getUserMedia) throw new Error("This browser can't use the camera here (HTTPS is needed).");
+        if (!navigator.mediaDevices?.getUserMedia)
+          throw new Error("This browser can't use the camera here (HTTPS is needed).");
         const detector = await makeDetector();
         stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
         if (stopped || !video.current) return;
@@ -87,27 +91,27 @@ export function CameraScanner({ onCode, onClose }: { onCode: (code: string) => v
 
   return (
     <div className="relative overflow-hidden rounded-lg border bg-black">
-      <video ref={video} className="aspect-video w-full object-cover" muted playsInline aria-label="Camera view" />
+      <video ref={video} className="aspect-video w-full object-cover" muted playsInline aria-label={t("Camera view")} />
       {status === "running" && (
         <>
           <div className="pointer-events-none absolute inset-x-6 top-1/2 h-16 -translate-y-1/2 rounded-md border-2 border-white/80" />
           {/* Citypak's small reference barcode has almost no white margin, so cameras read the big top one far better. */}
           <p className="absolute inset-x-0 bottom-0 bg-black/60 px-2 py-1 text-center text-xs text-white">
-            Aim at the big barcode at the top of the label (tracking number)
+            {t("Aim at the big barcode at the top of the label (tracking number)")}
           </p>
         </>
       )}
       {status === "starting" && (
         <div className="absolute inset-0 flex items-center justify-center gap-2 text-sm text-white">
-          <Loader2Icon className="size-4 animate-spin" /> Starting camera…
+          <Loader2Icon className="size-4 animate-spin" /> {t("Starting camera…")}
         </div>
       )}
       {status === "error" && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center text-sm text-white">
           <CameraOffIcon className="size-6" />
-          <p>{error}</p>
+          <p>{t(error)}</p>
           <button type="button" className="underline" onClick={onClose}>
-            Close camera
+            {t("Close camera")}
           </button>
         </div>
       )}

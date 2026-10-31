@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/dispatch/lang";
 
 export function StudentFilters({ batches }: { batches: { id: string; name: string }[] }) {
+  const t = useT();
   const { searchParams, setParams, pending } = useUrlFilters();
   const urlQuery = searchParams.get("q") ?? "";
   const [q, setQ] = useState(urlQuery);
@@ -18,8 +20,8 @@ export function StudentFilters({ batches }: { batches: { id: string; name: strin
 
   useEffect(() => {
     if (q === urlQuery) return;
-    const t = setTimeout(() => setParams({ q }), 300);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setParams({ q }), 300);
+    return () => clearTimeout(timer);
   }, [q, urlQuery, setParams]);
 
   const hasFilters = urlQuery || batch !== "all" || status !== "active" || problem !== "all";
@@ -31,17 +33,17 @@ export function StudentFilters({ batches }: { batches: { id: string; name: strin
         <Input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search number, name, phone or city"
+          placeholder={t("Search number, name, phone or city")}
           className="pl-9"
-          aria-label="Search students"
+          aria-label={t("Search students")}
         />
       </div>
       <Select value={batch} onValueChange={(v) => setParams({ batch: v })}>
-        <SelectTrigger className="w-full" aria-label="Batch">
+        <SelectTrigger className="w-full" aria-label={t("Batch")}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All batches</SelectItem>
+          <SelectItem value="all">{t("All batches")}</SelectItem>
           {batches.map((b) => (
             <SelectItem key={b.id} value={b.id}>
               {b.name}
@@ -50,24 +52,24 @@ export function StudentFilters({ batches }: { batches: { id: string; name: strin
         </SelectContent>
       </Select>
       <Select value={status} onValueChange={(v) => setParams({ status: v === "active" ? null : v })}>
-        <SelectTrigger className="w-full" aria-label="Status">
+        <SelectTrigger className="w-full" aria-label={t("Status")}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="active">Active</SelectItem>
-          <SelectItem value="inactive">Inactive</SelectItem>
-          <SelectItem value="any">Active and inactive</SelectItem>
+          <SelectItem value="active">{t("Active")}</SelectItem>
+          <SelectItem value="inactive">{t("Inactive")}</SelectItem>
+          <SelectItem value="any">{t("Active and inactive")}</SelectItem>
         </SelectContent>
       </Select>
       <Select value={problem} onValueChange={(v) => setParams({ problem: v })}>
-        <SelectTrigger className="w-full" aria-label="Problems">
+        <SelectTrigger className="w-full" aria-label={t("Problems")}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All details</SelectItem>
-          <SelectItem value="address">Missing address</SelectItem>
-          <SelectItem value="phone">No phone</SelectItem>
-          <SelectItem value="phone-check">Phone was changed on import</SelectItem>
+          <SelectItem value="all">{t("All details")}</SelectItem>
+          <SelectItem value="address">{t("Missing address")}</SelectItem>
+          <SelectItem value="phone">{t("No phone")}</SelectItem>
+          <SelectItem value="phone-check">{t("Phone was changed on import")}</SelectItem>
         </SelectContent>
       </Select>
       {hasFilters && (
@@ -78,7 +80,7 @@ export function StudentFilters({ batches }: { batches: { id: string; name: strin
             setParams({ q: null, batch: null, status: null, problem: null });
           }}
         >
-          <XIcon /> Clear
+          <XIcon /> {t("Clear")}
         </Button>
       )}
     </div>

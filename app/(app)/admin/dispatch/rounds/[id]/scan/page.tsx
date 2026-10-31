@@ -9,9 +9,11 @@ import { requireDispatch } from "@/lib/dispatch/access";
 import { createClient } from "@/lib/supabase/server";
 import { uuid } from "@/lib/validation";
 
+import { getT } from "@/lib/dispatch/i18n/server";
 export const metadata: Metadata = { title: "Packing station – Tute dispatch" };
 
 export default async function ScanPage({ params }: PageProps<"/admin/dispatch/rounds/[id]/scan">) {
+  const t = await getT();
   const { id } = await params;
   if (!uuid.safeParse(id).success) notFound();
   const { caps } = await requireDispatch(["pack", "verify"]);
@@ -27,10 +29,10 @@ export default async function ScanPage({ params }: PageProps<"/admin/dispatch/ro
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Packing station</h1>
+        <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">{t("Packing station")}</h1>
         <Button asChild variant="ghost" size="sm">
           <Link href={`/admin/dispatch/rounds/${id}`}>
-            <ArrowLeftIcon /> Round
+            <ArrowLeftIcon /> {t("Round")}
           </Link>
         </Button>
       </div>
@@ -41,10 +43,14 @@ export default async function ScanPage({ params }: PageProps<"/admin/dispatch/ro
           canPack={caps.has("pack")}
           canVerify={caps.has("verify")}
           verificationOn={Boolean(settings?.require_verification)}
-          initialProgress={progress.ok && progress.data ? progress.data : { total: 0, registered: 0, packed: 0, verified: 0, onHold: 0, mine: 0 }}
+          initialProgress={
+            progress.ok && progress.data
+              ? progress.data
+              : { total: 0, registered: 0, packed: 0, verified: 0, onHold: 0, mine: 0 }
+          }
         />
       ) : (
-        <p className="text-muted-foreground text-sm">This round is not open for packing.</p>
+        <p className="text-muted-foreground text-sm">{t("This round is not open for packing.")}</p>
       )}
     </div>
   );

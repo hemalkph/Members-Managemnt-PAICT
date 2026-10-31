@@ -24,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { saveStudentAction } from "@/lib/actions/dispatch";
 import { studentSchema, type StudentInput } from "@/lib/validation";
 
+import { useT } from "@/components/dispatch/lang";
 export type BatchOption = { id: string; name: string };
 
 const TEXT_FIELDS: { name: keyof StudentInput; label: string; wide?: boolean; type?: string; hint?: string }[] = [
@@ -46,6 +47,7 @@ export function StudentDialog({
   batches: BatchOption[];
   children: ReactNode;
 }) {
+  const t = useT();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -72,10 +74,10 @@ export function StudentDialog({
     startTransition(async () => {
       const result = await saveStudentAction(values);
       if (!result.ok) {
-        toast.error(result.error);
+        toast.error(t(result.error));
         return;
       }
-      toast.success(result.message);
+      toast.success(t(result.message));
       setOpen(false);
       router.refresh();
     });
@@ -91,8 +93,8 @@ export function StudentDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>{editing ? "Edit student" : "Add student"}</DialogTitle>
-          <DialogDescription>Delivery details for tute parcels. Students never log in.</DialogDescription>
+          <DialogTitle>{editing ? t("Edit student") : t("Add student")}</DialogTitle>
+          <DialogDescription>{t("Delivery details for tute parcels. Students never log in.")}</DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 sm:grid-cols-2" noValidate>
@@ -101,11 +103,11 @@ export function StudentDialog({
               name="batch_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Batch</FormLabel>
+                  <FormLabel>{t("Batch")}</FormLabel>
                   <Select value={field.value} onValueChange={field.onChange} disabled={editing}>
                     <FormControl>
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Choose a batch" />
+                        <SelectValue placeholder={t("Choose a batch")} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -125,11 +127,11 @@ export function StudentDialog({
               name="student_no"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Student number</FormLabel>
+                  <FormLabel>{t("Student number")}</FormLabel>
                   <FormControl>
                     <Input {...field} placeholder="088" autoComplete="off" />
                   </FormControl>
-                  <FormDescription>Leading zeros are kept.</FormDescription>
+                  <FormDescription>{t("Leading zeros are kept.")}</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -139,7 +141,7 @@ export function StudentDialog({
               name="full_name"
               render={({ field }) => (
                 <FormItem className="sm:col-span-2">
-                  <FormLabel>Name</FormLabel>
+                  <FormLabel>{t("Name")}</FormLabel>
                   <FormControl>
                     <Input {...field} autoComplete="off" />
                   </FormControl>
@@ -154,11 +156,16 @@ export function StudentDialog({
                 name={f.name}
                 render={({ field }) => (
                   <FormItem className={f.wide ? "sm:col-span-2" : undefined}>
-                    <FormLabel>{f.label}</FormLabel>
+                    <FormLabel>{t(f.label)}</FormLabel>
                     <FormControl>
-                      <Input {...field} type={f.type ?? "text"} inputMode={f.type === "tel" ? "tel" : undefined} autoComplete="off" />
+                      <Input
+                        {...field}
+                        type={f.type ?? "text"}
+                        inputMode={f.type === "tel" ? "tel" : undefined}
+                        autoComplete="off"
+                      />
                     </FormControl>
-                    {f.hint && <FormDescription>{f.hint}</FormDescription>}
+                    {f.hint && <FormDescription>{t(f.hint)}</FormDescription>}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -169,9 +176,9 @@ export function StudentDialog({
               name="delivery_note"
               render={({ field }) => (
                 <FormItem className="sm:col-span-2">
-                  <FormLabel>Delivery note (optional)</FormLabel>
+                  <FormLabel>{t("Delivery note (optional)")}</FormLabel>
                   <FormControl>
-                    <Textarea {...field} rows={2} placeholder="e.g. Call before delivering" />
+                    <Textarea {...field} rows={2} placeholder={t("e.g. Call before delivering")} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -179,9 +186,9 @@ export function StudentDialog({
             />
             <DialogFooter className="sm:col-span-2">
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                Cancel
+                {t("Cancel")}
               </Button>
-              <SubmitButton pending={pending}>{editing ? "Save" : "Add student"}</SubmitButton>
+              <SubmitButton pending={pending}>{editing ? t("Save") : t("Add student")}</SubmitButton>
             </DialogFooter>
           </form>
         </Form>

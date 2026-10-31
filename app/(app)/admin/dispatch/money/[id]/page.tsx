@@ -15,9 +15,11 @@ import { formatDateTime } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import { uuid } from "@/lib/validation";
 
+import { getT } from "@/lib/dispatch/i18n/server";
 export const metadata: Metadata = { title: "Settlement – Tute dispatch" };
 
 export default async function SettlementPage({ params }: PageProps<"/admin/dispatch/money/[id]">) {
+  const t = await getT();
   const { id } = await params;
   if (!uuid.safeParse(id).success) notFound();
   const { caps } = await requireDispatch("finance");
@@ -26,7 +28,9 @@ export default async function SettlementPage({ params }: PageProps<"/admin/dispa
     supabase.from("cod_settlements").select("*").eq("id", id).maybeSingle(),
     supabase
       .from("cod_settlement_lines")
-      .select("id, collected, fee, added_at, parcels!inner(reference, tracking_no, delivery_state, cod_expected, dispatch_rounds(name))")
+      .select(
+        "id, collected, fee, added_at, parcels!inner(reference, tracking_no, delivery_state, cod_expected, dispatch_rounds(name))",
+      )
       .eq("settlement_id", id)
       .order("added_at")
       .limit(5000),
@@ -38,20 +42,20 @@ export default async function SettlementPage({ params }: PageProps<"/admin/dispa
   return (
     <div className="space-y-6">
       <PageHeader
-        title={`Settlement ${s.reference}`}
+        title={t("Settlement {ref}", { ref: s.reference })}
         description={
           s.state === "confirmed"
-            ? `Confirmed ${formatDateTime(s.confirmed_at)}${summary?.confirmed_name ? ` by ${summary.confirmed_name}` : ""}`
+            ? `${t("Confirmed {when}", { when: formatDateTime(s.confirmed_at) })}${summary?.confirmed_name ? ` ${t("by {name}", { name: summary.confirmed_name })}` : ""}`
             : s.state === "cancelled"
-              ? `Cancelled ${formatDateTime(s.cancelled_at)}${s.cancel_reason ? ` – ${s.cancel_reason}` : ""}`
-              : "Draft – the parcels don't count as paid until you confirm."
+              ? `${t("Cancelled {when}", { when: formatDateTime(s.cancelled_at) })}${s.cancel_reason ? ` – ${s.cancel_reason}` : ""}`
+              : t("Draft – the parcels don't count as paid until you confirm.")
         }
         actions={
           <div className="flex items-center gap-2">
-            <Badge variant={SETTLEMENT_STATE[s.state].variant}>{SETTLEMENT_STATE[s.state].label}</Badge>
+            <Badge variant={SETTLEMENT_STATE[s.state].variant}>{t(SETTLEMENT_STATE[s.state].label)}</Badge>
             <Button asChild variant="outline">
               <Link href="/admin/dispatch/money">
-                <ArrowLeftIcon /> COD money
+                <ArrowLeftIcon /> {t("COD money")}
               </Link>
             </Button>
           </div>
@@ -60,10 +64,20 @@ export default async function SettlementPage({ params }: PageProps<"/admin/dispa
       <Card>
         <CardContent>
           <SettlementForm
-            initial={{ id: s.id, reference: s.reference, settled_on: s.settled_on, remitted: Number(s.remitted), note: s.note }}
+            initial={{
+              id: s.id,
+              reference: s.reference,
+              settled_on: s.settled_on,
+              remitted: Number(s.remitted),
+              note: s.note,
+            }}
             disabled={s.state !== "draft"}
           />
-          {s.dispute_note && <p className="mt-3 text-sm text-amber-700 dark:text-warning">Difference explained: {s.dispute_note}</p>}
+          {s.dispute_note && (
+            <p className="mt-3 text-sm text-amber-700 dark:text-warning">
+              {t("Difference explained: {dispute_note}", { dispute_note: s.dispute_note })}
+            </p>
+          )}
         </CardContent>
       </Card>
       <SettlementLines

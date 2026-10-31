@@ -37,7 +37,14 @@ export type ConfirmResult = {
   replayed?: boolean;
 };
 
-export type Progress = { total: number; registered: number; packed: number; verified: number; onHold: number; mine: number };
+export type Progress = {
+  total: number;
+  registered: number;
+  packed: number;
+  verified: number;
+  onHold: number;
+  mine: number;
+};
 
 export const PROBLEM_KINDS = [
   { key: "missing_item", label: "A tute is missing" },
@@ -47,3 +54,9 @@ export const PROBLEM_KINDS = [
   { key: "cod_issue", label: "COD problem" },
   { key: "other", label: "Other" },
 ] as const;
+
+/** Problem labels by kind, including "returned" (reported by delivery, not at the station). */
+export const PROBLEM_LABEL: Record<string, string> = {
+  ...Object.fromEntries(PROBLEM_KINDS.map((k) => [k.key, k.label])),
+  returned: "Returned",
+};
