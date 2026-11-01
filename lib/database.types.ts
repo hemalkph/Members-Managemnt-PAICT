@@ -394,6 +394,7 @@ export type Database = {
           default_pieces: number;
           require_verification: boolean;
           allow_self_verify: boolean;
+          optional_steps: string[];
           student_retention_months: number;
           recipient_retention_days: number;
           courier_file_retention_days: number;

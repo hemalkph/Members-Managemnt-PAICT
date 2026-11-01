@@ -16,6 +16,7 @@ const base: RoundProgress = {
   verification: true,
   codOwing: 0,
   inDraft: 0,
+  optional: ["handover", "delivery", "money"],
 };
 const caps = (...c: DispatchCapability[]) => new Set<DispatchCapability>(c);
 const all = caps("plan", "courier", "pack", "verify", "correct", "finance");
@@ -77,3 +78,27 @@ describe("round steps", () => {
     expect(s.find((x) => x.key === "pack")?.href).toBe("/admin/dispatch/rounds/r1/scan");
   });
 });
+
+describe("offices that use fewer steps", () => {
+  const short = { ...base, optional: [] as RoundProgress["optional"] };
+
+  test("Plan → Tracking → Pack → Close", () => {
+    expect(roundStages("r1", short, all).map((s) => s.key)).toEqual(["plan", "tracking", "pack", "close"]);
+    const packed = { ...short, packed: 10, verified: 10 };
+    expect(statuses(packed)).toEqual(["plan:done", "tracking:done", "pack:done", "close:now"]);
+    expect(nextAction("r1", packed, all)?.label).toBe("Close the round");
+    expect(nextAction("r1", { ...short, packed: 10, verified: 4 }, all)?.label).toBe("Open packing station");
+  });
+
+  test("handover without delivery or COD closes once everything is handed over", () => {
+    const p = { ...base, optional: ["handover"] as RoundProgress["optional"], packed: 10, verified: 10, handedOver: 10 };
+    expect(statuses(p)).toEqual(["plan:done", "tracking:done", "pack:done", "handover:done", "close:now"]);
+    expect(nextAction("r1", p, all)?.label).toBe("Close the round");
+  });
+
+  test("each step reports how much of it is done", () => {
+    const p = { ...base, registered: 5 };
+    expect(roundStages("r1", p, all).find((s) => s.key === "tracking")?.share).toBe(0.5);
+  });
+});
+

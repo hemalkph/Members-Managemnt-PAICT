@@ -1,18 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AlertTriangleIcon, ChevronRightIcon, MapPinOffIcon, PhoneOffIcon, RouteIcon, UsersIcon } from "lucide-react";
 import { LinkButton } from "@/components/animate-ui/components/buttons/link-button";
-import {
-  ArrowRight02,
-  CallBlocked,
-  FileImport,
-  LocationOffline01,
-  Route01,
-  SecurityCheck,
-  Students,
-} from "@/components/animate-ui/icons/hugeicons";
+import { ArrowRight02, FileImport, Route01 } from "@/components/animate-ui/icons/hugeicons";
 import { RoundPath } from "@/components/dispatch/round-path";
+import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
-import { StatCard } from "@/components/stat-card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireDispatch } from "@/lib/dispatch/access";
@@ -20,30 +14,15 @@ import { CAPABILITIES } from "@/lib/dispatch/capabilities";
 import { plural } from "@/lib/dispatch/i18n";
 import { getT } from "@/lib/dispatch/i18n/server";
 import { loadRoundProgress } from "@/lib/dispatch/round-progress";
-import { nextStep, ROUND_STATE } from "@/lib/dispatch/rounds";
-import { nextAction, roundStages, waitingFor, type RoundProgress } from "@/lib/dispatch/stages";
+import { countsFromProgress, nextStep, ROUND_STATE } from "@/lib/dispatch/rounds";
+import { nextAction, roundStages, waitingFor } from "@/lib/dispatch/stages";
+import { cn } from "@/lib/utils";
 import { formatDateTime } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Tute dispatch" };
 
 type Setup = { title: string; detail: string; href: string; label: string };
-
-const counts = (p: RoundProgress) => ({
-  parcels: p.live,
-  registered: p.registered,
-  voided: 0,
-  packed: p.packed,
-  verified: p.verified,
-  onHold: p.onHold,
-  handedOver: p.handedOver,
-  delivered: p.delivered,
-  returned: p.returned,
-  problems: p.failed,
-  codOwing: p.codOwing,
-  canClose:
-    p.live > 0 && p.handedOver >= p.live && p.delivered + p.returned >= p.live && p.codOwing <= 0 && p.inDraft === 0,
-});
 
 /** The dispatch home: each open round with its steps and the one thing to do next. */
 export default async function DispatchOverviewPage() {
@@ -118,6 +97,30 @@ export default async function DispatchOverviewPage() {
     };
   }
 
+  const checks = [
+    {
+      label: t("Active students"),
+      value: activeCount,
+      icon: UsersIcon,
+      href: "/admin/dispatch/students",
+      bad: false,
+    },
+    {
+      label: t("Missing address"),
+      value: missingCount,
+      icon: MapPinOffIcon,
+      href: "/admin/dispatch/students?problem=address",
+      bad: missingCount > 0,
+    },
+    {
+      label: t("No phone"),
+      value: phoneCount,
+      icon: PhoneOffIcon,
+      href: "/admin/dispatch/students?problem=phone",
+      bad: phoneCount > 0,
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -138,52 +141,68 @@ export default async function DispatchOverviewPage() {
       />
 
       {setup && (
-        <Card className="border-warning/60 gap-3">
-          <CardHeader>
-            <CardTitle>{setup.title}</CardTitle>
-            <CardDescription>{setup.detail}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <LinkButton href={setup.href} variant="outline">
-              {setup.label} <ArrowRight02 className="size-4" />
-            </LinkButton>
-          </CardContent>
-        </Card>
+        <Alert variant="warning" className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex gap-3">
+            <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" />
+            <div>
+              <AlertTitle>{setup.title}</AlertTitle>
+              <AlertDescription>{setup.detail}</AlertDescription>
+            </div>
+          </div>
+          <LinkButton href={setup.href} variant="outline" size="sm" className="shrink-0">
+            {setup.label} <ArrowRight02 className="size-4" />
+          </LinkButton>
+        </Alert>
       )}
 
-      <section className="space-y-3" aria-labelledby="rounds-now">
-        <h2 id="rounds-now" className="text-lg font-semibold">
-          {t("Rounds in progress")}
-        </h2>
-        {rounds.length === 0 ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("No rounds in progress")}</CardTitle>
-              <CardDescription>
-                {t("Start a round to send tutes to a batch. It walks you through each step.")}
-              </CardDescription>
-            </CardHeader>
-            {caps.has("plan") && (
-              <CardContent>
-                <LinkButton href="/admin/dispatch/rounds/new">
-                  <Route01 className="size-4" /> {t("New round")}
-                </LinkButton>
-              </CardContent>
-            )}
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {rounds.map((r) => (
-              <Card key={r.id} className="gap-3">
-                <CardHeader>
-                  <div className="flex items-start justify-between gap-2">
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <section className="space-y-3" aria-labelledby="rounds-now">
+          <div className="flex items-baseline justify-between gap-2">
+            <h2 id="rounds-now" className="text-base font-semibold">
+              {t("Rounds in progress")}
+              {rounds.length > 0 && (
+                <span className="text-muted-foreground ml-2 text-sm font-normal tabular-nums">{rounds.length}</span>
+              )}
+            </h2>
+            <Link
+              href="/admin/dispatch/rounds"
+              className="text-primary text-sm font-medium underline-offset-4 hover:underline"
+            >
+              {t("All rounds")}
+            </Link>
+          </div>
+          {rounds.length === 0 ? (
+            <EmptyState
+              icon={RouteIcon}
+              title={t("No rounds in progress")}
+              description={t("Start a round to send tutes to a batch. It walks you through each step.")}
+              action={
+                caps.has("plan") ? (
+                  <LinkButton href="/admin/dispatch/rounds/new">
+                    <Route01 className="size-4" /> {t("New round")}
+                  </LinkButton>
+                ) : undefined
+              }
+            />
+          ) : (
+            <ul className="space-y-3">
+              {rounds.map((r) => (
+                <li
+                  key={r.id}
+                  className={cn(
+                    "bg-card rounded-xl border p-4 shadow-xs transition-shadow hover:shadow-sm",
+                    r.action && "border-l-primary border-l-4",
+                  )}
+                >
+                  <div className="mb-3 flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <CardTitle className="leading-snug">
-                        <Link href={`/admin/dispatch/rounds/${r.id}`} className="underline-offset-4 hover:underline">
-                          {r.name}
-                        </Link>
-                      </CardTitle>
-                      <CardDescription>
+                      <Link
+                        href={`/admin/dispatch/rounds/${r.id}`}
+                        className="block truncate font-semibold underline-offset-4 hover:underline"
+                      >
+                        {r.name}
+                      </Link>
+                      <p className="text-muted-foreground text-xs tabular-nums">
                         {t(plural(r.progress.live, "{n} parcel", "{n} parcels"), { n: r.progress.live })}
                         {r.progress.onHold > 0 && (
                           <span className="text-amber-700 dark:text-warning">
@@ -191,111 +210,119 @@ export default async function DispatchOverviewPage() {
                             · {t("{n} on hold", { n: r.progress.onHold })}
                           </span>
                         )}
-                      </CardDescription>
+                      </p>
                     </div>
                     <Badge variant={ROUND_STATE[r.progress.state].variant}>
                       {t(ROUND_STATE[r.progress.state].label)}
                     </Badge>
                   </div>
-                </CardHeader>
-                <CardContent>
                   <RoundPath
                     compact
                     t={t}
                     stages={r.stages}
                     action={r.action}
                     waiting={r.waiting}
-                    sentence={nextStep(r.progress.state, counts(r.progress), t)}
+                    sentence={nextStep(r.progress.state, countsFromProgress(r.progress), t)}
                   />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-      </section>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
 
-      {canSeeStudents && (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-          <StatCard
-            label={t("Active students")}
-            value={activeCount}
-            icon={Students}
-            hint={t("In the delivery register")}
-          />
-          <StatCard
-            label={t("Missing address")}
-            value={missingCount}
-            icon={LocationOffline01}
-            tone={missingCount > 0 ? "warning" : "success"}
-            hint={t("No address line or city")}
-            delay={0.1}
-          />
-          <StatCard
-            label={t("No phone")}
-            value={phoneCount}
-            icon={CallBlocked}
-            tone={phoneCount > 0 ? "warning" : "success"}
-            hint={t("No usable contact number")}
-            delay={0.2}
-          />
-        </div>
-      )}
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="gap-3">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <SecurityCheck className="text-primary size-5" animateOnView /> {t("Your dispatch permissions")}
-            </CardTitle>
-            <CardDescription>
-              {canEdit ? t("What you can do in Tute dispatch.") : t("You have read-only access to Tute dispatch.")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-2">
-            {CAPABILITIES.filter((c) => caps.has(c.key)).map((c) => (
-              <Badge key={c.key} variant="secondary" title={t(c.description)}>
-                {t(c.title)}
-              </Badge>
-            ))}
-            {caps.size === 0 && <span className="text-muted-foreground text-sm">{t("View only")}</span>}
-          </CardContent>
-        </Card>
-
-        {caps.has("plan") && (
-          <Card className="gap-3">
-            <CardHeader>
-              <CardTitle>{t("Recent imports")}</CardTitle>
-              <CardDescription>
-                {t("Uploaded files are deleted automatically after the retention period.")}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {imports.data && imports.data.length > 0 ? (
-                <ul className="divide-y text-sm">
-                  {imports.data.map((i) => (
-                    <li key={i.id} className="flex items-center justify-between gap-3 py-2">
-                      <div className="min-w-0">
-                        <p className="truncate font-medium">{i.file_name}</p>
-                        <p className="text-muted-foreground text-xs">
-                          {formatDateTime(i.created_at)} · {t("{n} rows", { n: i.row_count })}
-                        </p>
-                      </div>
-                      {i.applied_at ? (
-                        <Badge variant="success">
-                          {t("{applied_count} saved", { applied_count: i.applied_count })}
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline">{t("Not saved")}</Badge>
-                      )}
+        <aside className="space-y-4">
+          {canSeeStudents && (
+            <Card className="gap-2 py-4">
+              <CardHeader>
+                <CardTitle className="text-sm">{t("Student register")}</CardTitle>
+              </CardHeader>
+              <CardContent className="px-2">
+                <ul>
+                  {checks.map((c) => (
+                    <li key={c.href}>
+                      <Link
+                        href={c.href}
+                        className="hover:bg-muted focus-visible:ring-ring/50 flex min-h-11 items-center gap-3 rounded-lg px-2 transition-colors outline-none focus-visible:ring-[3px]"
+                      >
+                        <span
+                          className={cn(
+                            "flex size-8 shrink-0 items-center justify-center rounded-md",
+                            c.bad ? "bg-warning/20 text-amber-700 dark:text-warning" : "bg-muted text-muted-foreground",
+                          )}
+                        >
+                          <c.icon className="size-4" />
+                        </span>
+                        <span className="flex-1 text-sm">{c.label}</span>
+                        <span
+                          className={cn(
+                            "text-sm font-semibold tabular-nums",
+                            c.bad && "text-amber-700 dark:text-warning",
+                          )}
+                        >
+                          {c.value}
+                        </span>
+                        <ChevronRightIcon className="text-muted-foreground size-4" />
+                      </Link>
                     </li>
                   ))}
                 </ul>
-              ) : (
-                <p className="text-muted-foreground text-sm">{t("No imports yet.")}</p>
-              )}
+              </CardContent>
+            </Card>
+          )}
+
+          <Card className="gap-2 py-4">
+            <CardHeader>
+              <CardTitle className="text-sm">{t("Your dispatch permissions")}</CardTitle>
+              <CardDescription className="text-xs">
+                {canEdit ? t("What you can do in Tute dispatch.") : t("You have read-only access to Tute dispatch.")}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-1.5">
+              {CAPABILITIES.filter((c) => caps.has(c.key)).map((c) => (
+                <Badge key={c.key} variant="secondary" title={t(c.description)}>
+                  {t(c.title)}
+                </Badge>
+              ))}
+              {caps.size === 0 && <span className="text-muted-foreground text-sm">{t("View only")}</span>}
             </CardContent>
           </Card>
-        )}
+
+          {caps.has("plan") && (
+            <Card className="gap-2 py-4">
+              <CardHeader>
+                <CardTitle className="text-sm">{t("Recent imports")}</CardTitle>
+                <CardDescription className="text-xs">
+                  {t("Uploaded files are deleted automatically after the retention period.")}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {imports.data && imports.data.length > 0 ? (
+                  <ul className="divide-y text-sm">
+                    {imports.data.map((i) => (
+                      <li key={i.id} className="flex items-center justify-between gap-3 py-2">
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">{i.file_name}</p>
+                          <p className="text-muted-foreground text-xs">
+                            {formatDateTime(i.created_at)} · {t("{n} rows", { n: i.row_count })}
+                          </p>
+                        </div>
+                        {i.applied_at ? (
+                          <Badge variant="success">
+                            {t("{applied_count} saved", { applied_count: i.applied_count })}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline">{t("Not saved")}</Badge>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-muted-foreground text-sm">{t("No imports yet.")}</p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </aside>
       </div>
     </div>
   );

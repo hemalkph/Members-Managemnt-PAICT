@@ -3,6 +3,9 @@
 import type { DispatchCapability } from "@/lib/database.types";
 
 export type StageKey = "plan" | "tracking" | "pack" | "handover" | "delivery" | "money" | "close";
+/** Steps an office may switch off in Settings (Delivery needs Handover, COD money needs Delivery). */
+export type OptionalStep = "handover" | "delivery" | "money";
+export const OPTIONAL_STEPS: OptionalStep[] = ["handover", "delivery", "money"];
 export type StageStatus = "done" | "now" | "started" | "later";
 
 export type RoundProgress = {
@@ -20,6 +23,8 @@ export type RoundProgress = {
   /** COD still owed on delivered parcels, and parcels in a draft settlement (from the close check). */
   codOwing: number;
   inDraft: number;
+  /** The optional steps this office uses. */
+  optional: OptionalStep[];
 };
 
 export type Stage = {
@@ -28,6 +33,8 @@ export type Stage = {
   status: StageStatus;
   /** e.g. "30 / 40" – empty when a count makes no sense. */
   count: string;
+  /** How much of this step is done, 0 to 1. */
+  share: number;
   href: string | null;
 };
 
@@ -111,7 +118,28 @@ function canStart(key: StageKey, p: RoundProgress): boolean {
     case "money":
       return p.codOwing > 0 || p.inDraft > 0;
     case "close":
-      return isDone("delivery", p) && isDone("money", p);
+      return closeReady(p);
+  }
+}
+
+/** Every step in use (other than Close) is finished, so the round can be closed. */
+export function closeReady(p: RoundProgress): boolean {
+  return p.state !== "draft" && p.live > 0 && usedSteps(p).every((k) => k === "close" || isDone(k, p));
+}
+
+/** Parcels finished in this step, for the steps counted per parcel. */
+function finished(key: StageKey, p: RoundProgress): number | null {
+  switch (key) {
+    case "tracking":
+      return p.registered;
+    case "pack":
+      return ready(p);
+    case "handover":
+      return p.handedOver;
+    case "delivery":
+      return p.delivered + p.returned;
+    default:
+      return null;
   }
 }
 
@@ -132,6 +160,11 @@ function count(key: StageKey, p: RoundProgress): string {
 }
 
 const KEYS: StageKey[] = ["plan", "tracking", "pack", "handover", "delivery", "money", "close"];
+
+/** The steps this office uses, in order. */
+export function usedSteps(p: Pick<RoundProgress, "optional">): StageKey[] {
+  return KEYS.filter((k) => !(OPTIONAL_STEPS as StageKey[]).includes(k) || p.optional.includes(k as OptionalStep));
+}
 
 /** Which page each step opens for this person (null = they can't open it). */
 function stageHref(key: StageKey, roundId: string, caps: ReadonlySet<DispatchCapability>): string | null {
@@ -167,7 +200,7 @@ const STAGE_CAP: Record<StageKey, DispatchCapability[]> = {
 
 export function roundStages(roundId: string, p: RoundProgress, caps: ReadonlySet<DispatchCapability>): Stage[] {
   let current: StageKey | null = null;
-  return KEYS.map((key) => {
+  return usedSteps(p).map((key) => {
     const done = p.state === "closed" || isDone(key, p);
     let status: StageStatus;
     if (done) status = "done";
@@ -180,6 +213,7 @@ export function roundStages(roundId: string, p: RoundProgress, caps: ReadonlySet
       label: STAGE_LABEL[key],
       status,
       count: count(key, p),
+      share: status === "done" ? 1 : p.live > 0 ? Math.min((finished(key, p) ?? 0) / p.live, 1) : 0,
       href: status === "later" ? null : stageHref(key, roundId, caps),
     };
   });
@@ -190,7 +224,7 @@ export function roundStages(roundId: string, p: RoundProgress, caps: ReadonlySet
  * can be worked on now, and that they have the permission for.
  */
 export function nextAction(roundId: string, p: RoundProgress, caps: ReadonlySet<DispatchCapability>): NextAction {
-  for (const key of KEYS) {
+  for (const key of usedSteps(p)) {
     if (isDone(key, p) || !canStart(key, p)) continue;
     if (!STAGE_CAP[key].some((c) => caps.has(c))) continue;
     const href = stageHref(key, roundId, caps);

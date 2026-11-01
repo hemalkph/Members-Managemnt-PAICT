@@ -338,6 +338,8 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
     canClose: Boolean((closeCheck as { can_close?: boolean } | null)?.can_close),
   };
   const waiting = counts.parcels - counts.registered - counts.voided;
+  // Without a handover step the round can be closed straight after packing.
+  const usesHandover = ((closeCheck as { steps?: string[] } | null)?.steps ?? ["handover"]).includes("handover");
   const codTotal = list
     .filter((p) => p.registration_state !== "voided")
     .reduce((s, p) => s + Number(p.cod_expected), 0);
@@ -387,7 +389,7 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
         )}
       </div>
 
-      {closeCheck && (counts.handedOver > 0 || round.state === "closed") && (
+      {closeCheck && (counts.handedOver > 0 || round.state === "closed" || (!usesHandover && counts.packed > 0)) && (
         <div id="close" className="scroll-mt-20">
           <RoundClosePanel
             roundId={id}

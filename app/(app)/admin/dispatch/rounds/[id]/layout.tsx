@@ -3,7 +3,7 @@ import { RoundPath } from "@/components/dispatch/round-path";
 import { requireDispatch } from "@/lib/dispatch/access";
 import { getT } from "@/lib/dispatch/i18n/server";
 import { loadRoundProgress } from "@/lib/dispatch/round-progress";
-import { nextStep } from "@/lib/dispatch/rounds";
+import { countsFromProgress, nextStep } from "@/lib/dispatch/rounds";
 import { nextAction, roundStages, waitingFor } from "@/lib/dispatch/stages";
 import { createClient } from "@/lib/supabase/server";
 import { uuid } from "@/lib/validation";
@@ -28,29 +28,7 @@ export default async function RoundLayout({ children, params }: LayoutProps<"/ad
           t={t}
           action={action}
           waiting={action ? null : waitingFor(stages)}
-          sentence={nextStep(
-            p.state,
-            {
-              parcels: p.live,
-              registered: p.registered,
-              voided: 0,
-              packed: p.packed,
-              verified: p.verified,
-              onHold: p.onHold,
-              handedOver: p.handedOver,
-              delivered: p.delivered,
-              returned: p.returned,
-              problems: p.failed,
-              codOwing: p.codOwing,
-              canClose:
-                p.live > 0 &&
-                p.handedOver >= p.live &&
-                p.delivered + p.returned >= p.live &&
-                p.codOwing <= 0 &&
-                p.inDraft === 0,
-            },
-            t,
-          )}
+          sentence={nextStep(p.state, countsFromProgress(p), t)}
         />
       )}
       {children}
