@@ -18,7 +18,7 @@ import { requireCompleteProfile } from "@/lib/auth";
 import { SHOW_MEMBERS_THEIR_EARNINGS } from "@/lib/config";
 import { getMySalary, getSubmissionsForMonth, summarise } from "@/lib/member-queries";
 import { getDeadlines, sendDueRemindersLater } from "@/lib/deadlines";
-import { currentMonthKey, monthLabel, shiftMonth, todayISO } from "@/lib/month";
+import { currentMonthKey, monthLabel, periodDays, shiftMonth, todayISO } from "@/lib/month";
 import { getClosedMonthKeys } from "@/lib/payments";
 import { getTasks } from "@/lib/task-queries";
 import { getCurrentNotices } from "@/lib/notices";
@@ -99,7 +99,7 @@ export default async function DashboardPage() {
       ? prevDeadline
       : deadlines.get(month);
   const deadlineProgress = nextDeadline?.deadline
-    ? progressTo(`${nextDeadline.month}-01T00:00:00+05:30`, nextDeadline.deadline)
+    ? progressTo(`${periodDays(nextDeadline.month).first}T00:00:00+05:30`, nextDeadline.deadline)
     : 0;
   const summary = summarise(submissions);
   const firstName = (profile.full_name || "there").split(" ")[0];

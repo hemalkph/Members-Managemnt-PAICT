@@ -12,8 +12,6 @@ import {
   UsersIcon,
   WalletIcon,
 } from "lucide-react";
-import { DeadlineSettingsDialog } from "@/components/deadline/deadline-settings-dialog";
-import { ExtendDeadlineDialog } from "@/components/deadline/extend-deadline-dialog";
 import { EmptyState } from "@/components/empty-state";
 import { MonthSelect } from "@/components/month-select";
 import { CloseMonthDialog } from "@/components/payments/close-month-dialog";
@@ -23,16 +21,14 @@ import { ReopenMonthButton } from "@/components/payments/reopen-month-button";
 import BlurText from "@/components/reactbits/blur-text";
 import { StatCard } from "@/components/stat-card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getAnalytics } from "@/lib/analytics";
 import { requireMainAdmin } from "@/lib/auth";
-import { getDeadline, getDeadlineSettings } from "@/lib/deadlines";
 import { formatDateTime, formatLKR } from "@/lib/format";
-import { currentMonthKey, monthKeyToDate, monthLabel, parseMonthParam, todayISO } from "@/lib/month";
+import { monthKeyToDate, monthLabel, parseMonthParam, periodDays, periodRangeLabel, shiftMonth, todayISO } from "@/lib/month";
 import { getPayMonth, getPayoutsForMonth, payoutTotals } from "@/lib/payments";
 import { createClient } from "@/lib/supabase/server";
 
@@ -44,28 +40,34 @@ export default async function PaymentsPage({ searchParams }: PageProps<"/admin/p
   const label = monthLabel(month);
   const supabase = await createClient();
 
-  const [payMonth, { count: pendingCount }, deadline, deadlineSettings] = await Promise.all([
+  const [payMonth, { count: pendingCount }] = await Promise.all([
     getPayMonth(supabase, month),
     supabase
       .from("submissions")
       .select("id", { count: "exact", head: true })
       .eq("work_month", monthKeyToDate(month))
       .eq("status", "pending"),
-    getDeadline(supabase, month),
-    getDeadlineSettings(supabase),
   ]);
   const pending = pendingCount ?? 0;
-  const isFuture = month > currentMonthKey();
+  // A month (11th → 10th) can be closed from the day after its period ends.
+  const { last: lastDay } = periodDays(month);
+  const ended = todayISO() > lastDay;
+  const fmtDay = (iso: string) =>
+    new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(
+      new Date(`${iso}T00:00:00Z`),
+    );
+  const nextLabel = monthLabel(shiftMonth(month, 1));
 
   const header = (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div className="space-y-1">
         <BlurText as="h1" text="Payments" className="text-2xl font-semibold tracking-tight sm:text-3xl" />
-        <p className="text-muted-foreground text-sm">Close each month, pay the team and share payslips.</p>
+        <p className="text-muted-foreground text-sm">
+          Close each month, pay the team and share payslips. {label} runs {periodRangeLabel(month)}.
+        </p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <MonthSelect value={month} />
-        <DeadlineSettingsDialog settings={deadlineSettings} />
         <Button asChild variant="outline">
           <a href={`/admin/analytics/payouts?month=${month}`} download>
             <DownloadIcon /> Payroll CSV
@@ -89,7 +91,7 @@ export default async function PaymentsPage({ searchParams }: PageProps<"/admin/p
             {
               title: "Review all work",
               hint: pending > 0 ? `${pending} pending` : "Nothing waiting",
-              done: pending === 0 && !isFuture,
+              done: pending === 0 && ended,
             },
             { title: "Close the month", hint: "Locks work, creates payslips", done: false },
             { title: "Pay members", hint: "Use the payroll CSV", done: false },
@@ -97,67 +99,37 @@ export default async function PaymentsPage({ searchParams }: PageProps<"/admin/p
           ]}
         />
 
-        <Alert variant={pending > 0 || isFuture ? "warning" : "default"}>
+        <Alert variant={pending > 0 || !ended ? "warning" : "default"}>
           <LockOpenIcon />
-          <AlertTitle>{label} is open</AlertTitle>
+          <AlertTitle>
+            {label} is open · {periodRangeLabel(month)}
+          </AlertTitle>
           <AlertDescription>
-            {isFuture ? (
-              <p>This month hasn&apos;t started yet.</p>
+            {!ended ? (
+              <p>
+                {label} runs until <strong>{fmtDay(lastDay)}</strong>. Work approved until then counts for {label}. You can
+                close it from the next day.
+              </p>
             ) : pending > 0 ? (
               <p>
-                {pending} submission{pending === 1 ? " is" : "s are"} still waiting for review.{" "}
+                {pending} submission{pending === 1 ? " is" : "s are"} still waiting for review. Approve{" "}
+                {pending === 1 ? "it" : "them"} now to pay in {label}
+                {" – "}anything not approved moves to {nextLabel} when you close.{" "}
                 <Link href={`/admin/review?month=${month}&status=pending`} className="text-primary font-medium hover:underline">
                   Review them
-                </Link>{" "}
-                before closing the month.
+                </Link>
               </p>
             ) : (
-              <p>
-                Members can still log and change work. When everything is reviewed, close the month to lock the amounts
-                and create payslips.
-              </p>
+              <p>Everything is reviewed. Close the month to lock the amounts and create payslips.</p>
             )}
             <p className="flex items-start gap-2">
               <CalendarClockIcon className="mt-0.5 size-4 shrink-0" />
               <span>
-                {deadline.deadline ? (
-                  deadline.passed ? (
-                    <>Members&apos; deadline passed on {deadline.lastDayLabel}; only admins can change work now.</>
-                  ) : (
-                    <>
-                      Members can log {label} work until <strong>{deadline.lastDayLabel}</strong>
-                      {deadline.daysLeft !== null &&
-                        ` (${deadline.daysLeft} day${deadline.daysLeft === 1 ? "" : "s"} left)`}
-                      .
-                    </>
-                  )
-                ) : (
-                  <>No deadline for members.</>
-                )}
-                {deadline.extended && (
-                  <Badge variant="outline" className="ml-2">
-                    Extended
-                  </Badge>
-                )}
+                Work approved after {fmtDay(lastDay)} counts for {nextLabel}, even if {label} isn&apos;t closed yet.
               </span>
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
-              <CloseMonthDialog
-                month={month}
-                monthLabel={label}
-                members={owed.length}
-                total={total}
-                disabled={pending > 0 || isFuture}
-              />
-              {!isFuture && (
-                <ExtendDeadlineDialog
-                  month={month}
-                  monthLabel={label}
-                  lastDay={deadline.lastDay}
-                  extended={deadline.extended}
-                  minDate={monthKeyToDate(month)}
-                />
-              )}
+              <CloseMonthDialog month={month} monthLabel={label} members={owed.length} total={total} disabled={!ended} />
               {pending > 0 && (
                 <Button asChild variant="outline">
                   <Link href={`/admin/review?month=${month}&status=pending`}>

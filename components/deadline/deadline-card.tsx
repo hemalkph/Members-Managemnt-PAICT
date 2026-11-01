@@ -2,16 +2,15 @@ import Link from "next/link";
 import { CalendarClockIcon, FilePlus2Icon } from "lucide-react";
 import CountUp from "@/components/reactbits/count-up";
 import SpotlightCard from "@/components/reactbits/spotlight-card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import type { MonthDeadline } from "@/lib/deadlines";
-import { monthLabel } from "@/lib/month";
+import { monthLabel, shiftMonth } from "@/lib/month";
 import { cn } from "@/lib/utils";
 
 /**
- * "Submit your October work by 3 Nov · 5 days left" for the member dashboard.
- * `progress` = how much of the time from the month's start to the deadline has passed (0–100).
+ * "Get your October work in by 10 Nov · 5 days left" for the member dashboard.
+ * `progress` = how much of the month's period (11th → 10th) has passed (0–100).
  */
 export function DeadlineCard({ deadline, progress }: { deadline: MonthDeadline; progress: number }) {
   if (!deadline.deadline || deadline.passed || deadline.daysLeft === null) return null;
@@ -35,16 +34,16 @@ export function DeadlineCard({ deadline, progress }: { deadline: MonthDeadline; 
           </div>
           <div className="min-w-0 flex-1 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="font-semibold">Submit your {monthLabel(deadline.month)} work</p>
-              {deadline.extended && <Badge variant="outline">Extended</Badge>}
+              <p className="font-semibold">Get your {monthLabel(deadline.month)} work in</p>
             </div>
             <p className="text-muted-foreground text-sm">
-              Last day: <span className="text-foreground font-medium">{deadline.lastDayLabel}</span>. After that, work for{" "}
-              {monthLabel(deadline.month, "short")} can&apos;t be added or changed.
+              {monthLabel(deadline.month)} ends on{" "}
+              <span className="text-foreground font-medium">{deadline.lastDayLabel}</span>. Work approved after that counts
+              for {monthLabel(shiftMonth(deadline.month, 1))}.
             </p>
             <Progress
               value={progress}
-              aria-label="Time used before the deadline"
+              aria-label="How much of the month has passed"
               indicatorClassName={urgent ? "bg-warning" : undefined}
             />
           </div>
@@ -63,7 +62,7 @@ export function DeadlineCard({ deadline, progress }: { deadline: MonthDeadline; 
             )}
           </p>
           <Button asChild size="sm" variant={urgent ? "default" : "outline"}>
-            <Link href={`/work/new?month=${deadline.month}`}>
+            <Link href="/work/new">
               <FilePlus2Icon /> Log work
             </Link>
           </Button>

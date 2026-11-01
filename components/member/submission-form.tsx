@@ -23,7 +23,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { createSubmissionAction, updateSubmissionAction } from "@/lib/actions/submissions";
 import { formatBytes, formatLKR } from "@/lib/format";
-import { monthLabel } from "@/lib/month";
+import { monthLabel, periodRangeLabel } from "@/lib/month";
 import { createClient } from "@/lib/supabase/client";
 import {
   MAX_ATTACHMENT_BYTES,
@@ -55,7 +55,6 @@ function safeFileName(name: string) {
 export function SubmissionForm({
   userId,
   roles,
-  months,
   today,
   defaultValues,
   submissionId,
@@ -67,7 +66,6 @@ export function SubmissionForm({
 }: {
   userId: string;
   roles: RoleOption[];
-  months: string[];
   today: string;
   defaultValues: SubmissionInput;
   submissionId?: string;
@@ -192,23 +190,15 @@ export function SubmissionForm({
             control={form.control}
             name="work_month"
             render={({ field }) => (
+              // The database sets the month: the month open when the work is approved.
               <FormItem>
-                <FormLabel>Month</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose a month" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {months.map((m) => (
-                      <SelectItem key={m} value={m}>
-                        {monthLabel(m)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
+                <FormLabel>Counts for</FormLabel>
+                <div className="bg-muted/50 flex min-h-9 flex-col justify-center rounded-md border px-3 py-1.5">
+                  <span className="text-sm font-medium">{monthLabel(field.value)}</span>
+                  <span className="text-muted-foreground text-xs">
+                    {periodRangeLabel(field.value)} · work approved after the 10th counts for next month
+                  </span>
+                </div>
               </FormItem>
             )}
           />
