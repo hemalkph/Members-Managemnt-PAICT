@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CheckIcon } from "lucide-react";
+import { CheckIcon, ClockIcon } from "lucide-react";
 import { LinkButton } from "@/components/animate-ui/components/buttons/link-button";
 import { ArrowRight02 } from "@/components/animate-ui/icons/hugeicons";
 import type { T } from "@/lib/dispatch/i18n";
@@ -7,8 +7,9 @@ import type { NextAction, Stage } from "@/lib/dispatch/stages";
 import { cn } from "@/lib/utils";
 
 /**
- * The round's seven steps in a row (done ✓ · now ● · later ○) and, under them,
- * one sentence and one button for this person's next action.
+ * Where the round is: one progress segment per step, filled by how much of
+ * that step is done (steps overlap, e.g. packing starts before every tracking
+ * number is in). Under it, one sentence and one button for this person's next action.
  */
 export function RoundPath({
   stages,
@@ -27,86 +28,115 @@ export function RoundPath({
 }) {
   const at = stages.findIndex((s) => s.status === "now");
   const current = at >= 0 ? { ...stages[at], index: at } : null;
-  return (
-    <div className={cn("space-y-3", !compact && "bg-card rounded-xl border p-3 sm:p-4 print:hidden")}>
-      <ol className="flex items-start gap-0.5 sm:gap-1" aria-label={t("Round steps")}>
-        {stages.map((s, i) => {
-          const dot = (
+
+  const track = (
+    <ol
+      className="grid gap-1.5"
+      style={{ gridTemplateColumns: `repeat(${stages.length}, minmax(0, 1fr))` }}
+      aria-label={t("Round steps")}
+    >
+      {stages.map((s, i) => {
+        const now = s.status === "now";
+        const body = (
+          <>
             <span
-              className={cn(
-                "flex size-7 shrink-0 items-center justify-center rounded-full border-2 text-xs font-semibold tabular-nums transition-colors",
-                s.status === "done" && "border-success bg-success text-white",
-                s.status === "now" && "border-primary bg-primary text-primary-foreground ring-primary/20 ring-4",
-                s.status === "started" && "border-primary text-primary",
-                s.status === "later" && "border-muted-foreground/30 text-muted-foreground",
-              )}
+              className="bg-muted relative block h-1.5 overflow-hidden rounded-full"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(s.share * 100)}
+              aria-label={t(s.label)}
             >
-              {s.status === "done" ? <CheckIcon className="size-4" /> : i + 1}
-            </span>
-          );
-          const body = (
-            <>
-              {dot}
               <span
                 className={cn(
-                  "mt-1 hidden text-center text-xs leading-tight sm:block",
-                  s.status === "now" ? "text-foreground font-semibold" : "text-muted-foreground",
+                  "absolute inset-y-0 left-0 rounded-full transition-[width] duration-500 ease-out motion-reduce:transition-none",
+                  s.status === "done" ? "bg-success" : "bg-primary",
+                )}
+                style={{ width: `${s.share * 100}%` }}
+              />
+            </span>
+            <span className="mt-2 hidden items-center gap-1.5 sm:flex">
+              <span
+                aria-hidden
+                className={cn(
+                  "flex size-4 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold tabular-nums",
+                  s.status === "done" && "bg-success text-white",
+                  now && "bg-primary text-primary-foreground",
+                  s.status === "started" && "border-primary text-primary border",
+                  s.status === "later" && "border-muted-foreground/40 text-muted-foreground border",
+                )}
+              >
+                {s.status === "done" ? <CheckIcon className="size-3" strokeWidth={3} /> : i + 1}
+              </span>
+              <span
+                className={cn(
+                  "truncate text-xs",
+                  now ? "text-foreground font-semibold" : s.status === "later" ? "text-muted-foreground" : "text-foreground/80",
                 )}
               >
                 {t(s.label)}
               </span>
-              {s.count && !compact && (
-                <span className="text-muted-foreground hidden text-center text-[10px] tabular-nums sm:block">
-                  {s.count}
-                </span>
-              )}
-            </>
-          );
-          return (
-            <li key={s.key} className="flex min-w-0 flex-1 items-start">
-              {s.href ? (
-                <Link
-                  href={s.href}
-                  aria-current={s.status === "now" ? "step" : undefined}
-                  className="hover:bg-muted focus-visible:ring-ring/50 flex w-full flex-col items-center rounded-lg px-1 py-1 outline-none focus-visible:ring-[3px]"
-                >
-                  {body}
-                </Link>
-              ) : (
-                <span
-                  className="flex w-full flex-col items-center px-1 py-1"
-                  aria-current={s.status === "now" ? "step" : undefined}
-                >
-                  {body}
-                </span>
-              )}
-              {i < stages.length - 1 && (
-                <span
-                  aria-hidden
-                  className={cn(
-                    "mt-4 hidden h-0.5 w-full min-w-3 flex-1 rounded sm:block",
-                    s.status === "done" ? "bg-success" : "bg-border",
-                  )}
-                />
-              )}
-            </li>
-          );
-        })}
-      </ol>
-      {current && (
-        <p className="text-primary text-xs font-semibold sm:hidden">
-          {t("Step {n} of {total}: {label}", { n: current.index + 1, total: stages.length, label: t(current.label) })}
-          {current.count && <span className="text-muted-foreground font-normal"> · {current.count}</span>}
-        </p>
-      )}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <p className={cn("text-sm", compact ? "text-muted-foreground" : "font-medium")}>{sentence}</p>
+            </span>
+            {!compact && (
+              <span className="text-muted-foreground mt-0.5 hidden h-4 pl-5.5 text-xs tabular-nums sm:block">
+                {s.count}
+              </span>
+            )}
+          </>
+        );
+        const cls = cn(
+          "block rounded-lg p-1.5 sm:p-2",
+          now && "bg-primary/5 ring-primary/20 ring-1",
+        );
+        return (
+          <li key={s.key} className="min-w-0" aria-current={now ? "step" : undefined}>
+            {s.href ? (
+              <Link
+                href={s.href}
+                className={cn(
+                  cls,
+                  "hover:bg-muted focus-visible:ring-ring/50 cursor-pointer transition-colors outline-none focus-visible:ring-[3px]",
+                )}
+              >
+                {body}
+              </Link>
+            ) : (
+              <span className={cls}>{body}</span>
+            )}
+          </li>
+        );
+      })}
+    </ol>
+  );
+
+  return (
+    <div className={cn(!compact && "bg-card overflow-hidden rounded-xl border shadow-xs print:hidden")}>
+      <div className={cn(!compact && "p-2 sm:p-3")}>
+        {track}
+        {current && (
+          <p className="mt-2 px-1.5 text-xs sm:hidden">
+            <span className="text-primary font-semibold">
+              {t("Step {n} of {total}: {label}", { n: current.index + 1, total: stages.length, label: t(current.label) })}
+            </span>
+            {current.count && <span className="text-muted-foreground tabular-nums"> · {current.count}</span>}
+          </p>
+        )}
+      </div>
+      <div
+        className={cn(
+          "flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between",
+          compact ? "mt-3 px-1.5" : "bg-muted/40 border-t px-4 py-3",
+        )}
+      >
+        <p className={cn("text-sm leading-snug", compact ? "text-muted-foreground" : "font-medium")}>{sentence}</p>
         {action ? (
-          <LinkButton href={action.href} className="shrink-0">
+          <LinkButton href={action.href} className="shrink-0" size={compact ? "sm" : "default"}>
             {t(action.label)} <ArrowRight02 className="size-4" />
           </LinkButton>
         ) : waiting ? (
-          <p className="text-muted-foreground shrink-0 text-xs">{t(waiting)}</p>
+          <p className="text-muted-foreground bg-background inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs">
+            <ClockIcon className="size-3.5" /> {t(waiting)}
+          </p>
         ) : null}
       </div>
     </div>

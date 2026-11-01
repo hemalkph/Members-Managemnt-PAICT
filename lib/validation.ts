@@ -551,6 +551,7 @@ export const dispatchSettingsSchema = z.object({
   default_pieces: z.coerce.number().int().min(1).max(20),
   require_verification: z.boolean(),
   allow_self_verify: z.boolean(),
+  optional_steps: z.array(z.enum(["handover", "delivery", "money"])).max(3),
   student_retention_months: z.coerce.number().int().min(1).max(120),
   recipient_retention_days: z.coerce.number().int().min(30).max(3650),
   courier_file_retention_days: z.coerce.number().int().min(7).max(3650),

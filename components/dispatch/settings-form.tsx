@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
+import { ArrowRightIcon, LockIcon } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 
@@ -12,6 +13,8 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { saveDispatchSettingsAction } from "@/lib/actions/dispatch";
+import { STAGE_LABEL, type OptionalStep, type StageKey } from "@/lib/dispatch/stages";
+import { cn } from "@/lib/utils";
 import { dispatchSettingsSchema, type DispatchSettingsInput } from "@/lib/validation";
 
 import { useT } from "@/components/dispatch/lang";
@@ -61,6 +64,20 @@ const RETENTION: Field[] = [
   },
 ];
 
+const STEP_CHOICES: { key: OptionalStep; hint: string }[] = [
+  { key: "handover", hint: "Scan parcels into a handover sheet when Citypak collects them." },
+  { key: "delivery", hint: "Track delivered, failed and returned parcels. Needs Handover." },
+  { key: "money", hint: "Match Citypak's COD payments to parcels before closing. Needs Delivery." },
+];
+const ALL_STEPS: StageKey[] = ["plan", "tracking", "pack", "handover", "delivery", "money", "close"];
+
+/** Turning a step on also turns on what it needs; turning one off also turns off what needs it. */
+function toggleStep(steps: OptionalStep[], key: OptionalStep, on: boolean): OptionalStep[] {
+  const order: OptionalStep[] = ["handover", "delivery", "money"];
+  const i = order.indexOf(key);
+  return on ? order.filter((k, j) => steps.includes(k) || j <= i) : order.filter((k, j) => steps.includes(k) && j < i);
+}
+
 export function DispatchSettingsForm({
   values,
   canEditDetails,
@@ -74,6 +91,8 @@ export function DispatchSettingsForm({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const form = useForm<DispatchSettingsInput>({ resolver: zodResolver(dispatchSettingsSchema), defaultValues: values });
+
+  const steps = (useWatch({ control: form.control, name: "optional_steps" }) ?? []) as OptionalStep[];
 
   const onSubmit = (v: DispatchSettingsInput) =>
     startTransition(async () => {
@@ -110,6 +129,59 @@ export function DispatchSettingsForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("Round steps")}</CardTitle>
+            <CardDescription>
+              {t(
+                "Choose the steps your office uses. Plan, Tracking numbers, Pack and Close are always on. A round can be closed once every step that is on is finished.",
+              )}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <ol className="flex flex-wrap items-center gap-1.5" aria-label={t("Steps in use")}>
+              {ALL_STEPS.filter((k) => !STEP_CHOICES.some((c) => c.key === k) || steps.includes(k as OptionalStep)).map(
+                (k, i, list) => (
+                  <li key={k} className="flex items-center gap-1.5">
+                    <span className="bg-primary/10 text-primary rounded-full px-2.5 py-1 text-xs font-semibold">
+                      {i + 1}. {t(STAGE_LABEL[k])}
+                    </span>
+                    {i < list.length - 1 && <ArrowRightIcon className="text-muted-foreground size-3.5" aria-hidden />}
+                  </li>
+                ),
+              )}
+            </ol>
+            <div className="divide-y rounded-lg border">
+              {STEP_CHOICES.map((c) => (
+                <label
+                  key={c.key}
+                  className={cn(
+                    "flex min-h-14 items-center justify-between gap-4 px-3 py-2.5",
+                    canEditPolicy && "cursor-pointer",
+                  )}
+                >
+                  <span className="space-y-0.5">
+                    <span className="block text-sm font-medium">{t(STAGE_LABEL[c.key])}</span>
+                    <span className="text-muted-foreground block text-xs">{t(c.hint)}</span>
+                  </span>
+                  <Switch
+                    checked={steps.includes(c.key)}
+                    disabled={!canEditPolicy}
+                    onCheckedChange={(on) =>
+                      form.setValue("optional_steps", toggleStep(steps, c.key, on), { shouldDirty: true })
+                    }
+                  />
+                </label>
+              ))}
+            </div>
+            {!canEditPolicy && (
+              <p className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                <LockIcon className="size-3.5" /> {t("Only main admins (with two-step login) can change the steps.")}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>{t("Sender")}</CardTitle>

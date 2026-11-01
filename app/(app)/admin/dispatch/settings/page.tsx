@@ -88,6 +88,9 @@ export default async function DispatchSettingsPage() {
     default_pieces: settings?.default_pieces ?? 1,
     require_verification: settings?.require_verification ?? true,
     allow_self_verify: settings?.allow_self_verify ?? false,
+    optional_steps: (settings?.optional_steps ?? ["handover", "delivery", "money"]).filter(
+      (s): s is "handover" | "delivery" | "money" => ["handover", "delivery", "money"].includes(s),
+    ),
     student_retention_months: settings?.student_retention_months ?? 12,
     recipient_retention_days: settings?.recipient_retention_days ?? 180,
     courier_file_retention_days: settings?.courier_file_retention_days ?? 90,

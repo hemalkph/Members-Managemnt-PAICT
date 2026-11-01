@@ -2,7 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
-import type { RoundProgress } from "./stages";
+import { OPTIONAL_STEPS, type OptionalStep, type RoundProgress } from "./stages";
 
 export type RoundWithProgress = { id: string; name: string; progress: RoundProgress };
 
@@ -19,9 +19,12 @@ export async function loadRoundProgress(
       .select("round_id, registration_state, pack_state, delivery_state, on_hold")
       .in("round_id", ids)
       .limit(50000),
-    supabase.from("dispatch_settings").select("require_verification").limit(1).maybeSingle(),
+    supabase.from("dispatch_settings").select("require_verification, optional_steps").limit(1).maybeSingle(),
   ]);
   const verification = Boolean(settings?.require_verification);
+  const optional = (settings?.optional_steps ?? OPTIONAL_STEPS).filter((s): s is OptionalStep =>
+    (OPTIONAL_STEPS as string[]).includes(s),
+  );
 
   const byRound = new Map<string, RoundProgress>();
   for (const r of rounds ?? []) {
@@ -39,6 +42,7 @@ export async function loadRoundProgress(
       verification,
       codOwing: 0,
       inDraft: 0,
+      optional,
     });
   }
   for (const p of parcels ?? []) {

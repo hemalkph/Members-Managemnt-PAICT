@@ -5,40 +5,44 @@ import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import { Card } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { requireDispatch } from "@/lib/dispatch/access";
-import { monthLabelFromDate, nextStep, ROUND_STATE, type RoundCounts } from "@/lib/dispatch/rounds";
+import { loadRoundProgress } from "@/lib/dispatch/round-progress";
+import { monthLabelFromDate, ROUND_STATE } from "@/lib/dispatch/rounds";
+import { roundStages } from "@/lib/dispatch/stages";
 import { createClient } from "@/lib/supabase/server";
+import { cn } from "@/lib/utils";
 
 import { getT } from "@/lib/dispatch/i18n/server";
 export const metadata: Metadata = { title: "Rounds – Tute dispatch" };
 
-export default async function RoundsPage() {
+const FILTERS = [
+  { key: "open", label: "In progress", states: ["draft", "finalised", "active"] },
+  { key: "closed", label: "Closed", states: ["closed", "cancelled"] },
+  { key: "all", label: "All", states: ["draft", "finalised", "active", "closed", "cancelled"] },
+] as const;
+
+export default async function RoundsPage({ searchParams }: PageProps<"/admin/dispatch/rounds">) {
   const t = await getT();
   const { caps } = await requireDispatch();
+  const sp = await searchParams;
+  const filter = FILTERS.find((f) => f.key === sp.show) ?? FILTERS[0];
   const supabase = await createClient();
-  const [{ data: rounds }, { data: parcels }, { data: batches }] = await Promise.all([
+  const [{ data: rounds }, { data: batches }] = await Promise.all([
     supabase
       .from("dispatch_rounds")
       .select("id, name, batch_id, sending_month, state, ref_prefix, created_at")
+      .in("state", [...filter.states])
       .order("created_at", { ascending: false })
       .limit(100),
-    supabase.from("parcels").select("round_id, registration_state, pack_state, on_hold").limit(20000),
     supabase.from("batches").select("id, name"),
   ]);
+  const list = rounds ?? [];
+  const progress = new Map(
+    (await loadRoundProgress(supabase, list.map((r) => r.id))).map((r) => [r.id, r.progress]),
+  );
   const batchName = new Map((batches ?? []).map((b) => [b.id, b.name]));
-  const counts = new Map<string, RoundCounts>();
-  for (const p of parcels ?? []) {
-    const c = counts.get(p.round_id) ?? { parcels: 0, registered: 0, voided: 0, packed: 0, verified: 0, onHold: 0 };
-    c.parcels += 1;
-    if (p.registration_state === "registered") c.registered += 1;
-    if (p.registration_state === "voided") c.voided += 1;
-    else if (p.pack_state !== "planned") c.packed = (c.packed ?? 0) + 1;
-    if (p.pack_state === "verified") c.verified = (c.verified ?? 0) + 1;
-    if (p.on_hold) c.onHold = (c.onHold ?? 0) + 1;
-    counts.set(p.round_id, c);
-  }
 
   return (
     <div className="space-y-6">
@@ -55,49 +59,114 @@ export default async function RoundsPage() {
           ) : undefined
         }
       />
-      {!rounds || rounds.length === 0 ? (
+
+      <nav aria-label={t("Show rounds")} className="bg-muted inline-flex rounded-lg p-1">
+        {FILTERS.map((f) => (
+          <Link
+            key={f.key}
+            href={f.key === "open" ? "/admin/dispatch/rounds" : `/admin/dispatch/rounds?show=${f.key}`}
+            aria-current={f.key === filter.key ? "page" : undefined}
+            className={cn(
+              "focus-visible:ring-ring/50 rounded-md px-3 py-1.5 text-sm font-medium transition-colors outline-none focus-visible:ring-[3px]",
+              f.key === filter.key
+                ? "bg-background text-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {t(f.label)}
+          </Link>
+        ))}
+      </nav>
+
+      {list.length === 0 ? (
         <EmptyState
           icon={PackageIcon}
           title={t("No rounds yet")}
           description={t("Create a round to plan which tutes go to which students.")}
         />
       ) : (
-        <div className="grid gap-3 md:grid-cols-2">
-          {rounds.map((r) => {
-            const c = counts.get(r.id) ?? { parcels: 0, registered: 0, voided: 0 };
-            const live = c.parcels - c.voided;
-            return (
-              <Link key={r.id} href={`/admin/dispatch/rounds/${r.id}`} className="group">
-                <Card className="group-hover:border-primary/50 h-full gap-3 transition-colors">
-                  <CardHeader>
-                    <div className="flex items-start justify-between gap-2">
-                      <CardTitle className="leading-snug">{r.name}</CardTitle>
-                      <Badge variant={ROUND_STATE[r.state].variant}>{t(ROUND_STATE[r.state].label)}</Badge>
-                    </div>
-                    <CardDescription>
-                      {batchName.get(r.batch_id) ?? "—"} · {monthLabelFromDate(r.sending_month)} ·{" "}
-                      <span className="font-mono">{r.ref_prefix}</span>
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    {r.state !== "draft" && r.state !== "cancelled" && (
-                      <div className="space-y-1">
-                        <div className="text-muted-foreground flex justify-between text-xs">
-                          <span>{t("Tracking numbers")}</span>
-                          <span className="tabular-nums">
-                            {c.registered}/{live}
-                          </span>
+        <Card className="overflow-hidden py-0 shadow-xs">
+          <Table>
+            <TableHeader className="bg-muted/50">
+              <TableRow>
+                <TableHead className="pl-4">{t("Round")}</TableHead>
+                <TableHead className="hidden w-[38%] md:table-cell">{t("Steps")}</TableHead>
+                <TableHead className="hidden text-right sm:table-cell">{t("Parcels")}</TableHead>
+                <TableHead className="pr-4 text-right">{t("Status")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {list.map((r) => {
+                const p = progress.get(r.id);
+                const stages = p ? roundStages(r.id, p, caps) : [];
+                const now = stages.find((s) => s.status === "now");
+                return (
+                  <TableRow key={r.id} className="group relative">
+                    <TableCell className="py-3 pl-4">
+                      {/* The whole row opens the round; the link covers it. */}
+                      <Link
+                        href={`/admin/dispatch/rounds/${r.id}`}
+                        className="font-medium underline-offset-4 outline-none group-hover:underline after:absolute after:inset-0 focus-visible:underline"
+                      >
+                        {r.name}
+                      </Link>
+                      <p className="text-muted-foreground text-xs">
+                        {batchName.get(r.batch_id) ?? "—"} · {monthLabelFromDate(r.sending_month)} ·{" "}
+                        <span className="font-mono">{r.ref_prefix}</span>
+                      </p>
+                      {now && (
+                        <p className="text-primary mt-1 text-xs font-medium md:hidden">
+                          {t(now.label)}
+                          {now.count && <span className="text-muted-foreground tabular-nums"> · {now.count}</span>}
+                        </p>
+                      )}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {r.state !== "cancelled" && stages.length > 0 && (
+                        <div className="space-y-1.5">
+                          <div className="flex gap-1" aria-hidden>
+                            {stages.map((s) => (
+                              <span key={s.key} className="bg-muted relative h-1.5 flex-1 overflow-hidden rounded-full">
+                                <span
+                                  className={cn(
+                                    "absolute inset-y-0 left-0 rounded-full",
+                                    s.status === "done" ? "bg-success" : "bg-primary",
+                                  )}
+                                  style={{ width: `${s.share * 100}%` }}
+                                />
+                              </span>
+                            ))}
+                          </div>
+                          <p className="text-xs">
+                            {now ? (
+                              <>
+                                <span className="font-medium">{t(now.label)}</span>
+                                {now.count && <span className="text-muted-foreground tabular-nums"> · {now.count}</span>}
+                              </>
+                            ) : (
+                              <span className="text-muted-foreground">{t("All steps done")}</span>
+                            )}
+                          </p>
                         </div>
-                        <Progress value={live > 0 ? (c.registered / live) * 100 : 0} />
-                      </div>
-                    )}
-                    <p className="text-sm">{nextStep(r.state, c, t)}</p>
-                  </CardContent>
-                </Card>
-              </Link>
-            );
-          })}
-        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="hidden text-right tabular-nums sm:table-cell">
+                      {p?.live ?? 0}
+                      {p && p.onHold > 0 && (
+                        <span className="block text-xs text-amber-700 dark:text-warning">
+                          {t("{n} on hold", { n: p.onHold })}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell className="pr-4 text-right">
+                      <Badge variant={ROUND_STATE[r.state].variant}>{t(ROUND_STATE[r.state].label)}</Badge>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </Card>
       )}
     </div>
   );

@@ -1181,6 +1181,28 @@ export const SI: Record<string, string> = {
   "Copies needed per tute": "එක් එක් ටියුට් එකට අවශ්‍ය පිටපත්",
   Done: "අවසන්",
   "{n} left": "ඉතිරි {n}",
+  // ------------------------------------------------------------------ round steps and the redesigned lists
+  "All rounds": "සියලු වට",
+  "Student register": "සිසු ලේඛනය",
+  "Show rounds": "වට පෙන්වන්න",
+  Steps: "පියවර",
+  "All steps done": "සියලු පියවර අවසන්",
+  "Choose the steps your office uses. Plan, Tracking numbers, Pack and Close are always on. A round can be closed once every step that is on is finished.":
+    "ඔබේ කාර්යාලය භාවිත කරන පියවර තෝරන්න. සැලසුම, Tracking අංක, පැක් කිරීම සහ වසා දැමීම සැමවිටම ක්‍රියාත්මකයි. ක්‍රියාත්මක සෑම පියවරක්ම අවසන් වූ පසු වටය වසා දැමිය හැක.",
+  "Steps in use": "භාවිත වන පියවර",
+  "Only main admins (with two-step login) can change the steps.":
+    "පියවර වෙනස් කළ හැක්කේ ප්‍රධාන පරිපාලකයින්ට (පියවර දෙකේ පිවිසුම සමඟ) පමණයි.",
+  "Every parcel is packed – close the round.": "සෑම පාර්සලයක්ම පැක් කර ඇත – වටය වසන්න.",
+  "Every parcel is packed. Finish the checks, then close the round.":
+    "සෑම පාර්සලයක්ම පැක් කර ඇත. පරීක්ෂා කිරීම් අවසන් කර වටය වසන්න.",
+  "Every parcel is with Citypak – close the round.": "සෑම පාර්සලයක්ම Citypak අතේ ඇත – වටය වසන්න.",
+  "Everything is delivered or returned – close the round.": "සියල්ල බෙදාහැර හෝ ආපසු පැමිණ ඇත – වටය වසන්න.",
+  "Scan parcels into a handover sheet when Citypak collects them.":
+    "Citypak පාර්සල් රැගෙන යන විට ඒවා භාර දීමේ පත්‍රයකට ස්කෑන් කරන්න.",
+  "Track delivered, failed and returned parcels. Needs Handover.":
+    "බෙදාහැරී, අසාර්ථක සහ ආපසු පැමිණි පාර්සල් බලාගන්න. භාර දීම අවශ්‍යයි.",
+  "Match Citypak's COD payments to parcels before closing. Needs Delivery.":
+    "වසා දැමීමට පෙර Citypak COD ගෙවීම් පාර්සල් සමඟ ගළපන්න. බෙදාහැරීම අවශ්‍යයි.",
 };
 
 /** Messages with changing parts, mostly from the database. Named groups fill the placeholders. */
@@ -1264,6 +1286,14 @@ export const SI_PATTERNS: { re: RegExp; si: string }[] = [
     si: "ඔබ ගණන් කළේ {counted} නමුත් scan කළේ {scanned}. තහවුරු කිරීමට පෙර වෙනස සොයන්න.",
   },
   { re: new RegExp(String.raw`^The round is (?<state>\w+)\.$`), si: "වටය {state} තත්ත්වයේ ඇත." },
+  {
+    re: new RegExp(String.raw`^(?<n>\d+) parcel\(s\) are not packed yet – pack them, or void them\.$`),
+    si: "පාර්සල් {n}ක් තවම පැක් කර නැහැ – ඒවා පැක් කරන්න, නැතහොත් අවලංගු කරන්න.",
+  },
+  {
+    re: new RegExp(String.raw`^(?<n>\d+) parcel\(s\) are not handed over yet – hand them over, or void them\.$`),
+    si: "පාර්සල් {n}ක් තවම භාර දී නැහැ – ඒවා භාර දෙන්න, නැතහොත් අවලංගු කරන්න.",
+  },
   {
     re: new RegExp(String.raw`^(?<n>\d+) parcel\(s\) are not delivered or returned – update them, or void them\.$`),
     si: "පාර්සල් {n}ක් තවම බෙදාහැරී හෝ ආපසු පැමිණ නැහැ – ඒවා යාවත්කාලීන කරන්න, නැතහොත් අවලංගු කරන්න.",
