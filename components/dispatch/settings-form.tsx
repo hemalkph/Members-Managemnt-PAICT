@@ -155,6 +155,25 @@ export function DispatchSettingsForm({
                 </FormItem>
               )}
             />
+            <FormField
+              control={form.control}
+              name="allow_self_verify"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between gap-4 rounded-lg border p-3 sm:col-span-2">
+                  <div className="space-y-0.5">
+                    <FormLabel>{t("One-person mode")}</FormLabel>
+                    <FormDescription>
+                      {t(
+                        "When only one person is packing, they may also verify their own parcels. Both scans still happen; switch this off when a second person joins.",
+                      )}
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch checked={Boolean(field.value)} onCheckedChange={field.onChange} disabled={!canEditPolicy} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
             {RETENTION.map((f) => renderField(f, !canEditPolicy))}
           </CardContent>
         </Card>

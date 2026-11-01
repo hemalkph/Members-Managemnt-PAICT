@@ -12,6 +12,7 @@ export default async function DispatchLayout({ children }: LayoutProps<"/admin/d
     { href: "/admin/dispatch", label: "Overview", icon: "overview" },
     { href: "/admin/dispatch/rounds", label: "Rounds", icon: "rounds" },
   ];
+  if (caps.has("plan")) items.push({ href: "/admin/dispatch/tutes", label: "Saved tutes", icon: "tutes" });
   if (caps.has("plan") || caps.has("courier"))
     items.push({ href: "/admin/dispatch/students", label: "Students", icon: "students" });
   if (caps.has("finance")) items.push({ href: "/admin/dispatch/money", label: "COD money", icon: "money" });

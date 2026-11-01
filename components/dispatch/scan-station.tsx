@@ -10,6 +10,8 @@ import {
   PackageCheckIcon,
   RotateCcwIcon,
   ScanBarcodeIcon,
+  ShieldCheckIcon,
+  UserIcon,
   Volume2Icon,
   VolumeXIcon,
   WifiIcon,
@@ -53,10 +55,11 @@ import { canConfirm, CONFIRM_DELAY_MS, isConfirmShortcut } from "@/lib/dispatch/
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { CameraScanner } from "./camera-scanner";
+import { TuteCounts } from "./tute-counts";
 import { useT } from "./lang";
 
 type Tone = "info" | "success" | "warning" | "error";
-type Feedback = { tone: Tone; title: string; detail?: string } | null;
+type Feedback = { tone: Tone; title: string; detail?: string; verifyNext?: string } | null;
 type Recent = { reference: string; result: string; tone: Tone; at: string };
 
 const TONE: Record<Tone, { box: string; icon: typeof CheckCircle2Icon }> = {
@@ -152,6 +155,7 @@ export function ScanStation({
   canPack,
   canVerify,
   verificationOn,
+  selfVerify,
   initialProgress,
 }: {
   roundId: string;
@@ -159,6 +163,8 @@ export function ScanStation({
   canPack: boolean;
   canVerify: boolean;
   verificationOn: boolean;
+  /** One-person mode: the packer may verify their own parcels. */
+  selfVerify: boolean;
   initialProgress: Progress;
 }) {
   const t = useT();
@@ -229,6 +235,7 @@ export function ScanStation({
     return () => clearTimeout(timer);
   }, [ready, openedAt]);
 
+  const soloVerify = selfVerify && canPack && canVerify && verificationOn;
   const say = useCallback(
     (f: Feedback, ok?: boolean) => {
       // Titles and details are English keys (or already translated text); show them in the chosen language.
@@ -240,7 +247,7 @@ export function ScanStation({
 
   // ------------------------------------------------------------------ 1. look up (the only thing Enter does)
   const lookup = useCallback(
-    async (raw: string) => {
+    async (raw: string, as: ScanMode = mode) => {
       const scanned = raw.trim();
       if (!scanned || busy) return;
       setCode("");
@@ -248,7 +255,7 @@ export function ScanStation({
       setBusy("lookup");
       setRetry(false);
       try {
-        const result = await lookupScanAction({ round_id: roundId, code: scanned, mode, device });
+        const result = await lookupScanAction({ round_id: roundId, code: scanned, mode: as, device });
         if (!result.ok) {
           say({ tone: "error", title: "Lookup failed", detail: result.error }, false);
           return;
@@ -334,6 +341,8 @@ export function ScanStation({
             tone: "success",
             title: r.message,
             detail: r.replayed ? "Already saved earlier – nothing changed." : "Saved. Scan the next parcel.",
+            // One-person mode: offer the second check straight away.
+            verifyNext: mode === "pack" && soloVerify ? card.reference : undefined,
           },
           true,
         );
@@ -373,7 +382,12 @@ export function ScanStation({
       setBusy(null);
       focusScan();
     }
-  }, [card, cardKey, confirmable, device, focusScan, mode, refreshProgress, roundId, say, ticked]);
+  }, [card, cardKey, confirmable, device, focusScan, mode, refreshProgress, roundId, say, soloVerify, ticked]);
+
+  const verifyNow = (reference: string) => {
+    setMode("verify");
+    lookup(reference, "verify");
+  };
 
   // Keys: Ctrl+Enter / F9 confirm. Typing anywhere goes into the scan box (scanners type fast).
   useEffect(() => {
@@ -434,8 +448,13 @@ export function ScanStation({
             {online ? t("Online") : t("Offline")}
           </span>
         </div>
+        {soloVerify && (
+          <p className="bg-primary/5 text-primary flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium">
+            <UserIcon className="size-3.5" /> {t("One-person mode: you pack and verify")}
+          </p>
+        )}
         {canPack && canVerify && verificationOn && (
-          <div className="grid grid-cols-2 gap-1 rounded-lg border p-1" role="radiogroup" aria-label={t("Mode")}>
+          <div className="grid grid-cols-2 gap-1 rounded-lg border p-1 shadow-xs" role="radiogroup" aria-label={t("Mode")}>
             {(["pack", "verify"] as const).map((m) => (
               <Button
                 key={m}
@@ -492,7 +511,11 @@ export function ScanStation({
 
       {/* ------------------------------------------------------------ centre: parcel */}
       <div className="space-y-3">
-        <div className={cn("flex gap-3 rounded-lg border-2 p-3", tone.box)} role="status" aria-live="assertive">
+        <div
+          className={cn("flex gap-3 rounded-lg border-2 p-3 shadow-sm transition-colors duration-300", tone.box)}
+          role="status"
+          aria-live="assertive"
+        >
           {busy ? (
             <Loader2Icon className="mt-0.5 size-5 shrink-0 animate-spin" />
           ) : (
@@ -506,11 +529,16 @@ export function ScanStation({
                 <RotateCcwIcon /> {t("Retry")}
               </Button>
             )}
+            {feedback?.verifyNext && !busy && (
+              <Button size="sm" variant="outline" className="mt-2" onClick={() => verifyNow(feedback.verifyNext!)}>
+                <ShieldCheckIcon /> {t("Verify {ref} now", { ref: feedback.verifyNext })}
+              </Button>
+            )}
           </div>
         </div>
 
         {card && (
-          <Card className="gap-3">
+          <Card className="animate-in fade-in-0 slide-in-from-bottom-2 gap-3 shadow-md duration-200">
             <CardHeader>
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <CardTitle className="font-mono text-2xl tracking-tight sm:text-3xl">{card.reference}</CardTitle>
@@ -634,6 +662,7 @@ export function ScanStation({
             </div>
           </CardContent>
         </Card>
+        <TuteCounts tutes={progress.tutes} parcels={progress.total} packed={progress.packed} />
         <Card className="gap-2 py-4">
           <CardContent>
             <p className="mb-2 text-sm font-medium">{t("Recent scans")}</p>

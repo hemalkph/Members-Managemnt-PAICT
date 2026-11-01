@@ -77,12 +77,15 @@ export async function roundProgressAction(input: { round_id: string }): Promise<
   if (!uuid.safeParse(input.round_id).success) return { ok: false, error: "Round not found." };
   const ctx = await getActionContext({ page: "dispatch" });
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
-  const { data, error } = await ctx.supabase
-    .from("parcels")
-    .select("registration_state, pack_state, on_hold, packed_by, verified_by")
-    .eq("round_id", input.round_id)
-    .neq("registration_state", "voided")
-    .limit(20000);
+  const [{ data, error }, { data: tutes }] = await Promise.all([
+    ctx.supabase
+      .from("parcels")
+      .select("registration_state, pack_state, on_hold, packed_by, verified_by")
+      .eq("round_id", input.round_id)
+      .neq("registration_state", "voided")
+      .limit(20000),
+    ctx.supabase.rpc("dispatch_tute_counts", { p_round: input.round_id }),
+  ]);
   if (error) return { ok: false, error: friendlyDbError(error) };
   const me = ctx.profile.id;
   const rows = data ?? [];
@@ -95,6 +98,16 @@ export async function roundProgressAction(input: { round_id: string }): Promise<
       verified: rows.filter((p) => p.pack_state === "verified").length,
       onHold: rows.filter((p) => p.on_hold).length,
       mine: rows.filter((p) => p.packed_by === me || p.verified_by === me).length,
+      tutes: (tutes ?? []).map((t) => ({
+        id: t.round_tute_id,
+        code: t.short_code,
+        title: t.title,
+        extra: t.is_extra,
+        parcels: t.parcels,
+        copies: t.copies,
+        packedParcels: t.packed_parcels,
+        packedCopies: t.packed_copies,
+      })),
     },
   };
 }

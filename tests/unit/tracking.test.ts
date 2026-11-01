@@ -164,4 +164,23 @@ describe("round review", () => {
     expect(r.blocking.join(" ")).toMatch(/090/);
     expect(r.blocking.join(" ")).toMatch(/27TGROCTICT091/);
   });
+
+  test("extra tutes count only for students given them", () => {
+    const withExtra = [...tutes, { id: "x1", title: "Revision", shortCode: "X1", qty: 1, fromPapers: false, extra: true }];
+    const r = reviewRound({
+      prefix: PREFIX,
+      defaultCod: 0,
+      tutes: withExtra,
+      chosen: [
+        student("088", { extra: ["x1"] }),
+        student("089"),
+        // Only the extra tute: still a parcel.
+        student("090", { excluded: ["t1", "t2"], extra: ["x1"] }),
+      ],
+      notChosen: 0,
+      usedReferences: new Set(),
+    });
+    expect(r.blocking).toEqual([]);
+    expect(r.tuteTotals.find((x) => x.code === "X1")).toMatchObject({ parcels: 2, copies: 2 });
+  });
 });

@@ -361,6 +361,23 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      dispatch_tutes: {
+        Row: {
+          id: string;
+          title: string;
+          short_code: string;
+          version_label: string;
+          qty_per_parcel: number;
+          archived_at: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       dispatch_settings: {
         Row: {
           id: boolean;
@@ -376,6 +393,7 @@ export type Database = {
           default_weight_g: number;
           default_pieces: number;
           require_verification: boolean;
+          allow_self_verify: boolean;
           student_retention_months: number;
           recipient_retention_days: number;
           courier_file_retention_days: number;
@@ -493,6 +511,7 @@ export type Database = {
           short_code: string;
           version_label: string;
           qty_per_parcel: number;
+          is_extra: boolean;
           sort_order: number;
         };
         Insert: never;
@@ -506,6 +525,7 @@ export type Database = {
           cod_amount: number | null;
           note: string;
           excluded_tute_ids: string[];
+          extra_tute_ids: string[];
         };
         Insert: never;
         Update: never;
@@ -1544,6 +1564,21 @@ export type Database = {
       round_save: { Args: { p: Json }; Returns: string };
       round_set_tutes: { Args: { p_round: string; p_tutes: Json }; Returns: undefined };
       round_set_students: { Args: { p_round: string; p_rows: Json }; Returns: number };
+      dispatch_tute_save: { Args: { p: Json }; Returns: string };
+      dispatch_tute_counts: {
+        Args: { p_round: string };
+        Returns: {
+          round_tute_id: string;
+          short_code: string;
+          title: string;
+          is_extra: boolean;
+          parcels: number;
+          copies: number;
+          packed_parcels: number;
+          packed_copies: number;
+        }[];
+      };
+      dispatch_tute_archive: { Args: { p_id: string }; Returns: undefined };
       round_cancel: { Args: { p_round: string; p_reason: string }; Returns: undefined };
       round_finalise: { Args: { p_round: string }; Returns: number };
       parcel_correct: { Args: { p_parcel: string; p: Json; p_reason: string; p_row_version: number }; Returns: undefined };

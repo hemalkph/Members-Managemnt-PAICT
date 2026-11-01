@@ -24,11 +24,13 @@ import {
   roundSchema,
   roundStudentsSchema,
   roundTutesSchema,
+  savedTuteSchema,
   uuid,
   type ParcelCorrectionInput,
   type RoundInput,
   type RoundStudentsInput,
   type RoundTutesInput,
+  type SavedTuteInput,
 } from "@/lib/validation";
 
 const BUCKET = "dispatch";
@@ -80,6 +82,29 @@ export async function setRoundStudentsAction(input: RoundStudentsInput): Promise
   if (error) return { ok: false, error: friendlyDbError(error) };
   revalidateRound(parsed.data.round_id);
   return { ok: true, message: `${data} student${data === 1 ? "" : "s"} in this round` };
+}
+
+// ---------------------------------------------------------------- saved tutes (picked when planning a round)
+
+export async function saveSavedTuteAction(input: SavedTuteInput): Promise<ActionResult<{ id: string }>> {
+  const ctx = await dispatchActionContext("plan");
+  if (!ctx) return { ok: false, error: NOT_ALLOWED };
+  const parsed = savedTuteSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
+  const { data, error } = await ctx.supabase.rpc("dispatch_tute_save", { p: parsed.data });
+  if (error || !data) return { ok: false, error: friendlyDbError(error) };
+  revalidatePath("/admin/dispatch", "layout");
+  return { ok: true, message: parsed.data.id ? "Tute saved" : "Tute added", data: { id: data } };
+}
+
+export async function archiveSavedTuteAction(input: { id: string }): Promise<ActionResult> {
+  const ctx = await dispatchActionContext("plan");
+  if (!ctx) return { ok: false, error: NOT_ALLOWED };
+  if (!uuid.safeParse(input.id).success) return { ok: false, error: "Saved tute not found." };
+  const { error } = await ctx.supabase.rpc("dispatch_tute_archive", { p_id: input.id });
+  if (error) return { ok: false, error: friendlyDbError(error) };
+  revalidatePath("/admin/dispatch", "layout");
+  return { ok: true, message: "Tute removed from the list" };
 }
 
 export async function cancelRoundAction(input: { round_id: string; reason: string }): Promise<ActionResult> {

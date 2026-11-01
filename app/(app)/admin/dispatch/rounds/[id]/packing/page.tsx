@@ -5,6 +5,7 @@ import { ArrowLeftIcon, ScanBarcodeIcon } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { PackingBoard } from "@/components/dispatch/packing-board";
 import { ProblemList } from "@/components/dispatch/problem-list";
+import { TuteCounts } from "@/components/dispatch/tute-counts";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireDispatch } from "@/lib/dispatch/access";
@@ -21,7 +22,7 @@ export default async function PackingPage({ params }: PageProps<"/admin/dispatch
   if (!uuid.safeParse(id).success) notFound();
   const { caps } = await requireDispatch("plan");
   const supabase = await createClient();
-  const [{ data: round }, { data: list }, { data: packers }, { data: problems }] = await Promise.all([
+  const [{ data: round }, { data: list }, { data: packers }, { data: problems }, { data: counts }] = await Promise.all([
     supabase.from("dispatch_rounds").select("id, name, state").eq("id", id).maybeSingle(),
     supabase.rpc("dispatch_pack_list", { p_round: id }),
     supabase.rpc("dispatch_packers"),
@@ -31,7 +32,9 @@ export default async function PackingPage({ params }: PageProps<"/admin/dispatch
       .eq("round_id", id)
       .is("resolved_at", null)
       .order("opened_at"),
+    supabase.rpc("dispatch_tute_counts", { p_round: id }),
   ]);
+  const rows = list ?? [];
   if (!round) notFound();
   const nameOf = new Map((packers ?? []).map((p) => [p.id, p.name]));
 
@@ -56,6 +59,21 @@ export default async function PackingPage({ params }: PageProps<"/admin/dispatch
             )}
           </>
         }
+      />
+      <TuteCounts
+        className="print:hidden"
+        parcels={rows.length}
+        packed={rows.filter((r) => r.pack_state !== "planned").length}
+        tutes={(counts ?? []).map((c) => ({
+          id: c.round_tute_id,
+          code: c.short_code,
+          title: c.title,
+          extra: c.is_extra,
+          parcels: c.parcels,
+          copies: c.copies,
+          packedParcels: c.packed_parcels,
+          packedCopies: c.packed_copies,
+        }))}
       />
       <Card className="print:hidden">
         <CardHeader>
@@ -84,7 +102,7 @@ export default async function PackingPage({ params }: PageProps<"/admin/dispatch
         roundName={round.name}
         packers={packers ?? []}
         canUnpack={caps.has("correct")}
-        rows={(list ?? []).map((r) => ({
+        rows={rows.map((r) => ({
           id: r.parcel_id,
           reference: r.reference,
           trackingNo: r.tracking_no,

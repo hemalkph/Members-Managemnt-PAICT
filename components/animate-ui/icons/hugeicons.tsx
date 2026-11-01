@@ -7,6 +7,7 @@ import {
   Analytics01Icon,
   ArrowRight02Icon,
   BarCodeIcon,
+  BookOpen01Icon,
   CallBlockedIcon,
   CheckmarkBadge01Icon,
   DashboardSquare01Icon,
@@ -28,6 +29,7 @@ export const Alert02 = createHugeicon("Alert02", Alert02Icon);
 export const Analytics01 = createHugeicon("Analytics01", Analytics01Icon);
 export const ArrowRight02 = createHugeicon("ArrowRight02", ArrowRight02Icon);
 export const BarCode = createHugeicon("BarCode", BarCodeIcon);
+export const BookOpen01 = createHugeicon("BookOpen01", BookOpen01Icon);
 export const CallBlocked = createHugeicon("CallBlocked", CallBlockedIcon);
 export const CheckmarkBadge01 = createHugeicon("CheckmarkBadge01", CheckmarkBadge01Icon);
 export const Coins01 = createHugeicon("Coins01", Coins01Icon);

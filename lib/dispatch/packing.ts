@@ -37,6 +37,18 @@ export type ConfirmResult = {
   replayed?: boolean;
 };
 
+/** One tute of the round: parcels and copies needed, and how many are packed. */
+export type TuteCount = {
+  id: string;
+  code: string;
+  title: string;
+  extra: boolean;
+  parcels: number;
+  copies: number;
+  packedParcels: number;
+  packedCopies: number;
+};
+
 export type Progress = {
   total: number;
   registered: number;
@@ -44,6 +56,7 @@ export type Progress = {
   verified: number;
   onHold: number;
   mine: number;
+  tutes: TuteCount[];
 };
 
 export const PROBLEM_KINDS = [
