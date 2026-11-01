@@ -2,13 +2,16 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Loader2Icon, PlusIcon, Trash2Icon } from "lucide-react";
+import { BookOpenIcon, CheckIcon, Loader2Icon, PlusIcon, SparklesIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 import { setRoundTutesAction } from "@/lib/actions/dispatch-rounds";
 
 import { useT } from "@/components/dispatch/lang";
@@ -19,7 +22,10 @@ export type TuteRow = {
   short_code: string;
   version_label: string;
   qty_per_parcel: number;
+  is_extra: boolean;
 };
+
+export type SavedTuteOption = { id: string; title: string; short_code: string; version_label: string; qty_per_parcel: number };
 
 const MANUAL = "manual";
 
@@ -28,10 +34,12 @@ export function RoundTutesEditor({
   roundId,
   initial,
   finished,
+  saved,
 }: {
   roundId: string;
   initial: TuteRow[];
   finished: { id: string; title: string; label: string }[];
+  saved: SavedTuteOption[];
 }) {
   const t = useT();
   const router = useRouter();
@@ -50,6 +58,21 @@ export function RoundTutesEditor({
         short_code: `T${String(rs.length + 1).padStart(2, "0")}`,
         version_label: "",
         qty_per_parcel: 1,
+        is_extra: false,
+      },
+    ]);
+  const codes = new Set(rows.map((r) => r.short_code));
+  const addSaved = (s: SavedTuteOption) =>
+    setRows((rs) => [
+      ...rs,
+      {
+        id: "",
+        paper_id: "",
+        manual_title: s.title,
+        short_code: s.short_code,
+        version_label: s.version_label,
+        qty_per_parcel: s.qty_per_parcel,
+        is_extra: false,
       },
     ]);
 
@@ -63,7 +86,35 @@ export function RoundTutesEditor({
 
   return (
     <div className="space-y-4">
-      {finished.length === 0 && (
+      {saved.length > 0 && (
+        <div className="bg-muted/40 space-y-2 rounded-xl border border-dashed p-3">
+          <p className="flex items-center gap-1.5 text-sm font-medium">
+            <BookOpenIcon className="size-4" /> {t("Pick from saved tutes")}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {saved.map((s) => {
+              const added = codes.has(s.short_code);
+              return (
+                <Button
+                  key={s.id}
+                  type="button"
+                  size="sm"
+                  variant={added ? "secondary" : "outline"}
+                  disabled={added || rows.length >= 30}
+                  onClick={() => addSaved(s)}
+                  className="h-auto max-w-full py-1.5 shadow-xs transition-transform active:scale-95"
+                  title={s.title}
+                >
+                  {added ? <CheckIcon /> : <PlusIcon />}
+                  <span className="font-mono">{s.short_code}</span>
+                  <span className="text-muted-foreground max-w-[180px] truncate font-normal">{s.title}</span>
+                </Button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      {finished.length === 0 && saved.length === 0 && (
         <p className="text-muted-foreground text-sm">
           {t(
             "No finished tutes in Papers yet, so type each tute's title in. Tutes finished in Papers will appear here to pick.",
@@ -74,7 +125,10 @@ export function RoundTutesEditor({
         {rows.map((r, i) => (
           <div
             key={i}
-            className="grid grid-cols-3 gap-2 rounded-lg border p-3 sm:grid-cols-[1.4fr_1.6fr_110px_90px_80px_auto] sm:items-end"
+            className={cn(
+              "grid grid-cols-3 gap-2 rounded-lg border p-3 shadow-xs transition-colors sm:grid-cols-[1.4fr_1.6fr_110px_90px_80px_auto] sm:items-end",
+              r.is_extra && "border-amber-400/60 bg-amber-50/50 dark:bg-amber-950/20",
+            )}
           >
             <div className="col-span-3 grid gap-1.5 sm:col-span-1">
               <Label className="text-xs">{t("From")}</Label>
@@ -147,6 +201,12 @@ export function RoundTutesEditor({
             >
               <Trash2Icon />
             </Button>
+            <label className="col-span-3 flex cursor-pointer items-center gap-2 text-sm sm:col-span-6">
+              <Switch checked={r.is_extra} onCheckedChange={(v) => update(i, { is_extra: v })} />
+              <SparklesIcon className="size-4 text-amber-600" />
+              <span>{t("Extra tute – only for the students you choose")}</span>
+              {r.is_extra && <Badge variant="warning">{t("Extra")}</Badge>}
+            </label>
           </div>
         ))}
       </div>
@@ -158,6 +218,11 @@ export function RoundTutesEditor({
           {pending && <Loader2Icon className="animate-spin" />} {t("Save tutes")}
         </Button>
       </div>
+      {rows.some((r) => r.is_extra) && (
+        <p className="text-muted-foreground text-sm">
+          {t("Choose who gets each extra tute in step 4 (Contents).")}
+        </p>
+      )}
     </div>
   );
 }

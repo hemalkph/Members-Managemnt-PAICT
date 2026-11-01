@@ -16,7 +16,12 @@ import { setRoundStudentsAction } from "@/lib/actions/dispatch-rounds";
 import { useT } from "@/components/dispatch/lang";
 import { plural } from "@/lib/dispatch/i18n";
 export type PickStudent = { id: string; no: string; name: string; city: string; problems: string[] };
-export type ChosenSettings = { cod_amount: number | null; note: string; excluded_tute_ids: string[] };
+export type ChosenSettings = {
+  cod_amount: number | null;
+  note: string;
+  excluded_tute_ids: string[];
+  extra_tute_ids: string[];
+};
 
 /** Choose exactly which students get a parcel. Nobody is added just because their number is in a range. */
 export function RoundStudentsPicker({
@@ -56,6 +61,7 @@ export function RoundStudentsPicker({
           cod_amount: chosen[s.id]?.cod_amount ?? ("" as const),
           note: chosen[s.id]?.note ?? "",
           excluded_tute_ids: chosen[s.id]?.excluded_tute_ids ?? [],
+          extra_tute_ids: chosen[s.id]?.extra_tute_ids ?? [],
         }));
       const result = await setRoundStudentsAction({ round_id: roundId, rows });
       if (!result.ok) return void toast.error(t(result.error));

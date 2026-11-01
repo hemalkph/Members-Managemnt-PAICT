@@ -1,7 +1,7 @@
 // The final check before a round is finalised. Pure: the page shows it, and
 // the database repeats the blocking checks inside round_finalise.
 
-export type ReviewTute = { id: string; title: string; shortCode: string; qty: number; fromPapers: boolean };
+export type ReviewTute = { id: string; title: string; shortCode: string; qty: number; fromPapers: boolean; extra?: boolean };
 export type ReviewStudent = {
   id: string;
   studentNo: string;
@@ -12,7 +12,13 @@ export type ReviewStudent = {
   active: boolean;
   codAmount: number | null;
   excluded: string[];
+  extra?: string[];
 };
+
+/** Does this student's parcel hold this tute? Extra tutes go only to students given them (same rule as round_finalise). */
+export function gets(s: Pick<ReviewStudent, "excluded" | "extra">, t: Pick<ReviewTute, "id" | "extra">): boolean {
+  return t.extra ? (s.extra ?? []).includes(t.id) : !s.excluded.includes(t.id);
+}
 
 export type RoundReview = {
   recipients: number;
@@ -46,7 +52,7 @@ export function reviewRound(input: {
   const missingAddress = chosen.filter((s) => !s.address.trim() || !s.city.trim());
   const missingPhone = chosen.filter((s) => !s.phone1);
   const inactive = chosen.filter((s) => !s.active);
-  const empty = chosen.filter((s) => tutes.length > 0 && tutes.every((t) => s.excluded.includes(t.id)));
+  const empty = chosen.filter((s) => tutes.length > 0 && !tutes.some((t) => gets(s, t)));
   const badNo = chosen.filter((s) => !REF_CHARS.test(s.studentNo));
   const conflicts = chosen.filter((s) => input.usedReferences.has(prefix + s.studentNo));
   const list = (xs: ReviewStudent[]) => xs.slice(0, 8).map((s) => s.studentNo).join(", ") + (xs.length > 8 ? ` +${xs.length - 8} more` : "");
@@ -67,7 +73,7 @@ export function reviewRound(input: {
     parcels: chosen.length - empty.length,
     codTotal: chosen.reduce((sum, s) => sum + (s.codAmount ?? input.defaultCod), 0),
     tuteTotals: tutes.map((t) => {
-      const parcels = chosen.filter((s) => !s.excluded.includes(t.id)).length;
+      const parcels = chosen.filter((s) => gets(s, t)).length;
       return { code: t.shortCode, title: t.title, parcels, copies: parcels * t.qty };
     }),
     blocking,

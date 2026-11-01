@@ -88,7 +88,7 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
       );
     }
     const step: Step = STEPS.some((s) => s.key === sp.step) ? (sp.step as Step) : "tutes";
-    const [{ data: chosenRows }, { data: students }, { data: batches }, { data: finished }] = await Promise.all([
+    const [{ data: chosenRows }, { data: students }, { data: batches }, { data: finished }, { data: saved }] = await Promise.all([
       supabase.from("round_students").select("*").eq("round_id", id),
       supabase
         .from("students")
@@ -106,11 +106,16 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
         .eq("status", "done")
         .order("completed_at", { ascending: false })
         .limit(200),
+      supabase
+        .from("dispatch_tutes")
+        .select("id, title, short_code, version_label, qty_per_parcel")
+        .is("archived_at", null)
+        .order("short_code"),
     ]);
     const chosen: Record<string, ChosenSettings> = Object.fromEntries(
       (chosenRows ?? []).map((r) => [
         r.student_id,
-        { cod_amount: r.cod_amount, note: r.note, excluded_tute_ids: r.excluded_tute_ids },
+        { cod_amount: r.cod_amount, note: r.note, excluded_tute_ids: r.excluded_tute_ids, extra_tute_ids: r.extra_tute_ids },
       ]),
     );
     const studentList = students ?? [];
@@ -153,7 +158,9 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
             short_code: tute.short_code,
             version_label: tute.version_label,
             qty_per_parcel: tute.qty_per_parcel,
+            is_extra: tute.is_extra,
           }))}
+          saved={saved ?? []}
           finished={(finished ?? []).map((p) => {
             const exam = p.exam as unknown as { name: string } | null;
             return { id: p.id, title: p.title, label: exam ? `${p.title} (${exam.name})` : p.title };
@@ -179,7 +186,7 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
         <ContentsMatrix
           roundId={id}
           defaultCod={Number(round.default_cod)}
-          tutes={tutes.map((tute) => ({ id: tute.id, code: tute.short_code, title: tute.title }))}
+          tutes={tutes.map((tute) => ({ id: tute.id, code: tute.short_code, title: tute.title, extra: tute.is_extra }))}
           initial={(chosenRows ?? [])
             .map((r) => ({ r, s: byId.get(r.student_id) }))
             .sort((a, b) => (a.s?.student_no ?? "").localeCompare(b.s?.student_no ?? ""))
@@ -190,6 +197,7 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
               cod: r.cod_amount === null ? "" : String(r.cod_amount),
               note: r.note,
               excluded: r.excluded_tute_ids,
+              extra: r.extra_tute_ids,
             }))}
         />
       );
@@ -224,6 +232,7 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
           shortCode: tute.short_code,
           qty: tute.qty_per_parcel,
           fromPapers: Boolean(tute.paper_id),
+          extra: tute.is_extra,
         })),
         chosen: (chosenRows ?? []).map((r) => {
           const s = all.get(r.student_id);
@@ -237,6 +246,7 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
             active: Boolean(s?.is_active),
             codAmount: r.cod_amount === null ? null : Number(r.cod_amount),
             excluded: r.excluded_tute_ids,
+            extra: r.extra_tute_ids,
           };
         }),
         notChosen: studentList.filter((s) => !chosen[s.id]).length,

@@ -20,7 +20,7 @@ export default async function ScanPage({ params }: PageProps<"/admin/dispatch/ro
   const supabase = await createClient();
   const [{ data: round }, { data: settings }, progress] = await Promise.all([
     supabase.from("dispatch_rounds").select("id, name, state").eq("id", id).maybeSingle(),
-    supabase.from("dispatch_settings").select("require_verification").limit(1).maybeSingle(),
+    supabase.from("dispatch_settings").select("require_verification, allow_self_verify").limit(1).maybeSingle(),
     roundProgressAction({ round_id: id }),
   ]);
   if (!round) notFound();
@@ -43,10 +43,11 @@ export default async function ScanPage({ params }: PageProps<"/admin/dispatch/ro
           canPack={caps.has("pack")}
           canVerify={caps.has("verify")}
           verificationOn={Boolean(settings?.require_verification)}
+          selfVerify={Boolean(settings?.allow_self_verify)}
           initialProgress={
             progress.ok && progress.data
               ? progress.data
-              : { total: 0, registered: 0, packed: 0, verified: 0, onHold: 0, mine: 0 }
+              : { total: 0, registered: 0, packed: 0, verified: 0, onHold: 0, mine: 0, tutes: [] }
           }
         />
       ) : (

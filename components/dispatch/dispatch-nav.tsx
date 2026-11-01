@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { AnimateIcon } from "@animate-ui/react/icons";
 import {
   Analytics01,
+  BookOpen01,
   Coins01,
   DashboardSquare,
   Route01,
@@ -17,6 +18,7 @@ import { LangToggle, useT } from "./lang";
 const ICONS = {
   overview: DashboardSquare,
   rounds: Route01,
+  tutes: BookOpen01,
   students: Students,
   money: Coins01,
   reports: Analytics01,

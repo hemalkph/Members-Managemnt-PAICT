@@ -87,6 +87,7 @@ export default async function DispatchSettingsPage() {
     default_weight_g: settings?.default_weight_g ?? 1000,
     default_pieces: settings?.default_pieces ?? 1,
     require_verification: settings?.require_verification ?? true,
+    allow_self_verify: settings?.allow_self_verify ?? false,
     student_retention_months: settings?.student_retention_months ?? 12,
     recipient_retention_days: settings?.recipient_retention_days ?? 180,
     courier_file_retention_days: settings?.courier_file_retention_days ?? 90,

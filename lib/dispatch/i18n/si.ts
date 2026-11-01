@@ -1146,6 +1146,41 @@ export const SI: Record<string, string> = {
   "A COD settlement mixes this test batch with real parcels. Remove the test parcels from it first.":
     "COD ගෙවීමක මේ පරීක්ෂණ බැච් එක සැබෑ පාර්සල් සමඟ මිශ්‍ර වී ඇත. මුලින්ම එයින් පරීක්ෂණ පාර්සල් ඉවත් කරන්න.",
 
+  // ------------------------------------------------------------------ saved tutes, extra tutes, one-person mode
+  "Saved tutes": "සුරැකි ටියුට්",
+  "Add tutes here as soon as they are printed. When you plan a round, pick them in one click.":
+    "ටියුට් මුද්‍රණය වූ වහාම මෙහි එකතු කරන්න. වටයක් සැලසුම් කරන විට එක ක්ලික් එකකින් තෝරන්න.",
+  "Edit tute": "ටියුට් එක සංස්කරණය කරන්න",
+  "Add a tute": "ටියුට් එකක් එකතු කරන්න",
+  "Rounds keep their own copy, so editing here never changes a round.":
+    "වටවල තමන්ගේම පිටපතක් ඇත, එබැවින් මෙහි වෙනස් කිරීම කිසිදු වටයක් වෙනස් නොකරයි.",
+  "Save tute": "ටියුට් එක සුරකින්න",
+  "No saved tutes yet": "තවම සුරැකි ටියුට් නැහැ",
+  "Add each tute once. It will be ready to pick in every round.":
+    "සෑම ටියුට් එකක්ම එක් වරක් එකතු කරන්න. සෑම වටයකදීම තෝරා ගැනීමට සූදානම් වේ.",
+  "Edit {code}": "{code} සංස්කරණය කරන්න",
+  "Remove {code}": "{code} ඉවත් කරන්න",
+  "{n} per parcel": "පාර්සලයකට {n}",
+  "Tute saved": "ටියුට් එක සුරැකුණා",
+  "Tute added": "ටියුට් එක එකතු කළා",
+  "Tute removed from the list": "ටියුට් එක ලැයිස්තුවෙන් ඉවත් කළා",
+  "Saved tute not found.": "සුරැකි ටියුට් එක හමු නොවුණා.",
+  "Pick from saved tutes": "සුරැකි ටියුට් වලින් තෝරන්න",
+  "Extra tute – only for the students you choose": "අමතර ටියුට් – ඔබ තෝරන සිසුන්ට පමණයි",
+  Extra: "අමතර",
+  "Choose who gets each extra tute in step 4 (Contents).":
+    "එක් එක් අමතර ටියුට් එක ලැබෙන්නේ කාටදැයි 4 වන පියවරේදී (අන්තර්ගතය) තෝරන්න.",
+  "Extra tutes go only to the students you tick.": "අමතර ටියුට් යන්නේ ඔබ ටික් කරන සිසුන්ට පමණයි.",
+  "One-person mode": "එක් පුද්ගල ක්‍රමය",
+  "When only one person is packing, they may also verify their own parcels. Both scans still happen; switch this off when a second person joins.":
+    "එක් අයෙකු පමණක් පැක් කරන විට, තමන් පැක් කළ පාර්සල් තමන්ටම තහවුරු කළ හැක. ස්කෑන් දෙකම තවමත් සිදු වේ; දෙවන පුද්ගලයෙකු එක් වූ විට මෙය අක්‍රිය කරන්න.",
+  "One-person mode: you pack and verify": "එක් පුද්ගල ක්‍රමය: ඔබම පැක් කර තහවුරු කරන්න",
+  "Verify {ref} now": "{ref} දැන් තහවුරු කරන්න",
+  "Parcels to pack": "පැක් කිරීමට ඇති පාර්සල්",
+  "Tute copies left": "ඉතිරි ටියුට් පිටපත්",
+  "Copies needed per tute": "එක් එක් ටියුට් එකට අවශ්‍ය පිටපත්",
+  Done: "අවසන්",
+  "{n} left": "ඉතිරි {n}",
 };
 
 /** Messages with changing parts, mostly from the database. Named groups fill the placeholders. */
@@ -1308,4 +1343,8 @@ export const SI_PATTERNS: { re: RegExp; si: string }[] = [
     si: "{code} ↔ {ref} අපේ වාර්තා සමඟ ගැළපෙන්නේ නැහැ",
   },
   { re: new RegExp(String.raw`^(?<ref>\S+): no label in the PDF$`), si: "{ref}: PDF එකේ label එකක් නැහැ" },
+  {
+    re: new RegExp(String.raw`^Another saved tute already uses the code (?<code>\S+)\.$`),
+    si: "{code} කේතය දැනටමත් වෙනත් සුරැකි ටියුට් එකක් භාවිත කරයි.",
+  },
 ];

@@ -550,6 +550,7 @@ export const dispatchSettingsSchema = z.object({
   default_weight_g: z.coerce.number().int().min(1).max(30_000),
   default_pieces: z.coerce.number().int().min(1).max(20),
   require_verification: z.boolean(),
+  allow_self_verify: z.boolean(),
   student_retention_months: z.coerce.number().int().min(1).max(120),
   recipient_retention_days: z.coerce.number().int().min(30).max(3650),
   courier_file_retention_days: z.coerce.number().int().min(7).max(3650),
@@ -622,6 +623,7 @@ export const roundTutesSchema = z.object({
           .regex(/^[A-Z0-9-]{1,10}$/, "Short code: up to 10 capital letters, numbers or -"),
         version_label: optionalText(30, "Version"),
         qty_per_parcel: z.coerce.number().int().min(1).max(10),
+        is_extra: z.boolean(),
       }),
     )
     .max(30),
@@ -637,11 +639,25 @@ export const roundStudentsSchema = z.object({
         cod_amount: z.union([z.literal(""), z.coerce.number().min(0).max(1_000_000)]),
         note: optionalText(300, "Note"),
         excluded_tute_ids: z.array(uuid).max(30),
+        extra_tute_ids: z.array(uuid).max(30),
       }),
     )
     .max(3000),
 });
 export type RoundStudentsInput = z.input<typeof roundStudentsSchema>;
+
+export const savedTuteSchema = z.object({
+  id: z.union([uuid, z.literal("")]),
+  title: trimmed(1, 150, "Title"),
+  short_code: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-Z0-9-]{1,10}$/, "Short code: up to 10 capital letters, numbers or -"),
+  version_label: optionalText(30, "Version"),
+  qty_per_parcel: z.coerce.number().int().min(1).max(10),
+});
+export type SavedTuteInput = z.input<typeof savedTuteSchema>;
 
 export const parcelCorrectionSchema = z.object({
   parcel_id: uuid,
