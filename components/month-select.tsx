@@ -5,7 +5,7 @@ import { useTransition } from "react";
 import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { monthLabel, recentMonths, shiftMonth } from "@/lib/month";
+import { monthLabel, periodRangeLabel, recentMonths, shiftMonth } from "@/lib/month";
 import { cn } from "@/lib/utils";
 
 /** Month filter stored in the URL (?month=YYYY-MM). */
@@ -45,6 +45,9 @@ export function MonthSelect({ value, className }: { value: string; className?: s
       <Button variant="outline" size="icon" aria-label="Next month" onClick={() => go(shiftMonth(value, 1))}>
         <ChevronRightIcon />
       </Button>
+      <span className="text-muted-foreground hidden pl-1 text-xs whitespace-nowrap lg:inline">
+        {periodRangeLabel(value)}
+      </span>
     </div>
   );
 }

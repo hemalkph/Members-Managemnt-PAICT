@@ -69,8 +69,8 @@ export function CloseMonthDialog({
                 today&apos;s salaries and the locked prices of approved work.
               </p>
               <p>
-                Work for {monthLabel} can&apos;t be added, changed or deleted afterwards. You can reopen the month as long
-                as nobody is marked as paid.
+                Approved work for {monthLabel} is locked afterwards. Work that isn&apos;t approved yet moves to the next
+                month. You can reopen the month as long as nobody is marked as paid.
               </p>
             </div>
           </AlertDialogDescription>

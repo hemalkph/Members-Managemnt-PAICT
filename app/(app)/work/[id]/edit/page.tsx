@@ -1,18 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CalendarClockIcon, LockIcon } from "lucide-react";
+import { LockIcon } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { SubmissionForm } from "@/components/member/submission-form";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { requireCompleteProfile } from "@/lib/auth";
-import { dateToMonthKey, monthLabel, recentMonths, todayISO } from "@/lib/month";
+import { currentMonthKey, dateToMonthKey, todayISO } from "@/lib/month";
 import { SHOW_MEMBERS_THEIR_EARNINGS } from "@/lib/config";
 import { activeOptions, getClassOptions } from "@/lib/classes";
-import { getDeadlines } from "@/lib/deadlines";
-import { getClosedMonthKeys } from "@/lib/payments";
 import { getMemberRoles, getRatesForRoles } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
 import { uuid } from "@/lib/validation";
@@ -56,33 +54,12 @@ export default async function EditWorkPage({ params }: PageProps<"/work/[id]/edi
     );
   }
 
-  const closed = new Set(await getClosedMonthKeys(supabase));
   const tags = activeOptions(await getClassOptions(supabase), {
     examId: submission.exam_id,
     centreId: submission.centre_id,
   });
-  const candidates = recentMonths(12, true);
-  if (!candidates.includes(month)) candidates.push(month);
-  const deadlines = profile.is_admin ? new Map() : await getDeadlines(supabase, candidates);
-  const ownDeadline = deadlines.get(month);
-  if (ownDeadline?.passed) {
-    return (
-      <div className="mx-auto max-w-2xl space-y-6">
-        <PageHeader title="Edit submission" />
-        <EmptyState
-          icon={CalendarClockIcon}
-          title="The deadline for this month has passed"
-          description={`Work for ${monthLabel(month)} could be changed until ${ownDeadline.lastDayLabel}. Ask an admin if something needs fixing.`}
-          action={
-            <Button asChild variant="outline">
-              <Link href={`/work?month=${month}`}>Back to my work</Link>
-            </Button>
-          }
-        />
-      </div>
-    );
-  }
-  const months = candidates.filter((m) => !closed.has(m) && !deadlines.get(m)?.passed).sort().reverse();
+  // Saving pending work moves it to the month open now (the database decides).
+  const workMonth = currentMonthKey();
   const rates = await getRatesForRoles(
     supabase,
     roles.map((r) => r.id),
@@ -99,14 +76,13 @@ export default async function EditWorkPage({ params }: PageProps<"/work/[id]/edi
             submissionId={submission.id}
             roles={roleOptions}
             showMoney={SHOW_MEMBERS_THEIR_EARNINGS}
-            months={months}
             today={todayISO()}
             existingAttachments={submission.submission_attachments}
             exams={tags.exams.map((e) => ({ id: e.id, label: e.label }))}
             centres={tags.centres.map((c) => ({ id: c.id, name: c.name }))}
             taskTitle={submission.task?.title ?? null}
             defaultValues={{
-              work_month: month,
+              work_month: workMonth,
               role_id: roles.some((r) => r.id === submission.role_id) ? submission.role_id : "",
               rate_item_id: submission.rate_item_id ?? "",
               title: submission.title,

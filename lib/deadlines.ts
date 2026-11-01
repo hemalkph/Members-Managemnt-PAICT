@@ -22,8 +22,6 @@ export type MonthDeadline = {
   extended: boolean;
 };
 
-export type DeadlineSettings = { enabled: boolean; day: number; reminderDays: number };
-
 const DAY_MS = 86_400_000;
 
 function lastDayOf(deadline: string): { label: string; iso: string } {
@@ -87,23 +85,6 @@ export async function getDeadlines(
     });
   }
   return result;
-}
-
-export async function getDeadline(supabase: SupabaseClient<Database>, month: string): Promise<MonthDeadline> {
-  return (await getDeadlines(supabase, [month])).get(month)!;
-}
-
-/** The normal deadline rule (admins only can read it). */
-export async function getDeadlineSettings(supabase: SupabaseClient<Database>): Promise<DeadlineSettings> {
-  const { data } = await supabase
-    .from("app_settings")
-    .select("deadline_enabled, deadline_day, reminder_days")
-    .maybeSingle();
-  return {
-    enabled: data?.deadline_enabled ?? true,
-    day: data?.deadline_day ?? 3,
-    reminderDays: data?.reminder_days ?? 3,
-  };
 }
 
 /**

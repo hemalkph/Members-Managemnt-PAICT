@@ -307,21 +307,6 @@ export type OtpCodeInput = z.input<typeof otpCodeSchema>;
 
 export const confirmTwoStepSchema = otpCodeSchema.extend({ factorId: z.string().min(1).max(100) });
 
-// ---------------------------------------------------------------- deadlines (main admins)
-export const deadlineSettingsSchema = z.object({
-  enabled: z.boolean(),
-  day: z.number({ error: "Choose a day" }).int().min(1, "Choose a day from 1 to 28").max(28, "Choose a day from 1 to 28"),
-  reminderDays: z.number({ error: "Choose a number" }).int().min(0, "0 to 10 days").max(10, "0 to 10 days"),
-});
-export type DeadlineSettingsInput = z.input<typeof deadlineSettingsSchema>;
-
-export const monthDeadlineSchema = z.object({
-  month: monthKey,
-  /** Last day work is accepted, or "" for the normal rule. */
-  lastDay: z.union([isoDate, z.literal("")]),
-});
-export type MonthDeadlineInput = z.input<typeof monthDeadlineSchema>;
-
 // ---------------------------------------------------------------- notifications
 export const notificationIdsSchema = z.object({
   ids: z.array(z.number().int().positive()).max(200).optional(),
