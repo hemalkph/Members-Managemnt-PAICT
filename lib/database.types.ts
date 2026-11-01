@@ -1580,6 +1580,7 @@ export type Database = {
         }[];
       };
       dispatch_tute_archive: { Args: { p_id: string }; Returns: undefined };
+      round_copy: { Args: { p_from: string; p: Json }; Returns: Json };
       round_cancel: { Args: { p_round: string; p_reason: string }; Returns: undefined };
       round_finalise: { Args: { p_round: string }; Returns: number };
       parcel_correct: { Args: { p_parcel: string; p: Json; p_reason: string; p_row_version: number }; Returns: undefined };

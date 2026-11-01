@@ -62,6 +62,7 @@ const FUNCTIONS = [
   "dispatch_tute_save",
   "dispatch_tute_archive",
   "dispatch_tute_counts",
+  "round_copy",
 ];
 /** Privileged helpers used only inside other functions: nobody may call them directly. */
 const INTERNAL = [
