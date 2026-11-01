@@ -59,6 +59,9 @@ const FUNCTIONS = [
   "dispatch_report_people",
   "student_delete",
   "dispatch_batch_clear",
+  "dispatch_tute_save",
+  "dispatch_tute_archive",
+  "dispatch_tute_counts",
 ];
 /** Privileged helpers used only inside other functions: nobody may call them directly. */
 const INTERNAL = [
@@ -95,6 +98,7 @@ const TABLES = [
   "handover_parcels",
   "cod_settlements",
   "cod_settlement_lines",
+  "dispatch_tutes",
 ];
 
 let db: pg.Client;
@@ -132,7 +136,7 @@ describe("dispatch functions", () => {
     }
   });
 
-  test.each([...INTERNAL, "parcel_events_append_only"])("%s cannot be called by signed-in users either", async (name) => {
+  test.each([...INTERNAL, "parcel_events_append_only", "round_student_gets"])("%s cannot be called by signed-in users either", async (name) => {
     const { rows } = await db.query(
       `select has_function_privilege('authenticated', p.oid, 'execute') as auth, has_function_privilege('anon', p.oid, 'execute') as anon
          from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = $1`,
