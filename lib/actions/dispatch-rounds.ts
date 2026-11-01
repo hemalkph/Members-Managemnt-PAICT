@@ -59,6 +59,31 @@ export async function saveRoundAction(input: RoundInput): Promise<ActionResult<{
   return { ok: true, message: v.id ? "Round saved" : "Round created", data: { id: data } };
 }
 
+/** Start a new draft as a copy of an earlier round (same batch, tutes and students). */
+export async function copyRoundAction(
+  from: string,
+  input: RoundInput,
+): Promise<ActionResult<{ id: string; students: number; skipped: number }>> {
+  const ctx = await dispatchActionContext("plan");
+  if (!ctx) return { ok: false, error: NOT_ALLOWED };
+  if (!uuid.safeParse(from).success) return { ok: false, error: "Round not found." };
+  const parsed = roundSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
+  const v = parsed.data;
+  const { data, error } = await ctx.supabase.rpc("round_copy", {
+    p_from: from,
+    p: { ...v, sending_month: `${v.sending_month}-01` },
+  });
+  if (error || !data) return { ok: false, error: friendlyDbError(error) };
+  const r = data as { id: string; students: number; skipped: number };
+  revalidateRound(r.id);
+  return {
+    ok: true,
+    message: r.skipped > 0 ? "Round copied – some students are no longer active and were left out" : "Round copied",
+    data: { id: r.id, students: r.students, skipped: r.skipped },
+  };
+}
+
 export async function setRoundTutesAction(input: RoundTutesInput): Promise<ActionResult> {
   const ctx = await dispatchActionContext("plan");
   if (!ctx) return { ok: false, error: NOT_ALLOWED };

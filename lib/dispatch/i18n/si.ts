@@ -1203,6 +1203,26 @@ export const SI: Record<string, string> = {
     "බෙදාහැරී, අසාර්ථක සහ ආපසු පැමිණි පාර්සල් බලාගන්න. භාර දීම අවශ්‍යයි.",
   "Match Citypak's COD payments to parcels before closing. Needs Delivery.":
     "වසා දැමීමට පෙර Citypak COD ගෙවීම් පාර්සල් සමඟ ගළපන්න. බෙදාහැරීම අවශ්‍යයි.",
+  // ------------------------------------------------------------------ copy a round
+  "Copy this round": "මෙම වටය පිටපත් කරන්න",
+  "Batch of the copied round": "පිටපත් කරන වටයේ කණ්ඩායම",
+  "Start from an earlier round to reuse its tutes and students, or start an empty one.":
+    "පෙර වටයක ටියුට් සහ සිසුන් නැවත භාවිත කිරීමට එයින් අරඹන්න, නැතහොත් හිස් වටයක් අරඹන්න.",
+  "Start from": "ආරම්භ කරන්නේ",
+  "A copy keeps the batch, tutes and students (with their COD and contents). You can change anything before finalising.":
+    "පිටපතක කණ්ඩායම, ටියුට් සහ සිසුන් (ඔවුන්ගේ COD සහ අන්තර්ගතය සමඟ) එලෙසම පවතී. අවසන් කිරීමට පෙර ඕනෑම දෙයක් වෙනස් කළ හැක.",
+  "An empty round": "හිස් වටයක්",
+  "Choose tutes and students yourself": "ටියුට් සහ සිසුන් ඔබම තෝරන්න",
+  "{n} student": "සිසුන් {n}",
+  "Details of the new round": "නව වටයේ විස්තර",
+  "Round details": "වටයේ විස්තර",
+  "Copying “{name}”. Give the new round its own name and a new reference prefix (the last one was {prefix}).":
+    "“{name}” පිටපත් කරයි. නව වටයට තමන්ගේම නමක් සහ නව reference prefix එකක් දෙන්න (පසුගිය එක {prefix}).",
+  "A copy keeps the batch of the round it copies.": "පිටපතක් පිටපත් කරන වටයේ කණ්ඩායමම තබා ගනී.",
+  "Create the copy": "පිටපත සාදන්න",
+  "Round copied": "වටය පිටපත් කළා",
+  "Round copied – some students are no longer active and were left out":
+    "වටය පිටපත් කළා – තවදුරටත් සක්‍රිය නැති සිසුන් කිහිපදෙනෙක් ඉවත් කළා",
 };
 
 /** Messages with changing parts, mostly from the database. Named groups fill the placeholders. */

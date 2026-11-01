@@ -187,13 +187,7 @@ export default async function DispatchOverviewPage() {
           ) : (
             <ul className="space-y-3">
               {rounds.map((r) => (
-                <li
-                  key={r.id}
-                  className={cn(
-                    "bg-card rounded-xl border p-4 shadow-xs transition-shadow hover:shadow-sm",
-                    r.action && "border-l-primary border-l-4",
-                  )}
-                >
+                <li key={r.id} className="bg-card rounded-xl border p-4 shadow-xs transition-shadow hover:shadow-sm">
                   <div className="mb-3 flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <Link

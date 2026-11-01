@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PencilIcon, TruckIcon } from "lucide-react";
+import { CopyIcon, PencilIcon, TruckIcon } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { ContentsMatrix } from "@/components/dispatch/contents-matrix";
 import { ParcelCorrectDialog } from "@/components/dispatch/parcel-correct-dialog";
@@ -66,7 +66,18 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
           <span className="font-mono">{round.ref_prefix}</span>
         </>
       }
-      actions={<Badge variant={state.variant}>{t(state.label)}</Badge>}
+      actions={
+        <>
+          <Badge variant={state.variant}>{t(state.label)}</Badge>
+          {canPlan && round.state !== "cancelled" && (
+            <Button asChild variant="outline" size="sm" className="print:hidden">
+              <Link href={`/admin/dispatch/rounds/new?from=${round.id}`}>
+                <CopyIcon /> {t("Copy this round")}
+              </Link>
+            </Button>
+          )}
+        </>
+      }
     />
   );
 
