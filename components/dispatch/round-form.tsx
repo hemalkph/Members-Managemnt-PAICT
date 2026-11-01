@@ -11,7 +11,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { saveRoundAction } from "@/lib/actions/dispatch-rounds";
+import { copyRoundAction, saveRoundAction } from "@/lib/actions/dispatch-rounds";
 import { roundSchema, type RoundInput } from "@/lib/validation";
 
 import { useT } from "@/components/dispatch/lang";
@@ -39,11 +39,14 @@ export function RoundForm({
   batches,
   lockBatch = false,
   onSaved,
+  copyFrom,
 }: {
   values: RoundInput;
   batches: { id: string; name: string }[];
   lockBatch?: boolean;
   onSaved?: () => void;
+  /** Create the round as a copy of this earlier round (its batch, tutes and students). */
+  copyFrom?: string;
 }) {
   const t = useT();
   const router = useRouter();
@@ -52,10 +55,11 @@ export function RoundForm({
 
   const onSubmit = (v: RoundInput) =>
     startTransition(async () => {
-      const result = await saveRoundAction(v);
+      const result = copyFrom ? await copyRoundAction(copyFrom, v) : await saveRoundAction(v);
       if (!result.ok) return void toast.error(t(result.error));
       toast.success(t(result.message));
-      if (!v.id) router.push(`/admin/dispatch/rounds/${result.data!.id}?step=tutes`);
+      // A copy already has tutes and students: go straight to checking the contents.
+      if (!v.id) router.push(`/admin/dispatch/rounds/${result.data!.id}?step=${copyFrom ? "review" : "tutes"}`);
       else {
         onSaved?.();
         router.refresh();
@@ -98,7 +102,13 @@ export function RoundForm({
                   ))}
                 </SelectContent>
               </Select>
-              {lockBatch && <FormDescription>{t("Remove the chosen students to change the batch.")}</FormDescription>}
+              {lockBatch && (
+                <FormDescription>
+                  {copyFrom
+                    ? t("A copy keeps the batch of the round it copies.")
+                    : t("Remove the chosen students to change the batch.")}
+                </FormDescription>
+              )}
               <FormMessage />
             </FormItem>
           )}
@@ -140,7 +150,9 @@ export function RoundForm({
           )}
         />
         <div className="sm:col-span-2">
-          <SubmitButton pending={pending}>{values.id ? t("Save details") : t("Create round")}</SubmitButton>
+          <SubmitButton pending={pending}>
+            {values.id ? t("Save details") : copyFrom ? t("Create the copy") : t("Create round")}
+          </SubmitButton>
         </div>
       </form>
     </Form>
