@@ -18,7 +18,8 @@ export default async function RoundLayout({ children, params }: LayoutProps<"/ad
   if (!round) notFound();
   const p = round.progress;
   const stages = roundStages(id, p, caps);
-  const action = nextAction(id, p, caps);
+  // While planning, the planner is already on the planning page: no button that points back to it.
+  const action = p.state === "draft" ? null : nextAction(id, p, caps);
 
   return (
     <div className="space-y-6">
@@ -27,7 +28,7 @@ export default async function RoundLayout({ children, params }: LayoutProps<"/ad
           stages={stages}
           t={t}
           action={action}
-          waiting={action ? null : waitingFor(stages)}
+          waiting={action || p.state === "draft" ? null : waitingFor(stages)}
           sentence={nextStep(p.state, countsFromProgress(p), t)}
         />
       )}

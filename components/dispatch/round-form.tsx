@@ -15,6 +15,7 @@ import { copyRoundAction, saveRoundAction } from "@/lib/actions/dispatch-rounds"
 import { roundSchema, type RoundInput } from "@/lib/validation";
 
 import { useT } from "@/components/dispatch/lang";
+import { usePlanStep } from "@/components/dispatch/plan-steps";
 type Field = { name: keyof RoundInput; label: string; type?: string; hint?: string; placeholder?: string };
 
 const FIELDS: Field[] = [
@@ -52,6 +53,8 @@ export function RoundForm({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const form = useForm<RoundInput>({ resolver: zodResolver(roundSchema), defaultValues: values });
+  // Only a saved draft is part of the planning tabs.
+  const next = usePlanStep(Boolean(values.id) && form.formState.isDirty);
 
   const onSubmit = (v: RoundInput) =>
     startTransition(async () => {
@@ -62,7 +65,8 @@ export function RoundForm({
       if (!v.id) router.push(`/admin/dispatch/rounds/${result.data!.id}?step=${copyFrom ? "review" : "tutes"}`);
       else {
         onSaved?.();
-        router.refresh();
+        if (next) router.push(next);
+        else router.refresh();
       }
     });
 
@@ -151,7 +155,7 @@ export function RoundForm({
         />
         <div className="sm:col-span-2">
           <SubmitButton pending={pending}>
-            {values.id ? t("Save details") : copyFrom ? t("Create the copy") : t("Create round")}
+            {values.id ? (next ? t("Save & continue") : t("Save details")) : copyFrom ? t("Create the copy") : t("Create round")}
           </SubmitButton>
         </div>
       </form>

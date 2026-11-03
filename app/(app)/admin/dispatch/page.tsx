@@ -27,7 +27,8 @@ type Setup = { title: string; detail: string; href: string; label: string };
 /** The dispatch home: each open round with its steps and the one thing to do next. */
 export default async function DispatchOverviewPage() {
   const t = await getT();
-  const { caps, canEdit } = await requireDispatch();
+  const { caps, canEdit, profile } = await requireDispatch();
+  const firstName = (profile.full_name || profile.email).split(" ")[0];
   const canSeeStudents = caps.has("plan") || caps.has("courier");
   const supabase = await createClient();
 
@@ -71,6 +72,10 @@ export default async function DispatchOverviewPage() {
       return { ...r, stages, action, waiting: action ? null : waitingFor(stages) };
     })
     .sort((a, b) => Number(Boolean(b.action)) - Number(Boolean(a.action)));
+  // What this person can do now, across the open rounds.
+  const jobs = rounds.flatMap((r) =>
+    r.action ? [{ id: r.id, name: r.name, label: r.action.label, href: r.action.href, parcels: r.progress.live }] : [],
+  );
 
   // Getting the student list ready comes before any round.
   let setup: Setup | null = null;
@@ -153,6 +158,39 @@ export default async function DispatchOverviewPage() {
             {setup.label} <ArrowRight02 className="size-4" />
           </LinkButton>
         </Alert>
+      )}
+
+      {rounds.length > 0 && (
+        <section
+          aria-labelledby="your-job"
+          className="from-primary/10 via-card to-card rounded-2xl border bg-gradient-to-br p-4 shadow-xs sm:p-5"
+        >
+          <h2 id="your-job" className="text-lg font-semibold">
+            {jobs.length > 0 ? t("Hi {name}, here's your job now", { name: firstName }) : t("Hi {name}, nothing needs you right now", { name: firstName })}
+          </h2>
+          {jobs.length > 0 ? (
+            <ul className="mt-3 space-y-2">
+              {jobs.map((j) => (
+                <li key={j.id} className="bg-background/80 flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3">
+                  <div className="min-w-0">
+                    <p className="font-medium">{t(j.label)}</p>
+                    <p className="text-muted-foreground text-sm">
+                      {j.name} · {t(plural(j.parcels, "{n} parcel", "{n} parcels"), { n: j.parcels })}
+                    </p>
+                  </div>
+                  <LinkButton href={j.href} size="sm">
+                    {t("Open")} <ArrowRight02 className="size-4" />
+                  </LinkButton>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-muted-foreground mt-1 text-sm">
+              {t("When a round needs you, it shows here and you get a notification.")}
+              {rounds[0].waiting ? ` ${t(rounds[0].waiting)}` : ""}
+            </p>
+          )}
+        </section>
       )}
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
@@ -272,11 +310,14 @@ export default async function DispatchOverviewPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-wrap gap-1.5">
-              {CAPABILITIES.filter((c) => caps.has(c.key)).map((c) => (
-                <Badge key={c.key} variant="secondary" title={t(c.description)}>
-                  {t(c.title)}
-                </Badge>
-              ))}
+              <ul className="w-full space-y-2">
+                {CAPABILITIES.filter((c) => caps.has(c.key)).map((c) => (
+                  <li key={c.key} className="text-sm">
+                    <span className="font-medium">{t(c.title)}</span>
+                    <span className="text-muted-foreground block text-xs">{t(c.description)}</span>
+                  </li>
+                ))}
+              </ul>
               {caps.size === 0 && <span className="text-muted-foreground text-sm">{t("View only")}</span>}
             </CardContent>
           </Card>

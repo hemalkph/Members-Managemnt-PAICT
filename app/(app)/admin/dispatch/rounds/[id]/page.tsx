@@ -5,6 +5,7 @@ import { CopyIcon, PencilIcon, TruckIcon } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { ContentsMatrix } from "@/components/dispatch/contents-matrix";
 import { ParcelCorrectDialog } from "@/components/dispatch/parcel-correct-dialog";
+import { PlanSteps } from "@/components/dispatch/plan-steps";
 import { RoundForm } from "@/components/dispatch/round-form";
 import { RoundReviewPanel } from "@/components/dispatch/round-review";
 import { RoundStudentsPicker, type ChosenSettings } from "@/components/dispatch/round-students-picker";
@@ -26,15 +27,15 @@ import { uuid } from "@/lib/validation";
 import { CheckCircle2Icon, HashIcon, PackageCheckIcon, PackageIcon } from "lucide-react";
 
 import { getT } from "@/lib/dispatch/i18n/server";
-import { plural } from "@/lib/dispatch/i18n";
 export const metadata: Metadata = { title: "Round – Tute dispatch" };
 
+// Planning tabs. Plain names, no numbers: the round's own steps are shown above.
 const STEPS = [
-  { key: "details", label: "1. Details" },
-  { key: "tutes", label: "2. Tutes" },
-  { key: "students", label: "3. Students" },
-  { key: "contents", label: "4. Contents" },
-  { key: "review", label: "5. Review" },
+  { key: "details", label: "Details", hint: "Name, batch, month and parcel defaults" },
+  { key: "tutes", label: "Tutes", hint: "The tutes going in this round" },
+  { key: "students", label: "Students", hint: "Who gets a parcel" },
+  { key: "contents", label: "Who gets what", hint: "Optional: change the tutes or COD for some students" },
+  { key: "review", label: "Check & finalise", hint: "Fix any problems, then make the parcels" },
 ] as const;
 type Step = (typeof STEPS)[number]["key"];
 
@@ -62,7 +63,7 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
       title={round.name}
       description={
         <>
-          {batch?.name ?? "—"} · {monthLabelFromDate(round.sending_month)} · {t("prefix")}{" "}
+          {batch?.name ?? "—"} · {monthLabelFromDate(round.sending_month)} · {t("parcel numbers start with")}{" "}
           <span className="font-mono">{round.ref_prefix}</span>
         </>
       }
@@ -269,28 +270,24 @@ export default async function RoundPage({ params, searchParams }: PageProps<"/ad
     return (
       <div className="space-y-6">
         {header}
-        <nav aria-label={t("Plan steps")} className="flex flex-wrap gap-2">
-          {STEPS.map((s) => (
-            <Button key={s.key} asChild size="sm" variant={s.key === step ? "default" : "outline"}>
-              <Link
-                href={`/admin/dispatch/rounds/${id}?step=${s.key}`}
-                aria-current={s.key === step ? "step" : undefined}
-              >
-                {t(s.label)}
-              </Link>
-            </Button>
-          ))}
-        </nav>
-        <p className="text-muted-foreground text-sm">
-          {t(plural(tutes.length, "{n} tute", "{n} tutes"), { n: tutes.length })} ·{" "}
-          {t(plural(Object.keys(chosen).length, "{n} student chosen", "{n} students chosen"), {
-            n: Object.keys(chosen).length,
-          })}{" "}
-          · {t("Save each step before moving on.")}
-        </p>
-        <Card>
-          <CardContent>{body}</CardContent>
-        </Card>
+        <PlanSteps
+          current={step}
+          tabs={STEPS.map((s) => ({
+            key: s.key,
+            label: t(s.label),
+            hint: t(s.hint),
+            href: `/admin/dispatch/rounds/${id}?step=${s.key}`,
+            done: s.key === "details" || (s.key === "tutes" && tutes.length > 0) || (s.key === "students" && Object.keys(chosen).length > 0),
+            count: s.key === "tutes" ? tutes.length : s.key === "students" ? Object.keys(chosen).length : undefined,
+          }))}
+        >
+          <p className="text-muted-foreground text-sm">
+            {t("Work through the tabs, then check and finalise. “Save & continue” keeps your changes and opens the next tab.")}
+          </p>
+          <Card>
+            <CardContent>{body}</CardContent>
+          </Card>
+        </PlanSteps>
       </div>
     );
   }

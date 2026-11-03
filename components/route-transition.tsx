@@ -49,10 +49,15 @@ export function RouteTransition() {
       const here = new URL(window.location.href);
       if (keyOf(url) === keyOf(here)) return; // same page (or just a #hash)
 
-      setLoading(true);
-      if (timeout.current) clearTimeout(timeout.current);
-      // Never get stuck (e.g. the request failed).
-      timeout.current = setTimeout(() => setLoading(false), 12_000);
+      // Listened to before the link's own handler: wait a tick so a link that
+      // cancels its navigation (e.g. "you have unsaved changes") shows no overlay.
+      setTimeout(() => {
+        if (event.defaultPrevented) return;
+        setLoading(true);
+        if (timeout.current) clearTimeout(timeout.current);
+        // Never get stuck (e.g. the request failed).
+        timeout.current = setTimeout(() => setLoading(false), 12_000);
+      }, 0);
     };
     document.addEventListener("click", onClick, true);
     return () => {

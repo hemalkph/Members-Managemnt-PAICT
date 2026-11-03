@@ -81,6 +81,10 @@ const INTERNAL = [
   "dispatch_retention_run",
   "dispatch_retention_files",
   "dispatch_retention_mark_deleted",
+  "dispatch_people_with",
+  "dispatch_notify_cap",
+  "notify_dispatch_round",
+  "notify_dispatch_parcels",
 ];
 const TABLES = [
   "dispatch_grants",
