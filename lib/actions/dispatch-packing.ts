@@ -77,14 +77,16 @@ export async function roundProgressAction(input: { round_id: string }): Promise<
   if (!uuid.safeParse(input.round_id).success) return { ok: false, error: "Round not found." };
   const ctx = await getActionContext({ page: "dispatch" });
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
-  const [{ data, error }, { data: tutes }] = await Promise.all([
+  const [{ data, error }, { data: tutes }, { data: team }] = await Promise.all([
     ctx.supabase
       .from("parcels")
-      .select("registration_state, pack_state, on_hold, packed_by, verified_by")
+      .select("reference, registration_state, pack_state, on_hold, assigned_to, packed_by, verified_by")
       .eq("round_id", input.round_id)
       .neq("registration_state", "voided")
+      .order("reference")
       .limit(20000),
     ctx.supabase.rpc("dispatch_tute_counts", { p_round: input.round_id }),
+    ctx.supabase.rpc("dispatch_round_team", { p_round: input.round_id }),
   ]);
   if (error) return { ok: false, error: friendlyDbError(error) };
   const me = ctx.profile.id;
@@ -108,8 +110,24 @@ export async function roundProgressAction(input: { round_id: string }): Promise<
         packedParcels: t.packed_parcels,
         packedCopies: t.packed_copies,
       })),
+      team: (team ?? []).map((p) => ({ id: p.id, name: p.name, packed: p.packed, verified: p.verified, lastAt: p.last_at })),
+      queue: rows
+        .filter((p) => p.assigned_to === me && p.pack_state === "planned" && !p.on_hold && p.registration_state === "registered")
+        .map((p) => p.reference)
+        .slice(0, 50),
     },
   };
+}
+
+/** Undo a parcel you packed in the last 2 minutes (a wrong tap). */
+export async function undoPackAction(input: { parcel_id: string; round_id: string }): Promise<ActionResult> {
+  if (!uuid.safeParse(input.parcel_id).success || !uuid.safeParse(input.round_id).success) return { ok: false, error: "Not found." };
+  const ctx = await dispatchActionContext("pack");
+  if (!ctx) return { ok: false, error: NOT_ALLOWED };
+  const { error } = await ctx.supabase.rpc("parcel_undo_pack", { p_parcel: input.parcel_id });
+  if (error) return { ok: false, error: friendlyDbError(error) };
+  revalidateRound(input.round_id);
+  return { ok: true, message: "Undone – the parcel is back to pack" };
 }
 
 export async function reportProblemAction(input: { parcel_id: string; kind: string; note: string }): Promise<ActionResult> {

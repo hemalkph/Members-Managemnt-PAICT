@@ -6,6 +6,7 @@ import { ScanStation } from "@/components/dispatch/scan-station";
 import { Button } from "@/components/ui/button";
 import { roundProgressAction } from "@/lib/actions/dispatch-packing";
 import { requireDispatch } from "@/lib/dispatch/access";
+import { EMPTY_PROGRESS } from "@/lib/dispatch/packing";
 import { createClient } from "@/lib/supabase/server";
 import { uuid } from "@/lib/validation";
 
@@ -16,7 +17,7 @@ export default async function ScanPage({ params }: PageProps<"/admin/dispatch/ro
   const t = await getT();
   const { id } = await params;
   if (!uuid.safeParse(id).success) notFound();
-  const { caps } = await requireDispatch(["pack", "verify"]);
+  const { caps, profile } = await requireDispatch(["pack", "verify"]);
   const supabase = await createClient();
   const [{ data: round }, { data: settings }, progress] = await Promise.all([
     supabase.from("dispatch_rounds").select("id, name, state").eq("id", id).maybeSingle(),
@@ -40,6 +41,8 @@ export default async function ScanPage({ params }: PageProps<"/admin/dispatch/ro
         <ScanStation
           roundId={id}
           roundName={round.name}
+          userId={profile.id}
+          userName={profile.full_name || profile.email}
           canPack={caps.has("pack")}
           canVerify={caps.has("verify")}
           verificationOn={Boolean(settings?.require_verification)}
@@ -47,7 +50,7 @@ export default async function ScanPage({ params }: PageProps<"/admin/dispatch/ro
           initialProgress={
             progress.ok && progress.data
               ? progress.data
-              : { total: 0, registered: 0, packed: 0, verified: 0, onHold: 0, mine: 0, tutes: [] }
+              : EMPTY_PROGRESS
           }
         />
       ) : (

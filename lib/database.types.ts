@@ -1607,6 +1607,11 @@ export type Database = {
       round_set_tutes: { Args: { p_round: string; p_tutes: Json }; Returns: undefined };
       round_set_students: { Args: { p_round: string; p_rows: Json }; Returns: number };
       dispatch_tute_save: { Args: { p: Json }; Returns: string };
+      parcel_undo_pack: { Args: { p_parcel: string }; Returns: undefined };
+      dispatch_round_team: {
+        Args: { p_round: string };
+        Returns: { id: string; name: string; packed: number; verified: number; last_at: string | null }[];
+      };
       dispatch_tute_counts: {
         Args: { p_round: string };
         Returns: {

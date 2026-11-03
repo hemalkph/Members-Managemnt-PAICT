@@ -57,6 +57,22 @@ export type Progress = {
   onHold: number;
   mine: number;
   tutes: TuteCount[];
+  /** Everyone who packed or verified in this round, most recent first. */
+  team: { id: string; name: string; packed: number; verified: number; lastAt: string | null }[];
+  /** Parcels assigned to me, still to pack (references). */
+  queue: string[];
+};
+
+export const EMPTY_PROGRESS: Progress = {
+  total: 0,
+  registered: 0,
+  packed: 0,
+  verified: 0,
+  onHold: 0,
+  mine: 0,
+  tutes: [],
+  team: [],
+  queue: [],
 };
 
 export const PROBLEM_KINDS = [

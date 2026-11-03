@@ -16,11 +16,14 @@ export function TuteCounts({
   parcels,
   packed,
   className,
+  colorOf,
 }: {
   tutes: TuteCount[];
   parcels: number;
   packed: number;
   className?: string;
+  /** Packing station: a colour dot per tute, matching its tile. */
+  colorOf?: (code: string) => string;
 }) {
   const t = useT();
   const reduce = useReducedMotion();
@@ -60,6 +63,7 @@ export function TuteCounts({
                 <li key={x.id} title={x.title}>
                   <div className="flex items-baseline justify-between gap-2 text-sm">
                     <span className="flex min-w-0 items-center gap-1.5">
+                      {colorOf && <span className={cn("size-2.5 shrink-0 rounded-full", colorOf(x.code))} aria-hidden />}
                       <span className="font-mono font-semibold">{x.code}</span>
                       {x.extra && <SparklesIcon className="size-3 shrink-0 text-amber-600" aria-label={t("Extra")} />}
                       <span className="text-muted-foreground truncate text-xs">{x.title}</span>
