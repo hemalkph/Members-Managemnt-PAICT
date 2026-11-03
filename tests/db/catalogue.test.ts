@@ -63,6 +63,8 @@ const FUNCTIONS = [
   "dispatch_tute_archive",
   "dispatch_tute_counts",
   "round_copy",
+  "parcel_undo_pack",
+  "dispatch_round_team",
 ];
 /** Privileged helpers used only inside other functions: nobody may call them directly. */
 const INTERNAL = [

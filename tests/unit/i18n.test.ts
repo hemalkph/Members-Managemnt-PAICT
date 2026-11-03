@@ -23,6 +23,7 @@ const LABEL_FILES = [
   "lib/dispatch/money.ts",
   "lib/dispatch/capabilities.ts",
   "lib/dispatch/packing.ts",
+  "lib/dispatch/station.ts",
   "components/dispatch/scan-station.tsx",
   "components/dispatch/courier-uploads.tsx",
   "components/dispatch/import-wizard.tsx",
