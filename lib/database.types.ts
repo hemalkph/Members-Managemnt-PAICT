@@ -1694,6 +1694,10 @@ export type Database = {
         Returns: undefined;
       };
       task_file_seen: { Args: { p_file: string }; Returns: undefined };
+      paper_add_past: {
+        Args: { p_title: string; p_part: string; p_medium: string; p_exam_day?: string | null; p_exam?: string | null };
+        Returns: string;
+      };
       set_stage_link: { Args: { p_stage: string; p_link: string | null }; Returns: undefined };
       set_paper_links: { Args: { p_paper: string; p_lms: string | null; p_physical: string | null }; Returns: undefined };
       storage_usage: { Args: Record<PropertyKey, never>; Returns: { bucket: string; files: number; bytes: number }[] };

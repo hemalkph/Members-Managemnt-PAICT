@@ -22,7 +22,7 @@ export function PaperRow({ paper }: { paper: PaperView }) {
     >
       <div className="min-w-0 space-y-1">
         <div className="flex flex-wrap items-center gap-1.5">
-          <p className="truncate font-medium">{paper.title}</p>
+          <p className="truncate leading-6 font-medium">{paper.title}</p>
           {paper.kind === "tute" ? (
             <Badge variant="outline">Tute</Badge>
           ) : (
@@ -32,28 +32,31 @@ export function PaperRow({ paper }: { paper: PaperView }) {
           {done && <Badge variant="success">Done</Badge>}
           {paper.status === "cancelled" && <Badge variant="secondary">Cancelled</Badge>}
         </div>
-        <div className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
+        {/* Each item is its own centred group, so icons line up with their text. */}
+        <div className="text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 text-xs leading-4">
           {paper.examDay && (
             <span className="inline-flex items-center gap-1">
-              <CalendarDaysIcon className="size-3" /> {formatDay(paper.examDay)}
+              <CalendarDaysIcon className="size-3.5 shrink-0" /> {formatDay(paper.examDay)}
             </span>
           )}
           {current.map((s) => (
-            <span key={s.id} className={cn(s.overdue && "text-destructive font-semibold")}>
-              {s.overdue && <TriangleAlertIcon className="mr-0.5 inline size-3" />}
-              {STAGE_LABEL[s.stage]}: {s.ownerName ?? "no owner yet"}
-              {s.dueDate && ` · due ${formatDay(s.dueDate)}`}
+            <span key={s.id} className={cn("inline-flex items-center gap-1", s.overdue && "text-destructive font-semibold")}>
+              {s.overdue && <TriangleAlertIcon className="size-3.5 shrink-0" />}
+              <span>
+                {STAGE_LABEL[s.stage]}: {s.ownerName ?? "no owner yet"}
+                {s.dueDate && ` · due ${formatDay(s.dueDate)}`}
+              </span>
             </span>
           ))}
           {done && <span>Finished {paper.completedAt ? formatDate(paper.completedAt) : ""}</span>}
           {paper.handedOverAt && (
             <span className="text-success inline-flex items-center gap-1">
-              <SendIcon className="size-3" /> Handed over
+              <SendIcon className="size-3.5 shrink-0" /> Handed over
             </span>
           )}
           {paper.linkCount > 0 && (
-            <span className="inline-flex items-center gap-0.5">
-              <LinkIcon className="size-3" /> {paper.linkCount}
+            <span className="inline-flex items-center gap-1">
+              <LinkIcon className="size-3.5 shrink-0" /> {paper.linkCount}
             </span>
           )}
         </div>

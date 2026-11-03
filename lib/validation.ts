@@ -438,6 +438,15 @@ export const UPLOAD_STAGES = [
 
 export const MAX_PAPER_FILE_BYTES = 25 * 1024 * 1024; // 25 MB
 
+/** A paper made and marked before the system: added as finished, for marking. */
+export const pastPaperSchema = z.object({
+  title: z.string().trim().min(2, "Give the paper a name").max(130, "Keep the name under 130 letters"),
+  parts: z.enum(["split", "mcq", "essay", "full"]),
+  medium: z.enum(["si", "both"]),
+  exam_day: z.union([z.literal(""), z.iso.date("Choose a valid date")]),
+});
+export type PastPaperInput = z.input<typeof pastPaperSchema>;
+
 export const paperFileSchema = z.object({
   paper_id: uuid,
   stage: z.enum(UPLOAD_STAGES, "This stage doesn't take files"),
