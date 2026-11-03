@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { setRoundTutesAction } from "@/lib/actions/dispatch-rounds";
 
 import { useT } from "@/components/dispatch/lang";
+import { usePlanStep } from "@/components/dispatch/plan-steps";
 export type TuteRow = {
   id: string;
   paper_id: string;
@@ -45,6 +46,7 @@ export function RoundTutesEditor({
   const router = useRouter();
   const [rows, setRows] = useState<TuteRow[]>(initial);
   const [pending, startTransition] = useTransition();
+  const next = usePlanStep(JSON.stringify(rows) !== JSON.stringify(initial));
 
   const update = (i: number, patch: Partial<TuteRow>) =>
     setRows((rs) => rs.map((r, j) => (j === i ? { ...r, ...patch } : r)));
@@ -81,7 +83,8 @@ export function RoundTutesEditor({
       const result = await setRoundTutesAction({ round_id: roundId, tutes: rows });
       if (!result.ok) return void toast.error(t(result.error));
       toast.success(t(result.message));
-      router.refresh();
+      if (next) router.push(next);
+      else router.refresh();
     });
 
   return (
@@ -215,12 +218,12 @@ export function RoundTutesEditor({
           <PlusIcon /> {t("Add tute")}
         </Button>
         <Button onClick={save} disabled={pending}>
-          {pending && <Loader2Icon className="animate-spin" />} {t("Save tutes")}
+          {pending && <Loader2Icon className="animate-spin" />} {next ? t("Save & continue") : t("Save tutes")}
         </Button>
       </div>
       {rows.some((r) => r.is_extra) && (
         <p className="text-muted-foreground text-sm">
-          {t("Choose who gets each extra tute in step 4 (Contents).")}
+          {t("Choose who gets each extra tute in “Who gets what”.")}
         </p>
       )}
     </div>

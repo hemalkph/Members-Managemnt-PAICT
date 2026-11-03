@@ -140,7 +140,7 @@ export function RoundReviewPanel({
       {canEdit && (
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => setConfirm(true)} disabled={blocked || pending}>
-            <LockIcon /> {t("Finalise round")}
+            <LockIcon /> {t("Finalise – make the parcels")}
           </Button>
           <Button
             variant="outline"
@@ -156,17 +156,17 @@ export function RoundReviewPanel({
       <AlertDialog open={confirm} onOpenChange={setConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t("Finalise {parcels} parcels?", { parcels: review.parcels })}</AlertDialogTitle>
+            <AlertDialogTitle>{t("Make {parcels} parcels now?", { parcels: review.parcels })}</AlertDialogTitle>
             <AlertDialogDescription>
               {t(
-                "References, addresses, contents and COD are frozen. Later changes to students won't affect these parcels; a parcel can still be corrected (with a reason) until Citypak gives it a tracking number.",
+                "The parcels are made from this plan and locked: names, addresses, tutes and COD won't change if you edit students later. You can still fix a parcel (with a reason) until Citypak gives it a tracking number.",
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={pending}>{t("Back")}</AlertDialogCancel>
             <Button onClick={finalise} disabled={pending}>
-              {pending && <Loader2Icon className="animate-spin" />} {t("Finalise")}
+              {pending && <Loader2Icon className="animate-spin" />} {t("Make the parcels")}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

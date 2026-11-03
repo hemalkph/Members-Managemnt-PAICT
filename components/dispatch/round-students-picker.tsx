@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { setRoundStudentsAction } from "@/lib/actions/dispatch-rounds";
 
 import { useT } from "@/components/dispatch/lang";
+import { usePlanStep } from "@/components/dispatch/plan-steps";
 import { plural } from "@/lib/dispatch/i18n";
 export type PickStudent = { id: string; no: string; name: string; city: string; problems: string[] };
 export type ChosenSettings = {
@@ -38,6 +39,8 @@ export function RoundStudentsPicker({
   const [selected, setSelected] = useState<Set<string>>(new Set(Object.keys(chosen)));
   const [q, setQ] = useState("");
   const [pending, startTransition] = useTransition();
+  const chosenIds = Object.keys(chosen);
+  const next = usePlanStep(selected.size !== chosenIds.length || chosenIds.some((id) => !selected.has(id)));
   const shown = useMemo(() => {
     const s = q.trim().toLowerCase();
     return s ? students.filter((x) => x.no.toLowerCase().includes(s) || x.name.toLowerCase().includes(s)) : students;
@@ -66,7 +69,8 @@ export function RoundStudentsPicker({
       const result = await setRoundStudentsAction({ round_id: roundId, rows });
       if (!result.ok) return void toast.error(t(result.error));
       toast.success(t(result.message));
-      router.refresh();
+      if (next) router.push(next);
+      else router.refresh();
     });
 
   return (
@@ -148,6 +152,7 @@ export function RoundStudentsPicker({
         <Button onClick={save} disabled={pending}>
           {pending && <Loader2Icon className="animate-spin" />}{" "}
           {t(plural(selected.size, "Save {n} student", "Save {n} students"), { n: selected.size })}
+          {next ? ` · ${t("continue")}` : ""}
         </Button>
         <p className="text-muted-foreground text-sm">
           {t("Students with missing details can be chosen now but block finalising until fixed.")}

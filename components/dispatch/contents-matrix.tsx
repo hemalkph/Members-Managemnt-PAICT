@@ -16,6 +16,7 @@ import { gets } from "@/lib/dispatch/review";
 import { cn } from "@/lib/utils";
 
 import { useT } from "@/components/dispatch/lang";
+import { usePlanStep } from "@/components/dispatch/plan-steps";
 export type MatrixRow = {
   student_id: string;
   no: string;
@@ -44,6 +45,7 @@ export function ContentsMatrix({
   const [rows, setRows] = useState(initial);
   const [pending, startTransition] = useTransition();
   const [q, setQ] = useState("");
+  const next = usePlanStep(JSON.stringify(rows) !== JSON.stringify(initial));
   const shown = useMemo(() => {
     const s = q.trim().toLowerCase();
     return s ? rows.filter((r) => r.no.toLowerCase().includes(s) || r.name.toLowerCase().includes(s)) : rows;
@@ -79,7 +81,8 @@ export function ContentsMatrix({
       });
       if (!result.ok) return void toast.error(t(result.error));
       toast.success(t("Contents saved"));
-      router.refresh();
+      if (next) router.push(next);
+      else router.refresh();
     });
 
   if (tutes.length === 0 || rows.length === 0) {
@@ -186,7 +189,7 @@ export function ContentsMatrix({
       </Card>
       <div className="flex flex-wrap items-center gap-3">
         <Button onClick={save} disabled={pending}>
-          {pending && <Loader2Icon className="animate-spin" />} {t("Save contents")}
+          {pending && <Loader2Icon className="animate-spin" />} {next ? t("Save & continue") : t("Save contents")}
         </Button>
         <p className="text-muted-foreground text-sm">
           {t("An empty COD box uses the round's default ({amount}).", { amount: formatLKR(defaultCod) })}

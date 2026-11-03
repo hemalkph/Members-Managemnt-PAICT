@@ -41,7 +41,7 @@ export default async function PackingPage({ params }: PageProps<"/admin/dispatch
   return (
     <div className="space-y-6">
       <PageHeader
-        title={t("Packing")}
+        title={t("Packing plan")}
         description={`${round.name} · ${t("assign parcels, print the packing list, sort out problems")}`}
         actions={
           <>

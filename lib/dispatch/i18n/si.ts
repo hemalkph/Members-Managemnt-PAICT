@@ -88,12 +88,12 @@ export const SI: Record<string, string> = {
   Verify: "තහවුරු කිරීම",
   Correct: "නිවැරදි කිරීම",
   Finance: "මුදල්",
-  "Students, imports, rounds, assignments": "සිසුන්, ආයාත, වට, වැඩ බෙදීම",
-  "Citypak files, tracking numbers, delivery": "Citypak ගොනු, tracking අංක, බෙදාහැරීම",
-  "Scan and confirm packed parcels": "පැක් කළ පාර්සල් scan කර තහවුරු කිරීම",
-  "Second check and handovers": "දෙවන පරීක්ෂාව සහ භාර දීම",
-  "Void, unpack, reopen (with a reason)": "අවලංගු කිරීම, පැක් කිරීම ඉවත් කිරීම, නැවත විවෘත කිරීම (හේතුවක් සමඟ)",
-  "COD money and settlements": "COD මුදල් සහ ගෙවීම්",
+  "Plan rounds, students and imports": "වට, සිසුන් සහ ආයාත සැලසුම් කිරීම",
+  "Citypak files, tracking numbers and delivery updates": "Citypak ගොනු, tracking අංක සහ බෙදාහැරීම් යාවත්කාලීන",
+  "Pack parcels at the packing station": "පැක් කරන ස්ථානයේ පාර්සල් පැක් කිරීම",
+  "Check packed parcels and hand them to Citypak": "පැක් කළ පාර්සල් පරීක්ෂා කර Citypak වෙත භාර දීම",
+  "Fix mistakes: cancel, unpack or reopen parcels (with a reason)": "වැරදි නිවැරදි කිරීම: පාර්සල් අවලංගු කිරීම, ගලවීම හෝ නැවත විවෘත කිරීම (හේතුවක් සමඟ)",
+  "Record the COD money Citypak pays": "Citypak ගෙවන COD මුදල් සටහන් කිරීම",
   People: "පුද්ගලයින්",
   Person: "පුද්ගලයා",
   "Main admin": "ප්‍රධාන පරිපාලක",
@@ -808,8 +808,8 @@ export const SI: Record<string, string> = {
   Give: "දෙන්න",
   From: "සිට",
   // ------------------------------------------------------------------ round next steps
-  "Finish the plan (tutes, students, contents), then finalise.":
-    "සැලැස්ම (ටියුට්, සිසුන්, අන්තර්ගතය) අවසන් කර, වටය ස්ථිර කරන්න.",
+  "Finish the plan (tutes, students, who gets what), then make the parcels.":
+    "සැලැස්ම (ටියුට්, සිසුන්, කාට මොනවාද) අවසන් කර, පසුව පාර්සල් සාදන්න.",
   "This draft was cancelled.": "මේ කෙටුම්පත අවලංගු කළා.",
   "Closed.": "වසා ඇත.",
   "Register the parcels with Citypak, then import their tracking sheet.":
@@ -1286,6 +1286,34 @@ export const SI: Record<string, string> = {
   "Put it aside – it doesn't belong here.": "එය පැත්තකින් තබන්න – එය මෙහි අයත් නැහැ.",
   "We can't find this code": "මෙම කේතය සොයාගත නොහැක",
   "Check the label and scan again, or type the reference.": "ලේබලය පරීක්ෂා කර නැවත scan කරන්න, නැතහොත් reference එක type කරන්න.",
+  // ------------------------------------------------------------------ Friendlier flow: planning tabs, your job, plain words
+  "Hi {name}, here's your job now": "ආයුබෝවන් {name}, ඔබේ දැන් කළ යුතු වැඩ මෙන්න",
+  "Hi {name}, nothing needs you right now": "ආයුබෝවන් {name}, දැනට ඔබට කළ යුතු දෙයක් නැහැ",
+  Open: "විවෘත කරන්න",
+  "When a round needs you, it shows here and you get a notification.": "වටයකට ඔබ අවශ්‍ය වූ විට එය මෙහි පෙනෙන අතර ඔබට දැනුම්දීමක් ලැබේ.",
+  "Packing plan": "පැක් කිරීමේ සැලැස්ම",
+  "parcel numbers start with": "පාර්සල් අංක ආරම්භ වන්නේ",
+  "Work through the tabs, then check and finalise. “Save & continue” keeps your changes and opens the next tab.":
+    "ටැබ් එකින් එක සම්පූර්ණ කර, පසුව පරීක්ෂා කර අවසන් කරන්න. “සුරකින්න සහ ඉදිරියට” ඔබේ වෙනස්කම් සුරකින අතර ඊළඟ ටැබ් එක විවෘත කරයි.",
+  "Save & continue": "සුරකින්න සහ ඉදිරියට",
+  continue: "ඉදිරියට",
+  "You have unsaved changes": "සුරැකී නැති වෙනස්කම් ඇත",
+  "If you leave this tab now, the changes you made here are lost.": "දැන් මෙම ටැබ් එකෙන් ඉවත් වුවහොත්, මෙහි කළ වෙනස්කම් නැති වේ.",
+  "Stay and save": "රැඳී සිට සුරකින්න",
+  "Leave without saving": "නොසුරැක ඉවත් වන්න",
+  "Finalise – make the parcels": "අවසන් කරන්න – පාර්සල් සාදන්න",
+  "Make {parcels} parcels now?": "දැන් පාර්සල් {parcels} ක් සාදන්නද?",
+  "The parcels are made from this plan and locked: names, addresses, tutes and COD won't change if you edit students later. You can still fix a parcel (with a reason) until Citypak gives it a tracking number.":
+    "මෙම සැලැස්මෙන් පාර්සල් සාදා අගුළු දමයි: පසුව සිසුන් වෙනස් කළත් නම්, ලිපින, ටියුට් සහ COD වෙනස් නොවේ. Citypak tracking අංකයක් දෙන තුරු පාර්සලයක් (හේතුවක් සමඟ) නිවැරදි කළ හැක.",
+  "Make the parcels": "පාර්සල් සාදන්න",
+  "Choose who gets each extra tute in “Who gets what”.": "එක් එක් අමතර ටියුට් එක ලැබෙන්නේ කාටදැයි “කාට මොනවාද” හි තෝරන්න.",
+  "Name, batch, month and parcel defaults": "නම, කණ්ඩායම, මාසය සහ පාර්සල් පෙරනිමි",
+  "The tutes going in this round": "මෙම වටයේ යවන ටියුට්",
+  "Who gets a parcel": "පාර්සලයක් ලැබෙන්නේ කාටද",
+  "Who gets what": "කාට මොනවාද",
+  "Optional: change the tutes or COD for some students": "අවශ්‍ය නම්: සමහර සිසුන්ට ටියුට් හෝ COD වෙනස් කරන්න",
+  "Check & finalise": "පරීක්ෂා කර අවසන් කරන්න",
+  "Fix any problems, then make the parcels": "ගැටලු නිවැරදි කර, පසුව පාර්සල් සාදන්න",
 };
 
 /** Messages with changing parts, mostly from the database. Named groups fill the placeholders. */

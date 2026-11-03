@@ -36,7 +36,7 @@ export type RoundCounts = {
 
 /** The next thing to do, worked out from what is actually saved. Pass `t` to translate it. */
 export function nextStep(state: RoundState, c: RoundCounts, t: T = makeT("en")): string {
-  if (state === "draft") return t("Finish the plan (tutes, students, contents), then finalise.");
+  if (state === "draft") return t("Finish the plan (tutes, students, who gets what), then make the parcels.");
   if (state === "cancelled") return t("This draft was cancelled.");
   if (state === "closed") return t("Closed.");
   const waiting = c.parcels - c.registered - c.voided;
