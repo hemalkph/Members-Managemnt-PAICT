@@ -35,6 +35,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { deleteTaskAction, setTaskStatusAction } from "@/lib/actions/tasks";
 import type { TaskView } from "@/lib/task-queries";
+import { getSiteUrl } from "@/lib/env";
+import { taskWhatsAppText, whatsAppLink } from "@/lib/task-whatsapp";
 import { cn } from "@/lib/utils";
 import { TaskFilesButton } from "./task-files";
 
@@ -58,7 +60,7 @@ export function TaskCard({
   onEdit?: (task: TaskView) => void;
   /** Admin view with read-only page access: no edit / cancel / delete. */
   readOnly?: boolean;
-  /** Admins: the member's WhatsApp number (wa.me format), shown when the task is late. */
+  /** Admins: the member's WhatsApp number (wa.me format), for the WhatsApp button on open tasks. */
   whatsapp?: string | null;
 }) {
   const router = useRouter();
@@ -211,16 +213,19 @@ export function TaskCard({
 
       <TaskFilesButton task={task} mode={mode} readOnly={readOnly} />
 
-      {mode === "admin" && task.overdue && whatsapp && (
-        <Button asChild size="sm" className="w-fit bg-[#0f7a6e] text-white hover:bg-[#0c675d]">
+      {mode === "admin" && task.status === "open" && whatsapp && (
+        <Button
+          asChild
+          size="sm"
+          variant={task.overdue ? "default" : "outline"}
+          className={cn("w-fit", task.overdue && "bg-[#0f7a6e] text-white hover:bg-[#0c675d]")}
+        >
           <a
-            href={`https://wa.me/${whatsapp}?text=${encodeURIComponent(
-              `Hi ${task.assigneeName.split(" ")[0]}, "${task.title}" is ${task.dueLabel?.toLowerCase() ?? "overdue"}. Can you finish it today?`,
-            )}`}
+            href={whatsAppLink(whatsapp, taskWhatsAppText(task, getSiteUrl()))}
             target="_blank"
             rel="noreferrer"
           >
-            <MessageCircleIcon /> WhatsApp {task.assigneeName.split(" ")[0]}
+            <MessageCircleIcon /> {task.overdue ? "Remind" : "WhatsApp"} {task.assigneeName.split(" ")[0]}
           </a>
         </Button>
       )}

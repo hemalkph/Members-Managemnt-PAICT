@@ -19,7 +19,7 @@ export function AdminTaskBoard({
 }: {
   /** Read-only page access: no Assign / Edit / Delete. */
   readOnly?: boolean;
-  /** Member id → WhatsApp number (wa.me format) for late tasks. */
+  /** Member id → WhatsApp number (wa.me format) for the WhatsApp button. */
   phones?: Record<string, string>;
   tasks: TaskView[];
   options: TaskFormOptions;
