@@ -1,8 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
-import { Loader2Icon } from "lucide-react";
+import { useRef, useState, useTransition } from "react";
+import { Loader2Icon, PaperclipIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +20,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { saveTaskAction } from "@/lib/actions/tasks";
 import type { TaskView } from "@/lib/task-queries";
+import { PendingFiles, uploadTaskFiles } from "./task-files";
 
 export type TaskFormOptions = {
   members: { id: string; name: string; roleIds: string[] }[];
@@ -73,6 +74,8 @@ export function TaskDialog({
   const router = useRouter();
   const [state, setState] = useState<State>(() => initial(task));
   const [pending, startTransition] = useTransition();
+  const [files, setFiles] = useState<File[]>([]);
+  const fileInput = useRef<HTMLInputElement>(null);
   const set = <K extends keyof State>(key: K, value: State[K]) => setState((s) => ({ ...s, [key]: value }));
 
   const member = options.members.find((m) => m.id === state.assignee_id);
@@ -105,7 +108,16 @@ export function TaskDialog({
         toast.error(result.error);
         return;
       }
-      toast.success(result.message);
+      if (files.length > 0 && result.data) {
+        const upload = await uploadTaskFiles(result.data.id, "brief", files);
+        if (!upload.ok) {
+          toast.error(`${result.message}, but the files weren't added: ${upload.error}`);
+          if (!task) onOpenChange(false);
+          router.refresh();
+          return;
+        }
+      }
+      toast.success(files.length > 0 ? `${result.message} with ${files.length} file${files.length === 1 ? "" : "s"}` : result.message);
       onOpenChange(false);
       router.refresh();
     });
@@ -231,6 +243,29 @@ export function TaskDialog({
               placeholder="Anything they need to know"
               onChange={(e) => set("description", e.target.value)}
             />
+          </div>
+
+          <div className="grid gap-2">
+            <Label>{task ? "Add files (optional)" : "Files for the member (optional)"}</Label>
+            <PendingFiles files={files} onRemove={(i) => setFiles((f) => f.filter((_, j) => j !== i))} />
+            <Button type="button" variant="outline" className="border-dashed" onClick={() => fileInput.current?.click()}>
+              <PaperclipIcon /> Choose files
+            </Button>
+            <input
+              ref={fileInput}
+              type="file"
+              multiple
+              className="hidden"
+              aria-label="Choose files"
+              onChange={(e) => {
+                const chosen = Array.from(e.target.files ?? []);
+                setFiles((f) => [...f, ...chosen]);
+                e.target.value = "";
+              }}
+            />
+            <p className="text-muted-foreground text-xs">
+              {task ? "They show as new files for the member." : "e.g. type setting or design material. Up to 50 MB each."}
+            </p>
           </div>
 
           <div className="flex items-center justify-between rounded-lg border p-3">

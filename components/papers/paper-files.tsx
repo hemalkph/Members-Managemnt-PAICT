@@ -32,7 +32,7 @@ export type FileItem = {
   latest: boolean;
 };
 
-function safeFileName(name: string) {
+export function safeFileName(name: string) {
   return (
     name
       .normalize("NFKD")

@@ -449,6 +449,26 @@ export const paperFileSchema = z.object({
 });
 export type PaperFileInput = z.input<typeof paperFileSchema>;
 
+export const TASKS_BUCKET = "tasks";
+export const MAX_TASK_FILE_BYTES = 50 * 1024 * 1024; // 50 MB, same as the "tasks" bucket
+export const MAX_TASK_FILES_AT_ONCE = 20;
+export const taskFilesSchema = z.object({
+  task_id: uuid,
+  kind: z.enum(["brief", "work"]),
+  files: z
+    .array(
+      z.object({
+        storage_path: z.string().min(3).max(400),
+        file_name: z.string().trim().min(1).max(200),
+        mime_type: z.string().max(150).nullable(),
+        size_bytes: z.number().int().min(1).max(MAX_TASK_FILE_BYTES, "Each file must be 50 MB or smaller"),
+      }),
+    )
+    .min(1, "Choose a file")
+    .max(MAX_TASK_FILES_AT_ONCE, `Up to ${MAX_TASK_FILES_AT_ONCE} files at a time`),
+});
+export type TaskFilesInput = z.input<typeof taskFilesSchema>;
+
 export const paperDefaultOwnersSchema = z.object({
   owners: z.record(z.enum(PAPER_STAGES), optionalUuid),
 });

@@ -36,6 +36,7 @@ import {
 import { deleteTaskAction, setTaskStatusAction } from "@/lib/actions/tasks";
 import type { TaskView } from "@/lib/task-queries";
 import { cn } from "@/lib/utils";
+import { TaskFilesButton } from "./task-files";
 
 const STATUS_BADGE = {
   waiting: { label: "Up next", variant: "secondary" as const },
@@ -207,6 +208,8 @@ export function TaskCard({
         )}
         {task.workCount > 0 && <span>{task.workCount} work logged</span>}
       </div>
+
+      <TaskFilesButton task={task} mode={mode} readOnly={readOnly} />
 
       {mode === "admin" && task.overdue && whatsapp && (
         <Button asChild size="sm" className="w-fit bg-[#0f7a6e] text-white hover:bg-[#0c675d]">
