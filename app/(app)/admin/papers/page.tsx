@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { CheckCheckIcon, FileStackIcon, LoaderIcon, TriangleAlertIcon, UsersIcon } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { NewPaperDialog } from "@/components/papers/new-paper-dialog";
+import { PastPaperDialog } from "@/components/papers/past-paper-dialog";
 import { StorageCard } from "@/components/papers/storage-card";
 import { PaperFilters } from "@/components/papers/paper-filters";
 import { PaperRow } from "@/components/papers/paper-row";
@@ -85,6 +86,8 @@ export default async function PapersPage({ searchParams }: PageProps<"/admin/pap
           </p>
         </div>
         {canEdit && (
+        <div className="flex flex-wrap gap-2">
+        <PastPaperDialog />
         <NewPaperDialog
           members={profiles.map((p) => ({
             id: p.id,
@@ -100,6 +103,7 @@ export default async function PapersPage({ searchParams }: PageProps<"/admin/pap
             allPapers.filter((p) => p.kind === "paper" && p.status !== "cancelled").map((p) => p.examDay),
           )}
         />
+        </div>
         )}
       </div>
 

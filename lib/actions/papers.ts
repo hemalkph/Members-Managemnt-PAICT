@@ -14,9 +14,11 @@ import {
   paperSchema,
   paperFileSchema,
   paperStageUpdateSchema,
+  pastPaperSchema,
   stageLinkSchema,
   type PaperFileInput,
   type PaperInput,
+  type PastPaperInput,
 } from "@/lib/validation";
 
 function revalidatePapers(id?: string) {
@@ -85,6 +87,47 @@ export async function createPaperAction(input: PaperInput): Promise<ActionResult
     message: ids.length > 1 ? "Two papers added (MCQ and SE & Essay) – the first stages have started" : "Paper added – the first stage has started",
     data: { id: ids[0] },
   };
+}
+
+/**
+ * A paper made and marked before the system: saved as finished and handed
+ * over, so the marking team can log marking for it. "split" adds the MCQ and
+ * SE & Essay papers as one set.
+ */
+export async function addPastPaperAction(input: PastPaperInput): Promise<ActionResult> {
+  const ctx = await getActionContext({ page: "papers", edit: true });
+  if (!ctx) return { ok: false, error: NOT_ALLOWED };
+  const parsed = pastPaperSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
+  const v = parsed.data;
+  const plan =
+    v.parts === "split"
+      ? [
+          { title: `${v.title} - ${PART_LABEL.mcq}`, part: "mcq" },
+          { title: `${v.title} - ${PART_LABEL.essay}`, part: "essay" },
+        ]
+      : [{ title: v.title, part: v.parts }];
+
+  for (const [i, p] of plan.entries()) {
+    const { error } = await ctx.supabase.rpc("paper_add_past", {
+      p_title: p.title,
+      p_part: p.part,
+      p_medium: v.medium,
+      p_exam_day: v.exam_day || null,
+    });
+    if (error) {
+      if (i > 0) revalidatePastPapers();
+      return { ok: false, error: i > 0 ? `The MCQ paper was added, but not the SE & Essay one: ${friendlyDbError(error)}` : friendlyDbError(error) };
+    }
+  }
+  revalidatePastPapers();
+  return { ok: true, message: plan.length > 1 ? "Past papers added – the marking team can log them now" : "Past paper added – the marking team can log it now" };
+}
+
+function revalidatePastPapers() {
+  revalidatePapers();
+  revalidatePath("/work/marking");
+  revalidatePath("/library");
 }
 
 /** Admins: change a stage's owner / work days, skip it or mark it done. */

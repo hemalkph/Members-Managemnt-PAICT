@@ -31,7 +31,10 @@ export default async function MarkingPage() {
       .select("id, title, part, exam_day, handed_over_at")
       .eq("kind", "paper")
       .neq("status", "cancelled")
-      .or(`exam_day.gte.${addDays(todayISO(), -120)},exam_day.is.null`)
+      // Recent exams, plus papers handed over recently (e.g. past papers just added).
+      .or(
+        `exam_day.gte.${addDays(todayISO(), -120)},exam_day.is.null,handed_over_at.gte.${addDays(todayISO(), -120)}T00:00:00Z`,
+      )
       .order("exam_day", { ascending: false })
       .limit(100),
     supabase.from("centres").select("id, name").eq("is_active", true).order("sort_order").order("name"),
