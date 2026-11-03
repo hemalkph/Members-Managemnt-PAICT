@@ -2,8 +2,19 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, TaskStatus } from "@/lib/database.types";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatDateTime } from "@/lib/format";
 import { todayISO } from "@/lib/month";
+
+export type TaskFileView = {
+  id: string;
+  kind: "brief" | "work";
+  fileName: string;
+  sizeBytes: number;
+  /** Pre-formatted on the server. */
+  when: string;
+  /** The other side has opened it. */
+  seen: boolean;
+};
 
 export type TaskView = {
   id: string;
@@ -29,10 +40,12 @@ export type TaskView = {
   workCount: number;
   createdByName: string | null;
   completedAt: string | null;
+  /** Oldest first. */
+  files: TaskFileView[];
 };
 
 const SELECT =
-  "id, title, description, assignee_id, role_id, exam_id, centre_id, quantity, due_date, priority, status, completed_at, paper_stage_id, created_by, assignee:profiles!tasks_assignee_id_fkey(full_name, email), creator:profiles!tasks_created_by_fkey(full_name, email), roles(name), exam:exams(name, batch:batches(name)), centre:centres(name), stage:paper_stages(paper_id), submissions(count)";
+  "id, title, description, assignee_id, role_id, exam_id, centre_id, quantity, due_date, priority, status, completed_at, paper_stage_id, created_by, assignee:profiles!tasks_assignee_id_fkey(full_name, email), creator:profiles!tasks_created_by_fkey(full_name, email), roles(name), exam:exams(name, batch:batches(name)), centre:centres(name), stage:paper_stages(paper_id), submissions(count), task_files(id, kind, file_name, size_bytes, seen_at, created_at)";
 
 const DAY = 86_400_000;
 
@@ -69,6 +82,7 @@ type Row = {
   centre: { name: string } | null;
   stage: { paper_id: string } | null;
   submissions: { count: number }[];
+  task_files: { id: string; kind: "brief" | "work"; file_name: string; size_bytes: number; seen_at: string | null; created_at: string }[];
 };
 
 export async function getTasks(
@@ -108,5 +122,15 @@ export async function getTasks(
     workCount: t.submissions?.[0]?.count ?? 0,
     createdByName: t.creator ? t.creator.full_name || t.creator.email : ((t.created_by && names?.get(t.created_by)) ?? null),
     completedAt: t.completed_at,
+    files: [...(t.task_files ?? [])]
+      .sort((a, b) => a.created_at.localeCompare(b.created_at))
+      .map((f) => ({
+        id: f.id,
+        kind: f.kind,
+        fileName: f.file_name,
+        sizeBytes: f.size_bytes,
+        when: formatDateTime(f.created_at),
+        seen: f.seen_at !== null,
+      })),
   }));
 }

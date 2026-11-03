@@ -995,6 +995,47 @@ export type Database = {
           },
         ];
       };
+      task_files: {
+        Row: {
+          id: string;
+          task_id: string;
+          kind: "brief" | "work";
+          storage_path: string;
+          file_name: string;
+          mime_type: string | null;
+          size_bytes: number;
+          uploaded_by: string | null;
+          seen_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          task_id: string;
+          kind: "brief" | "work";
+          storage_path: string;
+          file_name: string;
+          mime_type?: string | null;
+          size_bytes: number;
+          uploaded_by: string;
+        };
+        Update: { [_ in never]: never };
+        Relationships: [
+          {
+            foreignKeyName: "task_files_task_id_fkey";
+            columns: ["task_id"];
+            isOneToOne: false;
+            referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "task_files_uploaded_by_fkey";
+            columns: ["uploaded_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       tasks: {
         Row: {
           id: string;
@@ -1647,6 +1688,7 @@ export type Database = {
         Args: { p_stage: string; p_owner: string | null; p_start: string | null; p_due: string | null; p_action?: string };
         Returns: undefined;
       };
+      task_file_seen: { Args: { p_file: string }; Returns: undefined };
       set_stage_link: { Args: { p_stage: string; p_link: string | null }; Returns: undefined };
       set_paper_links: { Args: { p_paper: string; p_lms: string | null; p_physical: string | null }; Returns: undefined };
       storage_usage: { Args: Record<PropertyKey, never>; Returns: { bucket: string; files: number; bytes: number }[] };

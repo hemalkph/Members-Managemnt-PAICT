@@ -4,7 +4,16 @@ import { revalidatePath } from "next/cache";
 import { friendlyDbError, type ActionResult } from "@/lib/action-result";
 import { getActionContext, NOT_ALLOWED } from "@/lib/auth";
 import { pageAccess } from "@/lib/page-access";
-import { firstError, idSchema, taskSchema, taskStatusSchema, type TaskInput } from "@/lib/validation";
+import {
+  firstError,
+  idSchema,
+  taskFilesSchema,
+  taskSchema,
+  taskStatusSchema,
+  TASKS_BUCKET,
+  type TaskFilesInput,
+  type TaskInput,
+} from "@/lib/validation";
 
 function revalidateTasks() {
   revalidatePath("/tasks");
@@ -91,8 +100,59 @@ export async function deleteTaskAction(input: { id: string }): Promise<ActionRes
   if (!task) return { ok: false, error: "Task not found." };
   if (task.paper_stage_id) return { ok: false, error: "This task belongs to a paper. Change it on the paper page." };
 
+  const { data: files } = await ctx.supabase.from("task_files").select("storage_path").eq("task_id", parsed.data.id);
   const { error } = await ctx.supabase.from("tasks").delete().eq("id", parsed.data.id);
   if (error) return { ok: false, error: friendlyDbError(error) };
+  if (files?.length) await ctx.supabase.storage.from(TASKS_BUCKET).remove(files.map((f) => f.storage_path));
   revalidateTasks();
   return { ok: true, message: "Task deleted" };
+}
+
+/**
+ * Save files already uploaded to storage: the brief (Tasks editors) or the
+ * member's work (the assignee). The database policies decide who may add what.
+ */
+export async function addTaskFilesAction(input: TaskFilesInput): Promise<ActionResult> {
+  const ctx = await getActionContext();
+  if (!ctx) return { ok: false, error: NOT_ALLOWED };
+  const parsed = taskFilesSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
+  const v = parsed.data;
+  const paths = v.files.map((f) => f.storage_path);
+  if (paths.some((p) => !p.startsWith(`${v.task_id}/${v.kind}/`) || p.includes(".."))) {
+    return { ok: false, error: "Invalid file." };
+  }
+
+  const { error } = await ctx.supabase.from("task_files").insert(
+    v.files.map((f) => ({
+      task_id: v.task_id,
+      kind: v.kind,
+      storage_path: f.storage_path,
+      file_name: f.file_name,
+      mime_type: f.mime_type,
+      size_bytes: f.size_bytes,
+      uploaded_by: ctx.profile.id,
+    })),
+  );
+  if (error) {
+    await ctx.supabase.storage.from(TASKS_BUCKET).remove(paths);
+    return { ok: false, error: friendlyDbError(error) };
+  }
+  revalidateTasks();
+  return { ok: true, message: v.files.length === 1 ? "File added" : `${v.files.length} files added` };
+}
+
+/** Remove a task file: your own upload, or any file with Tasks edit access. */
+export async function deleteTaskFileAction(input: { id: string }): Promise<ActionResult> {
+  const ctx = await getActionContext();
+  if (!ctx) return { ok: false, error: NOT_ALLOWED };
+  const parsed = idSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "File not found." };
+
+  const { data, error } = await ctx.supabase.from("task_files").delete().eq("id", parsed.data.id).select("storage_path");
+  if (error) return { ok: false, error: friendlyDbError(error) };
+  if (!data?.length) return { ok: false, error: "You can't remove this file." };
+  await ctx.supabase.storage.from(TASKS_BUCKET).remove([data[0].storage_path]);
+  revalidateTasks();
+  return { ok: true, message: "File removed" };
 }
