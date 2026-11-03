@@ -361,6 +361,85 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      citypak_bulk_uploads: {
+        Row: {
+          id: string;
+          account: string;
+          mode: "fixture" | "live";
+          external_id: number;
+          batch_reference: string;
+          file_name: string;
+          status: string;
+          waybills: number;
+          has_original_excel: boolean;
+          started_at: string | null;
+          ended_at: string | null;
+          external_created_at: string | null;
+          payload_hash: string;
+          first_seen_at: string;
+          last_seen_at: string;
+          updated_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      citypak_orders: {
+        Row: {
+          id: string;
+          account: string;
+          mode: "fixture" | "live";
+          external_id: number;
+          tracking_no: string | null;
+          reference: string;
+          external_created_at: string | null;
+          payload_hash: string;
+          first_seen_at: string;
+          last_seen_at: string;
+          updated_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      citypak_order_history: {
+        Row: {
+          id: number;
+          order_id: string;
+          kind: "first_seen" | "changed";
+          tracking_no: string | null;
+          prev_tracking_no: string | null;
+          reference: string | null;
+          prev_reference: string | null;
+          actor: string | null;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      citypak_sync_runs: {
+        Row: {
+          id: string;
+          stream: "bulk_uploads" | "orders";
+          account: string;
+          mode: "fixture" | "live";
+          actor: string | null;
+          outcome: "ok" | "partial" | "failed";
+          pages: number;
+          fetched: number;
+          new_count: number;
+          updated_count: number;
+          unchanged_count: number;
+          rejected_count: number;
+          truncated: boolean;
+          error_class: string | null;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       dispatch_tutes: {
         Row: {
           id: string;
@@ -1402,6 +1481,26 @@ export type Database = {
       };
     };
     Views: {
+      citypak_order_matches: {
+        Row: {
+          id: string;
+          account: string;
+          mode: "fixture" | "live";
+          external_id: number;
+          tracking_no: string | null;
+          reference: string;
+          external_created_at: string | null;
+          first_seen_at: string;
+          last_seen_at: string;
+          updated_at: string;
+          parcel_id: string | null;
+          match_status: "matched" | "reference_only" | "conflict" | "unmatched";
+          conflict_reason: "duplicate_tracking" | "different_parcels" | "reference_differs" | "tracking_differs" | null;
+          tracking_parcel_id: string | null;
+          reference_parcel_id: string | null;
+        };
+        Relationships: [];
+      };
       approved_work_summary: {
         Row: {
           user_id: string;
@@ -1581,6 +1680,43 @@ export type Database = {
       };
       dispatch_tute_archive: { Args: { p_id: string }; Returns: undefined };
       round_copy: { Args: { p_from: string; p: Json }; Returns: Json };
+      citypak_sync_bulk_uploads: {
+        Args: {
+          p_actor: string;
+          p_account: string;
+          p_mode: string;
+          p_rows: Json;
+          p_pages: number;
+          p_rejected: number;
+          p_truncated?: boolean;
+        };
+        Returns: Json;
+      };
+      citypak_record_failed_sync: {
+        Args: {
+          p_actor: string;
+          p_account: string;
+          p_mode: string;
+          p_error: string;
+          p_pages?: number;
+          p_fetched?: number;
+          p_stream?: "bulk_uploads" | "orders";
+        };
+        Returns: undefined;
+      };
+      citypak_sync_orders: {
+        Args: {
+          p_actor: string;
+          p_account: string;
+          p_mode: string;
+          p_rows: Json;
+          p_pages: number;
+          p_rejected: number;
+          p_truncated?: boolean;
+        };
+        Returns: Json;
+      };
+      citypak_log_document: { Args: { p_upload: string; p_kind: string }; Returns: undefined };
       round_cancel: { Args: { p_round: string; p_reason: string }; Returns: undefined };
       round_finalise: { Args: { p_round: string }; Returns: number };
       parcel_correct: { Args: { p_parcel: string; p: Json; p_reason: string; p_row_version: number }; Returns: undefined };

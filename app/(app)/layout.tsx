@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { requireUser } from "@/lib/auth";
 import { accessMap } from "@/lib/page-access";
+import { myDispatchCaps } from "@/lib/dispatch/access";
 import { ageOn, isBirthdayToday } from "@/lib/birthday";
 import { todayISO } from "@/lib/month";
 import { getBellNotifications } from "@/lib/notifications";
@@ -25,13 +26,16 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   const pages = accessMap(profile);
   const birthdayToday = isBirthdayToday(profile.date_of_birth, today);
 
-  const [avatarUrl, pending, bell] = await Promise.all([
+  const [avatarUrl, pending, bell, dispatchCaps] = await Promise.all([
     signedAvatarUrl(supabase, profile.avatar_path),
     pages.review !== "none"
       ? supabase.from("submissions").select("id", { count: "exact", head: true }).eq("status", "pending")
       : Promise.resolve({ count: 0 }),
     getBellNotifications(supabase, profile.id),
+    pages.dispatch !== "none" ? myDispatchCaps() : Promise.resolve(new Set<string>()),
   ]);
+  // Same rule as the Citypak pages: dispatch access plus Courier or Plan.
+  const citypak = dispatchCaps.has("courier") || dispatchCaps.has("plan");
 
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
@@ -42,6 +46,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           avatarUrl,
           isAdmin: profile.is_admin,
           pages,
+          citypak,
         }}
         pendingReviews={pending.count ?? 0}
       />
@@ -54,7 +59,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
             {profile.full_name || profile.email}
           </span>
           <div className="ml-auto flex items-center gap-1.5">
-            <CommandMenu pages={pages} />
+            <CommandMenu pages={pages} citypak={citypak} />
             <NotificationBell userId={profile.id} initialItems={bell.items} initialUnread={bell.unread} />
             <ThemeToggle />
           </div>

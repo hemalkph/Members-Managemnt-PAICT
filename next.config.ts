@@ -20,6 +20,17 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  // Citypak is its own Admin module with sections (/admin/citypak/bulk-uploads/…).
+  // Earlier links – under Tute dispatch, or batch pages and downloads without the
+  // section – go to the new place, which checks the person's access itself.
+  async redirects() {
+    const batch = ":id([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})";
+    return [
+      { source: "/admin/dispatch/citypak", destination: "/admin/citypak/bulk-uploads", permanent: false },
+      { source: `/admin/dispatch/citypak/${batch}/:rest*`, destination: "/admin/citypak/bulk-uploads/:id/:rest*", permanent: false },
+      { source: `/admin/citypak/${batch}/:rest*`, destination: "/admin/citypak/bulk-uploads/:id/:rest*", permanent: false },
+    ];
+  },
   async headers() {
     return [
       {

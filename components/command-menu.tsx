@@ -21,8 +21,8 @@ import { adminNav, MEMBER_NAV, type NavItem } from "@/lib/navigation";
 import type { AccessLevel, PageKey } from "@/lib/page-access";
 
 /** Quick search (Ctrl/⌘ + K) to jump to any page or switch the theme. */
-export function CommandMenu({ pages }: { pages: Record<PageKey, AccessLevel> }) {
-  const adminItems = adminNav(pages);
+export function CommandMenu({ pages, citypak = false }: { pages: Record<PageKey, AccessLevel>; citypak?: boolean }) {
+  const adminItems = adminNav(pages, { citypak });
   const router = useRouter();
   const { setTheme } = useTheme();
   const [open, setOpen] = useState(false);
@@ -45,7 +45,8 @@ export function CommandMenu({ pages }: { pages: Record<PageKey, AccessLevel> }) 
 
   const group = (heading: string, items: NavItem[]) => (
     <CommandGroup heading={heading}>
-      {items.map((item) => (
+      {/* Sub-pages (e.g. Citypak → Bulk uploads) are searchable on their own too. */}
+      {items.flatMap((i) => [i, ...(i.children ?? []).map((c) => ({ ...c, title: `${i.title} › ${c.title}` }))]).map((item) => (
         <CommandItem
           key={item.href}
           value={`${heading} ${item.title} ${item.keywords ?? ""}`}

@@ -63,9 +63,15 @@ const FUNCTIONS = [
   "dispatch_tute_archive",
   "dispatch_tute_counts",
   "round_copy",
+  "citypak_log_document",
 ];
 /** Privileged helpers used only inside other functions: nobody may call them directly. */
 const INTERNAL = [
+  // Citypak sync: the server's service role only.
+  "citypak_sync_bulk_uploads",
+  "citypak_record_failed_sync",
+  "citypak_check_scope",
+  "citypak_sync_orders",
   "dispatch_require",
   "dispatch_lock_draft",
   "dispatch_name",
@@ -100,6 +106,10 @@ const TABLES = [
   "cod_settlements",
   "cod_settlement_lines",
   "dispatch_tutes",
+  "citypak_bulk_uploads",
+  "citypak_sync_runs",
+  "citypak_orders",
+  "citypak_order_history",
 ];
 
 let db: pg.Client;
@@ -137,7 +147,7 @@ describe("dispatch functions", () => {
     }
   });
 
-  test.each([...INTERNAL, "parcel_events_append_only", "round_student_gets"])("%s cannot be called by signed-in users either", async (name) => {
+  test.each([...INTERNAL, "parcel_events_append_only", "round_student_gets", "citypak_order_history_append_only"])("%s cannot be called by signed-in users either", async (name) => {
     const { rows } = await db.query(
       `select has_function_privilege('authenticated', p.oid, 'execute') as auth, has_function_privilege('anon', p.oid, 'execute') as anon
          from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = $1`,

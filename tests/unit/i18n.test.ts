@@ -15,7 +15,13 @@ function files(dir: string): string[] {
   });
 }
 
-const CODE = [...files("app/(app)/admin/dispatch"), ...files("components/dispatch"), "lib/dispatch/rounds.ts"];
+const CODE = [
+  ...files("app/(app)/admin/dispatch"),
+  // Citypak integration has its own module but uses the dispatch English/Sinhala texts.
+  ...files("app/(app)/admin/citypak"),
+  ...files("components/dispatch"),
+  "lib/dispatch/rounds.ts",
+];
 // Label lists shown through t() at display time.
 const LABEL_FILES = [
   "lib/dispatch/rounds.ts",
@@ -36,6 +42,9 @@ const LABEL_FILES = [
   "components/dispatch/delivery-board.tsx",
   "app/(app)/admin/dispatch/rounds/[id]/page.tsx",
   "app/(app)/admin/dispatch/layout.tsx",
+  "lib/dispatch/nav.ts",
+  "app/(app)/admin/citypak/layout.tsx",
+  "lib/citypak/labels.ts",
   "lib/dispatch/import.ts",
 ];
 

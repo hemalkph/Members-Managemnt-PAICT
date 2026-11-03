@@ -1223,6 +1223,163 @@ export const SI: Record<string, string> = {
   "Round copied": "වටය පිටපත් කළා",
   "Round copied – some students are no longer active and were left out":
     "වටය පිටපත් කළා – තවදුරටත් සක්‍රිය නැති සිසුන් කිහිපදෙනෙක් ඉවත් කළා",
+
+  // ------------------------------------------------------------------ Citypak bulk uploads (read-only)
+  Citypak: "Citypak",
+  "Citypak bulk uploads": "Citypak bulk uploads",
+  "Citypak bulk upload": "Citypak bulk upload",
+  "Batches uploaded to Citypak, with their Excel and waybills. Read-only.":
+    "Citypak වෙත උඩුගත කළ කණ්ඩායම්, ඒවායේ Excel සහ waybills සමඟ. බැලීමට පමණයි.",
+  "Batch reference": "කණ්ඩායම් reference",
+  "Citypak batch ID": "Citypak කණ්ඩායම් ID",
+  "File name": "ගොනුවේ නම",
+  "Upload started": "උඩුගත කිරීම ආරම්භ වූයේ",
+  "Upload finished": "උඩුගත කිරීම අවසන් වූයේ",
+  "Created at Citypak": "Citypak හි සෑදූ වේලාව",
+  "First synced": "පළමු වරට ගෙන ආවේ",
+  "Last seen in a sync": "අවසන් වරට sync එකක දුටුවේ",
+  "All bulk uploads": "සියලු bulk uploads",
+  "Demo data": "ආදර්ශ දත්ත",
+  "This batch and its documents are made-up fixture data, not from Citypak.":
+    "මෙම කණ්ඩායම සහ එහි ලේඛන Citypak වෙතින් නොව, ආදර්ශ සඳහා සෑදූ දත්තයි.",
+  "These batches and documents are made-up fixture data, not from Citypak. The live connection stays off until Citypak authorises it.":
+    "මෙම කණ්ඩායම් සහ ලේඛන Citypak වෙතින් නොව, ආදර්ශ සඳහා සෑදූ දත්තයි. Citypak අවසර දෙන තුරු සජීවී සම්බන්ධතාවය අක්‍රියයි.",
+  Documents: "ලේඛන",
+  "Fetched from Citypak when you open them. Not stored here.": "ඔබ විවෘත කරන විට Citypak වෙතින් ගෙනෙයි. මෙහි ගබඩා නොකෙරේ.",
+  "Print waybills (4×6)": "Waybills මුද්‍රණය (4×6)",
+  "No waybills to print": "මුද්‍රණය කිරීමට waybills නැහැ",
+  "A4 printing will be added once Citypak confirms its setting.": "Citypak එහි සැකසුම තහවුරු කළ පසු A4 මුද්‍රණය එකතු කෙරේ.",
+  "Documents need the Courier permission.": "ලේඛන සඳහා Courier අවසරය අවශ්‍යයි.",
+  "Waybills in this batch": "මෙම කණ්ඩායමේ waybills",
+  "Citypak's list of the waybills inside a batch isn't available yet, so they aren't shown, and this batch isn't linked to a dispatch round.":
+    "කණ්ඩායමක් තුළ ඇති waybills ලැයිස්තුව Citypak වෙතින් තවම ලබාගත නොහැක, එබැවින් ඒවා පෙන්වන්නේ නැත, සහ මෙම කණ්ඩායම කිසිදු යැවීමේ වටයකට සම්බන්ධ කර නැත.",
+  "Citypak connection is not available yet": "Citypak සම්බන්ධතාවය තවම ලබාගත නොහැක",
+  "Citypak connection is not available yet.": "Citypak සම්බන්ධතාවය තවම ලබාගත නොහැක.",
+  "Live access stays off until Citypak authorises it and the credentials are set on the server.":
+    "Citypak අවසර දී server එකේ credentials සකසන තුරු සජීවී ප්‍රවේශය අක්‍රියයි.",
+  "The Citypak connection is switched off on this server.": "මෙම server එකේ Citypak සම්බන්ධතාවය අක්‍රිය කර ඇත.",
+  "Couldn't load the bulk uploads": "Bulk uploads පූරණය කළ නොහැකි විය",
+  "Reload the page. If it keeps happening, tell an admin.": "පිටුව නැවත පූරණය කරන්න. දිගටම සිදුවේ නම් පරිපාලකයෙකුට කියන්න.",
+  "The last sync failed": "පසුගිය sync එක අසාර්ථකයි",
+  "Showing what was saved earlier.": "කලින් සුරැකි දේ පෙන්වයි.",
+  "Last synced {when}": "අවසන් sync එක {when}",
+  "{n} records couldn't be read and were skipped": "වාර්තා {n}ක් කියවිය නොහැකි නිසා මඟ හැරියා",
+  "Stopped at the page limit": "පිටු සීමාවේදී නැවැත්තුවා",
+  "No bulk uploads yet": "තවම bulk uploads නැහැ",
+  "Press Sync to fetch them.": "ඒවා ගෙන ඒමට Sync ඔබන්න.",
+  "Someone with the Courier permission can sync them.": "Courier අවසරය ඇති අයෙකුට ඒවා sync කළ හැක.",
+  Uploaded: "උඩුගත කළේ",
+  Pages: "පිටු",
+  "Page {page} of {pages} · {total} batches": "පිටුව {page} / {pages} · කණ්ඩායම් {total}",
+  Previous: "පෙර",
+  Next: "ඊළඟ",
+  "{new} new · {updated} updated · {unchanged} unchanged": "නව {new} · යාවත්කාලීන {updated} · වෙනසක් නැති {unchanged}",
+  "Sync demo data": "ආදර්ශ දත්ත sync කරන්න",
+  "Sync now": "දැන් sync කරන්න",
+  "Bulk uploads synced": "Bulk uploads sync කළා",
+  Processed: "සැකසුණා",
+  "Citypak refused the credentials.": "Citypak credentials ප්‍රතික්ෂේප කළා.",
+  "Citypak asked us to slow down.": "Citypak වේගය අඩු කරන ලෙස ඉල්ලුවා.",
+  "Couldn't reach Citypak.": "Citypak වෙත සම්බන්ධ විය නොහැකි විය.",
+  "Citypak had a problem.": "Citypak හි ගැටලුවක් ඇති විය.",
+  "Citypak sent something we couldn't read.": "Citypak එවූ දේ කියවිය නොහැකි විය.",
+  "Citypak refused the credentials. Ask a main admin to check the Citypak settings.":
+    "Citypak credentials ප්‍රතික්ෂේප කළා. Citypak සැකසුම් පරීක්ෂා කරන ලෙස ප්‍රධාන පරිපාලකයෙකුගෙන් ඉල්ලන්න.",
+  "Citypak asked us to slow down. Try again in a few minutes.": "Citypak වේගය අඩු කරන ලෙස ඉල්ලුවා. මිනිත්තු කිහිපයකින් නැවත උත්සාහ කරන්න.",
+  "Couldn't reach Citypak. Check the connection and try again.": "Citypak වෙත සම්බන්ධ විය නොහැකි විය. සම්බන්ධතාවය පරීක්ෂා කර නැවත උත්සාහ කරන්න.",
+  "Citypak had a problem. Try again later.": "Citypak හි ගැටලුවක් ඇති විය. පසුව නැවත උත්සාහ කරන්න.",
+  "Citypak sent something we couldn't read. Nothing was changed.": "Citypak එවූ දේ කියවිය නොහැකි විය. කිසිවක් වෙනස් නොකළා.",
+  // ------------------------------------------------------------------ Citypak area and sync outcomes
+  "Citypak integration": "Citypak සම්බන්ධතාවය",
+  "Citypak's records, kept separate from dispatch rounds. Read-only.":
+    "Citypak වාර්තා, යැවීමේ වටවලින් වෙන්ව තබා ඇත. බැලීමට පමණයි.",
+  "Citypak sections": "Citypak කොටස්",
+  "Bulk uploads": "Bulk uploads",
+  "Batches uploaded to Citypak, with their Excel and waybills.": "Citypak වෙත උඩුගත කළ කණ්ඩායම්, ඒවායේ Excel සහ waybills සමඟ.",
+  "Last sync": "අවසන් sync එක",
+  "Last complete sync {when}": "අවසන් සම්පූර්ණ sync එක {when}",
+  "No complete sync yet": "තවම සම්පූර්ණ sync එකක් නැහැ",
+  "Something went wrong.": "යමක් වැරදුණා.",
+  "Something went wrong. Nothing was changed.": "යමක් වැරදුණා. කිසිවක් වෙනස් නොකළා.",
+  "Nothing was changed by it. Showing what was saved earlier.": "එයින් කිසිවක් වෙනස් නොවුණා. කලින් සුරැකි දේ පෙන්වයි.",
+  "The last sync was incomplete": "පසුගිය sync එක අසම්පූර්ණයි",
+  "The batches it read are saved; sync again to complete the list.":
+    "එය කියවූ කණ්ඩායම් සුරැකුණා; ලැයිස්තුව සම්පූර්ණ කිරීමට නැවත sync කරන්න.",
+  Live: "සජීවී",
+  Off: "අක්‍රියයි",
+  Incomplete: "අසම්පූර්ණයි",
+  "Synced, but not completely": "Sync කළා, නමුත් සම්පූර්ණයෙන් නොවේ",
+  "The batches couldn't be saved.": "කණ්ඩායම් සුරැකිය නොහැකි විය.",
+  "The batches couldn't be saved. Nothing was changed.": "කණ්ඩායම් සුරැකිය නොහැකි විය. කිසිවක් වෙනස් නොකළා.",
+  "The sync failed and the failure couldn't be recorded. Tell an admin.":
+    "Sync එක අසාර්ථක වූ අතර එම අසාර්ථකත්වය සටහන් කළ නොහැකි විය. පරිපාලකයෙකුට කියන්න.",
+  "The Citypak tables aren't in the database yet. An admin needs to apply migrations 028 and 029.":
+    "Citypak වගු තවම දත්ත ගබඩාවේ නැහැ. පරිපාලකයෙකු migrations 028 සහ 029 යෙදිය යුතුයි.",
+  // ------------------------------------------------------------------ Citypak orders & waybills
+  "Orders & waybills": "ඇණවුම් සහ waybills",
+  "Orders created in Citypak, and whether each one matches a Tute dispatch parcel. Read-only.":
+    "Citypak හි සෑදූ ඇණවුම්, සහ එක් එක් ඇණවුම ටියුට් යැවීමේ පාර්සලයකට ගැළපේද යන්න. බැලීමට පමණයි.",
+  "Tracking number": "Tracking අංකය",
+  "Citypak order ID": "Citypak ඇණවුම් ID",
+  "Courier status": "Courier තත්ත්වය",
+  "Not available yet – Citypak's status values haven't been confirmed.":
+    "තවම ලබාගත නොහැක – Citypak තත්ත්ව අගයන් තහවුරු කර නැහැ.",
+  "Citypak order": "Citypak ඇණවුම",
+  "All orders": "සියලු ඇණවුම්",
+  "This order is made-up fixture data, not from Citypak.": "මෙම ඇණවුම Citypak වෙතින් නොව, ආදර්ශ සඳහා සෑදූ දත්තයි.",
+  History: "ඉතිහාසය",
+  "When this order first appeared, and changes to its identifiers.":
+    "මෙම ඇණවුම මුලින්ම පෙනුණු වේලාව, සහ එහි හඳුනාගැනීම් වල වෙනස්කම්.",
+  "First seen in a sync": "Sync එකකදී මුලින්ම දුටුවා",
+  "Tracking number {from} → {to}": "Tracking අංකය {from} → {to}",
+  "Reference {from} → {to}": "Reference {from} → {to}",
+  "Why it's a conflict": "ගැටුමක් වන්නේ ඇයි",
+  "Its identifiers disagree with Tute dispatch.": "එහි හඳුනාගැනීම් ටියුට් යැවීම සමඟ නොගැළපේ.",
+  "tracking number": "tracking අංකය",
+  reference: "reference",
+  "Found by {by}": "{by} මඟින් හමු විය",
+  "No tracking number in Tute dispatch": "ටියුට් යැවීමේ tracking අංකයක් නැහැ",
+  "Open round": "වටය විවෘත කරන්න",
+  "Matching uses only the tracking number and the reference, never names, phones or addresses. Nothing in Tute dispatch is changed from here.":
+    "ගැළපීම සඳහා tracking අංකය සහ reference පමණක් භාවිත කරයි, කිසිවිටෙක නම්, දුරකථන හෝ ලිපින නොවේ. මෙතැනින් ටියුට් යැවීමේ කිසිවක් වෙනස් නොකෙරේ.",
+  "No orders yet": "තවම ඇණවුම් නැහැ",
+  "No orders match these filters": "මෙම පෙරහන් වලට ගැළපෙන ඇණවුම් නැහැ",
+  "Change the search or the dates.": "සෙවීම හෝ දින වෙනස් කරන්න.",
+  "Couldn't load the orders": "ඇණවුම් පූරණය කළ නොහැකි විය",
+  "The Citypak order tables aren't in the database yet. An admin needs to apply migration 030.":
+    "Citypak ඇණවුම් වගු තවම දත්ත ගබඩාවේ නැහැ. පරිපාලකයෙකු migration 030 යෙදිය යුතුයි.",
+  "Filter by match": "ගැළපීම අනුව පෙරන්න",
+  "Tracking number or reference": "Tracking අංකය හෝ reference",
+  To: "දක්වා",
+  Search: "සොයන්න",
+  "Page {page} of {pages} · {total} orders": "පිටුව {page} / {pages} · ඇණවුම් {total}",
+  Matched: "ගැළපුණා",
+  "Its tracking number and reference point to the same dispatch parcel.":
+    "එහි tracking අංකය සහ reference එකම යැවීමේ පාර්සලයට යොමු වේ.",
+  "Reference only": "Reference පමණයි",
+  "Its reference matches a dispatch parcel that has no tracking number yet.":
+    "එහි reference එක තවම tracking අංකයක් නැති යැවීමේ පාර්සලයකට ගැළපේ.",
+  Conflict: "ගැටුම",
+  "Its identifiers disagree with Tute dispatch. Check it by hand.":
+    "එහි හඳුනාගැනීම් ටියුට් යැවීම සමඟ නොගැළපේ. අතින් පරීක්ෂා කරන්න.",
+  "Not matched": "නොගැළපුණා",
+  "No dispatch parcel has its tracking number or reference.": "එහි tracking අංකය හෝ reference ඇති යැවීමේ පාර්සලයක් නැහැ.",
+  "Another Citypak order has the same tracking number.": "වෙනත් Citypak ඇණවුමකට එම tracking අංකයම ඇත.",
+  "Another Citypak order has the same reference. It may be a reshipment – check both orders by hand.":
+    "වෙනත් Citypak ඇණවුමකට එම reference එකම ඇත. එය නැවත යැවීමක් විය හැක – ඇණවුම් දෙකම අතින් පරීක්ෂා කරන්න.",
+  "Demo orders are never matched with real dispatch parcels.": "ආදර්ශ ඇණවුම් කිසිවිටෙක සැබෑ යැවීමේ පාර්සල් සමඟ ගළපන්නේ නැහැ.",
+  "The tracking number and the reference belong to two different dispatch parcels.":
+    "Tracking අංකය සහ reference එක යැවීමේ පාර්සල් දෙකකට අයත් වේ.",
+  "The tracking number belongs to a dispatch parcel with a different reference.":
+    "Tracking අංකය වෙනත් reference එකක් ඇති යැවීමේ පාර්සලයකට අයත් වේ.",
+  "The reference belongs to a dispatch parcel with a different tracking number.":
+    "Reference එක වෙනත් tracking අංකයක් ඇති යැවීමේ පාර්සලයකට අයත් වේ.",
+  "Orders synced": "ඇණවුම් sync කළා",
+  "The orders couldn't be saved. Nothing was changed.": "ඇණවුම් සුරැකිය නොහැකි විය. කිසිවක් වෙනස් නොකළා.",
+  "The orders it read are saved; sync again to complete the list.":
+    "එය කියවූ ඇණවුම් සුරැකුණා; ලැයිස්තුව සම්පූර්ණ කිරීමට නැවත sync කරන්න.",
+  All: "සියල්ල",
+  "Not packed yet": "තවම පැක් කර නැහැ",
 };
 
 /** Messages with changing parts, mostly from the database. Named groups fill the placeholders. */
