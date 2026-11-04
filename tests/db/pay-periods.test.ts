@@ -99,3 +99,34 @@ describe("closing a month", () => {
     expect(payout[0].approved_items).toBe(1);
   });
 });
+
+describe("fixed salaries follow the pay period", () => {
+  test("a salary set before the period's 10th ends is paid for that month; one set after is not", async () => {
+    // March's period: 11 Mar – 10 Apr 2026 (Sri Lanka time).
+    const inside = await createPerson(db);
+    const after = await createPerson(db);
+    await asOwner(db);
+    const section = (await q("insert into public.sections (name) values ('Salary test') returning id"))[0].id;
+    const salaried = (
+      await q("insert into public.roles (section_id, name, is_salaried) values ($1, 'LMS Admin', true) returning id", [section])
+    )[0].id;
+    for (const [user, setAt] of [
+      [inside, "2026-04-10 23:30+05:30"],
+      [after, "2026-04-11 00:30+05:30"],
+    ]) {
+      await q("insert into public.member_roles (user_id, role_id) values ($1, $2)", [user, salaried]);
+      await q("insert into public.member_salaries (user_id, role_id, monthly_amount, created_at) values ($1, $2, 25000, $3)", [
+        user,
+        salaried,
+        setAt,
+      ]);
+    }
+
+    await actAs(db, main);
+    await q("select public.close_pay_month('2026-03-01')");
+    await asOwner(db);
+    const paid = await q("select user_id, salary_amount::text as s from public.payouts where month = '2026-03-01'");
+    expect(paid.find((p) => p.user_id === inside)?.s).toBe("25000.00");
+    expect(paid.find((p) => p.user_id === after)).toBeUndefined();
+  });
+});

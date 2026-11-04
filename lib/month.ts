@@ -22,6 +22,11 @@ export function todayISO(): string {
   }).format(new Date());
 }
 
+/** A timestamp's date in Sri Lanka as "YYYY-MM-DD". */
+export function dateInColombo(iso: string): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: APP_TIME_ZONE }).format(new Date(iso));
+}
+
 /** The pay month a day ("YYYY-MM-DD") belongs to. */
 export function periodOfDay(day: string): string {
   const key = day.slice(0, 7);

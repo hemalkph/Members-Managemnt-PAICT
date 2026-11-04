@@ -2,7 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, PaperStageName } from "@/lib/database.types";
-import { APP_TIME_ZONE, currentMonthKey, monthKeyToDate, shiftMonth, todayISO } from "@/lib/month";
+import { currentMonthKey, dateInColombo, monthKeyToDate, shiftMonth, todayISO } from "@/lib/month";
 import { STAGES } from "@/lib/papers";
 
 type Client = SupabaseClient<Database>;
@@ -45,8 +45,6 @@ export type TeamPerformance = {
   team: { done: number; onTimeRate: number | null; avgDays: number | null; pages: number; overdueNow: number };
 };
 
-const dateInColombo = (iso: string) =>
-  new Intl.DateTimeFormat("en-CA", { timeZone: APP_TIME_ZONE }).format(new Date(iso));
 const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
 const pct = (part: number, whole: number) => (whole > 0 ? Math.round((part / whole) * 100) : null);
 const round1 = (n: number | null) => (n === null ? null : Math.round(n * 10) / 10);

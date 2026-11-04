@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { periodDays, periodOfDay, periodRangeLabel } from "@/lib/month";
+import { dateInColombo, periodDays, periodOfDay, periodRangeLabel } from "@/lib/month";
 
 describe("pay months run 11th → 10th (same rule as public.pay_period_of)", () => {
   test.each([
@@ -13,5 +13,15 @@ describe("pay months run 11th → 10th (same rule as public.pay_period_of)", () 
     expect(periodDays("2026-10")).toEqual({ first: "2026-10-11", last: "2026-11-10" });
     expect(periodDays("2026-12")).toEqual({ first: "2026-12-11", last: "2027-01-10" });
     expect(periodRangeLabel("2026-10")).toBe("11 Oct – 10 Nov 2026");
+  });
+});
+
+describe("salary period from a timestamp", () => {
+  test.each([
+    ["2026-11-05T10:00:00Z", "2026-10"], // 5 Nov → October's period
+    ["2026-11-10T18:00:00Z", "2026-10"], // 10 Nov 23:30 in Sri Lanka
+    ["2026-11-10T19:00:00Z", "2026-11"], // 11 Nov 00:30 in Sri Lanka
+  ])("%s → %s", (iso, key) => {
+    expect(periodOfDay(dateInColombo(iso))).toBe(key);
   });
 });

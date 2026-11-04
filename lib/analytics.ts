@@ -2,7 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
-import { monthKeyToDate, monthLabel, shiftMonth } from "@/lib/month";
+import { dateInColombo, monthKeyToDate, monthLabel, periodOfDay, shiftMonth } from "@/lib/month";
 import { salaryLinesOf } from "@/lib/payments";
 import { getStructure } from "@/lib/queries";
 
@@ -140,11 +140,12 @@ export async function getAnalytics(
     }
     closedSalaries.set(key, list);
   }
-  // Open months: a salary counts from the month it was first set (current amounts).
+  // Open months: a salary counts from the pay period it was first set in (current amounts).
+  // Same rule as public.close_pay_month.
   const salariesFor = (key: string): SalaryEntry[] =>
     closedSalaries.get(key) ??
     salaries
-      .filter((s) => s.created_at.slice(0, 7) <= key)
+      .filter((s) => periodOfDay(dateInColombo(s.created_at)) <= key)
       .map((s) => ({ user_id: s.user_id, role_id: s.role_id, amount: num(s.monthly_amount) }));
 
   for (const m of months) {
