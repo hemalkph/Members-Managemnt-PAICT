@@ -43,8 +43,8 @@ type LibSet = {
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 
 /**
- * Every member: the reviewed papers (Sinhala and English) once their reviews
- * are finished, and the marking schemes once every scheme step is finished.
+ * Every member: the Sinhala and English papers, each once its own review is
+ * done, and the marking schemes once every scheme step is finished.
  * One card per paper set ("RFP 04" = MCQ + SE & Essay), grouped by exam.
  */
 export default async function LibraryPage({ searchParams }: PageProps<"/library">) {
@@ -149,7 +149,7 @@ export default async function LibraryPage({ searchParams }: PageProps<"/library"
           description={
             q || kind || exam
               ? "Try another name or clear the filters."
-              : "A paper appears here once its reviews are finished. Its marking scheme follows when the Sinhala and English schemes are done."
+              : "Each paper appears here once its Sinhala or English review is done. Its marking scheme follows when the Sinhala and English schemes are finished."
           }
         />
       ) : (
@@ -229,12 +229,25 @@ function PaperSet({ set }: { set: LibSet }) {
           if (items.length === 0) return null;
           return (
             <div key={p.id} className="space-y-1.5">
-              {split && <p className="text-sm font-medium">{PART_LABEL[p.part]}</p>}
+              {/* Always name the part, so a set with only one part in the library is still clear. */}
+              {set.kind === "paper" && (
+                <p className="text-sm font-semibold">
+                  {PART_LABEL[p.part]} <span className="text-muted-foreground font-normal">paper</span>
+                </p>
+              )}
               <ul className="space-y-1.5">
                 {items.map((s) => (
-                  <FileRow key={s.stage} label={s.label} file={p.files[s.stage]!} icon="paper" />
+                  <FileRow
+                    key={s.stage}
+                    label={set.kind === "paper" ? `${PART_LABEL[p.part]} – ${s.label}` : s.label}
+                    file={p.files[s.stage]!}
+                    icon="paper"
+                  />
                 ))}
               </ul>
+              {set.medium === "both" && !p.files.typeset_en && !p.files.handover && (
+                <p className="text-muted-foreground text-xs">English paper shows here after its review.</p>
+              )}
             </div>
           );
         })}

@@ -1,4 +1,4 @@
-// Paper library: a paper shows once its reviews are finished; its marking
+// Paper library: each language shows once its own review is done; marking
 // schemes show once every marking-scheme step is finished.
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import type pg from "pg";
@@ -54,19 +54,25 @@ beforeAll(async () => {
 afterAll(() => db.end());
 
 describe("paper library", () => {
-  test("nothing shows while the paper is still being made or reviewed", async () => {
-    await setStages("done", [1, 2, 3, 4, 5]); // English review still open
+  test("nothing shows while the paper is still being made and reviewed", async () => {
+    await setStages("done", [1, 2, 3, 4]); // no review finished yet
     expect(await library()).toEqual([]);
     expect(await canOpen("typeset_si")).toBe(false);
   });
 
-  test("after the reviews: the latest Sinhala and English papers, no marking scheme yet", async () => {
+  test("the Sinhala paper shows once the Sinhala review is done – it doesn't wait for English", async () => {
+    await setStages("done", [5]);
+    expect(await library()).toEqual([{ stage: "typeset_si", version: 2 }]);
+    expect(await canOpen("typeset_si")).toBe(true);
+    expect(await canOpen("typeset_en")).toBe(false);
+  });
+
+  test("the English paper follows its own review; no marking scheme yet", async () => {
     await setStages("done", [6]);
     expect(await library()).toEqual([
       { stage: "typeset_en", version: 1 },
       { stage: "typeset_si", version: 2 },
     ]);
-    expect(await canOpen("typeset_si")).toBe(true);
     expect(await canOpen("scheme")).toBe(false);
   });
 
