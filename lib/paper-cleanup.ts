@@ -2,7 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
-import { FINAL_STAGES, PAPERS_BUCKET } from "@/lib/papers";
+import { LIBRARY_STAGES, PAPERS_BUCKET } from "@/lib/papers";
 
 type Client = SupabaseClient<Database>;
 
@@ -88,11 +88,11 @@ type CleanupFile = {
   created_at: string;
 };
 
-/** Everything except the latest version of each final stage (hand-over PDF, marking schemes). */
+/** Everything except the latest version of each library stage (reviewed papers, hand-over PDF, marking schemes). */
 export function removableFiles<T extends { stage: string; version: number }>(files: T[]): T[] {
   const latest = new Map<string, number>();
   for (const f of files) latest.set(f.stage, Math.max(latest.get(f.stage) ?? 0, f.version));
-  return files.filter((f) => !(FINAL_STAGES as string[]).includes(f.stage) || f.version !== latest.get(f.stage));
+  return files.filter((f) => !(LIBRARY_STAGES as string[]).includes(f.stage) || f.version !== latest.get(f.stage));
 }
 
 export type StorageUse = { bucket: string; files: number; bytes: number };

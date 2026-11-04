@@ -141,6 +141,8 @@ export const STAGE_INPUTS: Record<PaperStageName, PaperStageName[]> = {
 
 /** Stages whose files are the paper's final outputs: kept by the clean-up and open to every member. */
 export const FINAL_STAGES: PaperStageName[] = ["handover", "scheme", "scheme_rewrite", "scheme_en"];
+/** Stages shown in the Paper library (latest version each): the reviewed papers and the final outputs. Kept by the clean-up. */
+export const LIBRARY_STAGES: PaperStageName[] = ["typeset_si", "typeset_en", ...FINAL_STAGES];
 /** The marking-scheme stages (only on the paper that completes a full paper). */
 export const SCHEME_STAGES: PaperStageName[] = ["scheme", "scheme_rewrite", "scheme_en"];
 
