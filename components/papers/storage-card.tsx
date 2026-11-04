@@ -73,7 +73,7 @@ export function StorageCard({
         </CardTitle>
         <CardDescription>
           Drafts and older versions are deleted automatically {days} day{days === 1 ? "" : "s"} after a paper is
-          handed over (or finished / cancelled). The final PDFs and marking schemes are always kept.
+          handed over (or finished / cancelled). The reviewed Sinhala and English papers, final PDFs and marking schemes are always kept.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

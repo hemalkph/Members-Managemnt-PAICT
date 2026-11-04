@@ -1694,6 +1694,25 @@ export type Database = {
         Returns: undefined;
       };
       task_file_seen: { Args: { p_file: string }; Returns: undefined };
+      paper_library: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          file_id: string;
+          paper_id: string;
+          title: string;
+          kind: "paper" | "tute";
+          part: "mcq" | "essay" | "full";
+          medium: "si" | "both";
+          exam_day: string | null;
+          exam_name: string | null;
+          batch_name: string | null;
+          stage: PaperStageName;
+          version: number;
+          file_name: string;
+          size_bytes: number;
+          created_at: string;
+        }[];
+      };
       paper_add_past: {
         Args: { p_title: string; p_part: string; p_medium: string; p_exam_day?: string | null; p_exam?: string | null };
         Returns: string;
