@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CalendarDaysIcon, DownloadIcon, EyeIcon, FileCheck2Icon, FileTextIcon, LibraryIcon, SearchIcon } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
+import { LibraryWhatsApp, type LibraryContact } from "@/components/library/library-whatsapp";
+import { waNumber } from "@/components/papers/review-contacts";
 import BlurText from "@/components/reactbits/blur-text";
 import SpotlightCard from "@/components/reactbits/spotlight-card";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { requireUser } from "@/lib/auth";
 import type { PaperStageName } from "@/lib/database.types";
+import { getSiteUrl } from "@/lib/env";
 import { formatBytes, formatDate, formatDay } from "@/lib/format";
 import { markingKind, setKey, setTitle } from "@/lib/marking";
 import { MEDIUM_LABEL, PART_LABEL, type PaperMedium, type PaperPart } from "@/lib/papers";
@@ -48,14 +51,17 @@ const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) 
  * One card per paper set ("RFP 04" = MCQ + SE & Essay), grouped by exam.
  */
 export default async function LibraryPage({ searchParams }: PageProps<"/library">) {
-  await requireUser();
+  const profile = await requireUser();
   const sp = await searchParams;
   const q = one(sp.q).trim().slice(0, 80);
   const kind = one(sp.kind) === "tute" ? "tute" : one(sp.kind) === "paper" ? "paper" : "";
   const exam = one(sp.exam).slice(0, 150);
 
   const supabase = await createClient();
-  const { data } = await supabase.rpc("paper_library");
+  const [{ data }, contacts] = await Promise.all([
+    supabase.rpc("paper_library"),
+    profile.is_admin ? getLibraryContacts(supabase) : Promise.resolve(null),
+  ]);
   const rows = data ?? [];
   const examOf = (r: (typeof rows)[number]) =>
     r.exam_name ? `${r.batch_name ? `${r.batch_name} – ` : ""}${r.exam_name}` : "Other papers";
@@ -165,7 +171,7 @@ export default async function LibraryPage({ searchParams }: PageProps<"/library"
             </CardHeader>
             <CardContent className="grid gap-3 lg:grid-cols-2">
               {g.sets.map((set) => (
-                <PaperSet key={set.key} set={set} />
+                <PaperSet key={set.key} set={set} contacts={contacts} />
               ))}
             </CardContent>
           </Card>
@@ -173,6 +179,23 @@ export default async function LibraryPage({ searchParams }: PageProps<"/library"
       )}
     </div>
   );
+}
+
+/**
+ * Admins: who to WhatsApp about a paper. Same role-name rule as the database's
+ * library notifications (public.notify_library_paper).
+ */
+async function getLibraryContacts(supabase: Awaited<ReturnType<typeof createClient>>): Promise<LibraryContact[]> {
+  const { data } = await supabase.from("member_roles").select("user_id, roles(name), profiles(full_name, email, whatsapp, is_active)");
+  const contacts: LibraryContact[] = [];
+  for (const r of data ?? []) {
+    const name = r.roles?.name ?? "";
+    const job = /lms.*admin/i.test(name) ? "lms" : /physical.*coordinator/i.test(name) ? "print" : null;
+    if (!job || !r.profiles?.is_active || contacts.some((c) => c.userId === r.user_id && c.job === job)) continue;
+    const person = r.profiles.full_name?.trim() || r.profiles.email;
+    contacts.push({ userId: r.user_id, name: person, number: waNumber(r.profiles.whatsapp), job });
+  }
+  return contacts.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 const partOrder = (p: PaperPart) => (p === "mcq" ? 0 : p === "essay" ? 1 : 2);
@@ -202,7 +225,7 @@ function FilterRow({ label, items }: { label: string; items: { label: string; hr
 }
 
 /** One paper set: its question papers (per part) and its marking scheme. */
-function PaperSet({ set }: { set: LibSet }) {
+function PaperSet({ set, contacts }: { set: LibSet; contacts: LibraryContact[] | null }) {
   const split = set.papers.length > 1;
   const schemeFrom = set.papers.find((p) => SCHEME_STAGES.some((s) => p.files[s.stage]));
   const parts = set.kind === "tute" ? "Tute" : split ? set.papers.map((p) => PART_LABEL[p.part]).join(" + ") : PART_LABEL[set.papers[0].part];
@@ -229,11 +252,25 @@ function PaperSet({ set }: { set: LibSet }) {
           if (items.length === 0) return null;
           return (
             <div key={p.id} className="space-y-1.5">
-              {/* Always name the part, so a set with only one part in the library is still clear. */}
-              {set.kind === "paper" && (
-                <p className="text-sm font-semibold">
-                  {PART_LABEL[p.part]} <span className="text-muted-foreground font-normal">paper</span>
-                </p>
+              {(set.kind === "paper" || contacts) && (
+                <div className="flex items-center justify-between gap-2">
+                  {/* Always name the part, so a set with only one part in the library is still clear. */}
+                  {set.kind === "paper" ? (
+                    <p className="text-sm font-semibold">
+                      {PART_LABEL[p.part]} <span className="text-muted-foreground font-normal">paper</span>
+                    </p>
+                  ) : (
+                    <span />
+                  )}
+                  {contacts && (
+                    <LibraryWhatsApp
+                      contacts={contacts}
+                      paperTitle={p.title}
+                      files={items.map((s) => s.label).join(", ")}
+                      url={`${getSiteUrl()}/library?q=${encodeURIComponent(set.title)}`}
+                    />
+                  )}
+                </div>
               )}
               <ul className="space-y-1.5">
                 {items.map((s) => (
