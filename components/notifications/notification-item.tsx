@@ -17,6 +17,7 @@ import {
   RotateCcwIcon,
   UserPlusIcon,
   WalletIcon,
+  LibraryIcon,
   type LucideIcon,
   TruckIcon,
 } from "lucide-react";
@@ -56,6 +57,7 @@ const META: Record<string, { icon: LucideIcon; tone: string }> = {
   "dispatch.turn": { icon: TruckIcon, tone: "bg-primary/10 text-primary" },
   "task.files": { icon: PaperclipIcon, tone: "bg-primary/10 text-primary" },
   "paper.note": { icon: MessageSquareTextIcon, tone: "bg-warning/20 text-amber-700 dark:text-warning" },
+  "library.new": { icon: LibraryIcon, tone: "bg-success/15 text-success" },
   "paper.unassigned": { icon: FileStackIcon, tone: "bg-warning/20 text-amber-700 dark:text-warning" },
 };
 
