@@ -24,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { createSubmissionAction, updateSubmissionAction } from "@/lib/actions/submissions";
 import { formatBytes, formatLKR } from "@/lib/format";
 import { monthLabel, periodRangeLabel } from "@/lib/month";
+import { isPerPage, pdfPageCount } from "@/lib/pdf-pages";
 import { createClient } from "@/lib/supabase/client";
 import {
   MAX_ATTACHMENT_BYTES,
@@ -42,7 +43,7 @@ type RoleOption = {
   rates?: { id: string; name: string; unit: string; price: number }[];
 };
 type ExistingAttachment = { id: string; file_name: string; size_bytes: number };
-type NewAttachment = AttachmentInput & { key: string };
+type NewAttachment = AttachmentInput & { key: string; pages: number | null };
 
 function safeFileName(name: string) {
   const cleaned = name
@@ -100,6 +101,12 @@ export function SubmissionForm({
   const keptExisting = existingAttachments.filter((a) => !removedIds.includes(a.id));
   const fileCount = keptExisting.length + newFiles.length + uploading.length;
 
+  // Per-page work: the pages of the attached PDFs fill the quantity. Files already saved
+  // (when editing) were never counted, so the page total is only offered when there are none.
+  const pdfPages = newFiles.reduce((n, f) => n + (f.pages ?? 0), 0);
+  const countsPages = isPerPage(chosenRate?.unit) && keptExisting.length === 0;
+  const setQuantity = (n: number) => form.setValue("quantity", n, { shouldValidate: true });
+
   const groups = new Map<string, RoleOption[]>();
   for (const role of roles) groups.set(role.sectionName, [...(groups.get(role.sectionName) ?? []), role]);
 
@@ -111,6 +118,7 @@ export function SubmissionForm({
       return;
     }
     const supabase = createClient();
+    let addedPages = 0;
     for (const file of list) {
       if (file.size > MAX_ATTACHMENT_BYTES) {
         toast.error(`${file.name} is larger than 10 MB.`);
@@ -118,6 +126,7 @@ export function SubmissionForm({
       }
       const key = crypto.randomUUID();
       setUploading((u) => [...u, key]);
+      const pages = await pdfPageCount(file);
       const path = `${userId}/${key}/${safeFileName(file.name)}`;
       const { error } = await supabase.storage
         .from("attachments")
@@ -135,12 +144,17 @@ export function SubmissionForm({
           file_name: file.name.slice(0, 200),
           mime_type: file.type || null,
           size_bytes: file.size,
+          pages,
         },
       ]);
+      addedPages += pages ?? 0;
     }
+    if (countsPages && addedPages > 0) setQuantity(pdfPages + addedPages);
   };
 
   const removeNewFile = async (file: NewAttachment) => {
+    // Keep the quantity in step when it still matches the PDF total.
+    if (countsPages && file.pages && quantity === pdfPages && pdfPages > file.pages) setQuantity(pdfPages - file.pages);
     setNewFiles((f) => f.filter((x) => x.key !== file.key));
     await createClient().storage.from("attachments").remove([file.storage_path]);
   };
@@ -388,6 +402,24 @@ export function SubmissionForm({
                       : `Number of ${chosenRate.unit}s`
                     : "e.g. papers marked or designs made"}
                 </FormDescription>
+                {countsPages && pdfPages > 0 && (
+                  <p className="text-muted-foreground flex flex-wrap items-center gap-x-2 text-xs">
+                    {quantity === pdfPages
+                      ? `Counted from your PDF${newFiles.length > 1 ? "s" : ""}: ${pdfPages} pages`
+                      : `Your PDF${newFiles.length > 1 ? "s have" : " has"} ${pdfPages} pages.`}
+                    {quantity !== pdfPages && (
+                      <Button
+                        type="button"
+                        variant="link"
+                        size="sm"
+                        className="h-auto p-0 text-xs"
+                        onClick={() => setQuantity(pdfPages)}
+                      >
+                        Use {pdfPages}
+                      </Button>
+                    )}
+                  </p>
+                )}
                 <FormMessage />
               </FormItem>
             )}
@@ -502,7 +534,10 @@ export function SubmissionForm({
                 <li key={a.key} className="flex items-center gap-3 px-3 py-2 text-sm">
                   <FileIcon className="text-primary size-4 shrink-0" />
                   <span className="min-w-0 flex-1 truncate">{a.file_name}</span>
-                  <span className="text-muted-foreground text-xs">{formatBytes(a.size_bytes)}</span>
+                  <span className="text-muted-foreground text-xs">
+                    {a.pages ? `${a.pages} page${a.pages > 1 ? "s" : ""} · ` : ""}
+                    {formatBytes(a.size_bytes)}
+                  </span>
                   <Button
                     type="button"
                     variant="ghost"
