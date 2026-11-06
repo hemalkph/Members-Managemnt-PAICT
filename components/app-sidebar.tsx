@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { HoverPrefetchLink } from "@/components/hover-prefetch-link";
 import { usePathname } from "next/navigation";
 import { ChevronsUpDownIcon, LandmarkIcon, LogOutIcon, UserIcon } from "lucide-react";
 
@@ -68,10 +68,10 @@ export function AppSidebar({ user, pendingReviews }: { user: SidebarUser; pendin
           {items.map((item) => (
             <SidebarMenuItem key={item.href}>
               <SidebarMenuButton asChild isActive={isActive(item)} tooltip={item.title}>
-                <Link href={item.href} onClick={() => setOpenMobile(false)}>
+                <HoverPrefetchLink href={item.href} onClick={() => setOpenMobile(false)}>
                   <item.icon />
                   <span>{item.title}</span>
-                </Link>
+                </HoverPrefetchLink>
               </SidebarMenuButton>
               {item.badge ? <SidebarMenuBadge>{item.badge > 99 ? "99+" : item.badge}</SidebarMenuBadge> : null}
             </SidebarMenuItem>
@@ -87,7 +87,7 @@ export function AppSidebar({ user, pendingReviews }: { user: SidebarUser; pendin
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link href={user.pages.overview !== "none" ? "/admin" : "/dashboard"} onClick={() => setOpenMobile(false)}>
+              <HoverPrefetchLink href={user.pages.overview !== "none" ? "/admin" : "/dashboard"} onClick={() => setOpenMobile(false)}>
                 <div className="flex aspect-square size-8 shrink-0 items-center justify-center">
                   <BrandLogo className="h-auto w-8" priority />
                 </div>
@@ -95,7 +95,7 @@ export function AppSidebar({ user, pendingReviews }: { user: SidebarUser; pendin
                   <ShinyText text="Team Work Tracker" className="truncate font-semibold" />
                   <span className="text-muted-foreground truncate text-xs">A/L ICT class team</span>
                 </div>
-              </Link>
+              </HoverPrefetchLink>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -137,14 +137,14 @@ export function AppSidebar({ user, pendingReviews }: { user: SidebarUser; pendin
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href="/profile" onClick={() => setOpenMobile(false)}>
+                  <HoverPrefetchLink href="/profile" onClick={() => setOpenMobile(false)}>
                     <UserIcon /> Profile
-                  </Link>
+                  </HoverPrefetchLink>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/bank" onClick={() => setOpenMobile(false)}>
+                  <HoverPrefetchLink href="/bank" onClick={() => setOpenMobile(false)}>
                     <LandmarkIcon /> Bank details
-                  </Link>
+                  </HoverPrefetchLink>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <form action="/auth/signout" method="post">

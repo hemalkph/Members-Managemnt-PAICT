@@ -29,17 +29,19 @@ export async function verifyLoginCodeAction(input: OtpCodeInput): Promise<Action
   const session = await getAuthSession();
   if (!session) return { ok: false, error: "Your login has expired. Please log in again." };
 
-  const factor = (session.user.factors ?? []).find((f) => f.factor_type === "totp" && f.status === "verified");
+  const supabase = await createClient();
+  // listFactors() asks Supabase Auth, so the factor list is fresh; totp holds verified factors only.
+  const { data: factors } = await supabase.auth.mfa.listFactors();
+  const factor = factors?.totp[0];
   if (!factor) return { ok: true, data: { redirectTo: "/" } };
 
-  const supabase = await createClient();
   const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId: factor.id, code: parsed.data.code });
   if (error) return { ok: false, error: codeError(error.message) };
 
   const { data: profile } = await supabase
     .from("profiles")
     .select("is_admin, is_active")
-    .eq("id", session.user.id)
+    .eq("id", session.userId)
     .maybeSingle();
   if (!profile?.is_active) {
     await supabase.auth.signOut();
