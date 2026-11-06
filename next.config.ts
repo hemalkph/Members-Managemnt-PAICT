@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
     // Only bundle the parts of these libraries that are used (lucide-react and
     // recharts are already handled by Next.js).
     optimizePackageImports: ["radix-ui", "motion"],
+    // Reuse a page the browser just loaded for 30 s (going back is instant).
+    // Saving changes refreshes it anyway (revalidatePath / router.refresh).
+    staleTimes: { dynamic: 30 },
   },
   images: {
     // Smaller logo/avatar images for browsers that support AVIF.

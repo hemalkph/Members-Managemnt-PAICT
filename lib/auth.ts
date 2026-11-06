@@ -2,14 +2,14 @@ import "server-only";
 
 import { cache } from "react";
 import { redirect } from "next/navigation";
-import type { User } from "@supabase/supabase-js";
 import type { Profile } from "@/lib/database.types";
 import { hasAnyPage, pageAccess, type AccessLevel, type PageKey } from "@/lib/page-access";
 import { isProfileComplete } from "@/lib/profile-completion";
 import { createClient } from "@/lib/supabase/server";
 
 export type AuthSession = {
-  user: User;
+  userId: string;
+  email: string | null;
   /** True when the user has a verified authenticator app. */
   hasTwoStep: boolean;
   /** True when this session entered the authenticator code (aal2). */
@@ -17,29 +17,50 @@ export type AuthSession = {
 };
 
 /**
- * The signed-in user plus their two-step login state, or null. Cached per request.
- * getUser() verifies the session with Supabase Auth; getClaims() reads the
- * verified token's "aal" (assurance level).
+ * The login token's claims, or null. Cached per request.
+ * getClaims() checks the token's signature on our server (the project signs with an
+ * ES256 key), so page loads don't wait for Supabase Auth. The database trusts the
+ * same token the same way. A session ended elsewhere stays valid until the token
+ * expires, so Server Actions also ask Supabase Auth (see getActionContext).
  */
-export const getAuthSession = cache(async (): Promise<AuthSession | null> => {
+const getVerifiedClaims = cache(async () => {
   const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  return data?.claims?.sub ? data.claims : null;
+});
+
+/** Whether the user has turned on an authenticator app, read fresh from the database. */
+async function twoStepTurnedOn(): Promise<boolean> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("my_two_step_on");
+  if (!error) return Boolean(data);
+  // The database function is missing (migration 39 not run yet): ask Supabase Auth instead.
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return null;
+  return (user?.factors ?? []).some((f) => f.factor_type === "totp" && f.status === "verified");
+}
 
-  const { data } = await supabase.auth.getClaims();
-  const aal = data?.claims?.aal;
-  const hasTwoStep = (user.factors ?? []).some((f) => f.factor_type === "totp" && f.status === "verified");
-  return { user, hasTwoStep, twoStepVerified: aal === "aal2" };
+/** The signed-in user plus their two-step login state, or null. Cached per request. */
+export const getAuthSession = cache(async (): Promise<AuthSession | null> => {
+  const claims = await getVerifiedClaims();
+  if (!claims) return null;
+  const twoStepVerified = claims.aal === "aal2";
+  return {
+    userId: claims.sub,
+    email: claims.email ?? null,
+    // An aal2 session already proves a verified authenticator app.
+    hasTwoStep: twoStepVerified || (await twoStepTurnedOn()),
+    twoStepVerified,
+  };
 });
 
 /** The signed-in user's profile, or null. Cached per request. */
 export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
-  const session = await getAuthSession();
-  if (!session) return null;
+  const claims = await getVerifiedClaims();
+  if (!claims) return null;
   const supabase = await createClient();
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).maybeSingle();
+  const { data: profile } = await supabase.from("profiles").select("*").eq("id", claims.sub).maybeSingle();
   return profile ?? null;
 });
 
@@ -54,14 +75,15 @@ async function needsTwoStepCode(): Promise<boolean> {
  * login is on but not done yet, and sign out if deactivated.
  */
 export async function requireUser(): Promise<Profile> {
-  const profile = await getCurrentProfile();
+  // Both start at once; the redirects below keep their order.
+  const [profile, needsCode] = await Promise.all([getCurrentProfile(), needsTwoStepCode()]);
   // The proxy only lets signed-in visitors reach pages. No profile here means
   // the login cookie belongs to an account that is gone (deleted user, revoked
   // session): sign out to clear it. Redirecting to /login would loop, because
   // /login sends signed-in visitors back to "/".
   if (!profile) redirect("/auth/signout?reason=expired");
   if (!profile.is_active) redirect("/auth/signout?reason=inactive");
-  if (await needsTwoStepCode()) redirect("/login/two-step");
+  if (needsCode) redirect("/login/two-step");
   return profile;
 }
 
@@ -145,9 +167,16 @@ export async function effectivePageAccess(profile: Profile, key: PageKey): Promi
 export async function getActionContext(
   options: { admin?: boolean; mainAdmin?: boolean; page?: PageKey; edit?: boolean } = {},
 ) {
-  const profile = await getCurrentProfile();
-  if (!profile || !profile.is_active) return null;
-  if (await needsTwoStepCode()) return null;
+  const supabase = await createClient();
+  // Writes and file downloads also ask Supabase Auth, so a session ended elsewhere
+  // (sign-out, password reset) is refused at once, not when its token expires.
+  const [profile, needsCode, { data: fresh }] = await Promise.all([
+    getCurrentProfile(),
+    needsTwoStepCode(),
+    supabase.auth.getUser(),
+  ]);
+  if (!profile || !profile.is_active || fresh.user?.id !== profile.id) return null;
+  if (needsCode) return null;
   if ((options.admin || options.mainAdmin) && !profile.is_admin) return null;
   if (options.mainAdmin && !(await mainAdminUnlocked(profile))) return null;
   if (options.page) {
@@ -155,7 +184,6 @@ export async function getActionContext(
     if (level === "none" || (options.edit && level !== "edit")) return null;
     if (!profile.is_admin && !(await getAuthSession())?.twoStepVerified) return null;
   }
-  const supabase = await createClient();
   return { profile, supabase };
 }
 

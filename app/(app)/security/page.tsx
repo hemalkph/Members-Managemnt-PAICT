@@ -50,10 +50,15 @@ async function getTeamTwoStep(): Promise<TeamRow[] | null> {
 
 export default async function SecurityPage({ searchParams }: PageProps<"/security">) {
   const profile = await requireUser();
-  const session = await getAuthSession();
-  const { required } = await searchParams;
+  const supabase = await createClient();
+  // listFactors() asks Supabase Auth, so this settings page always shows the current state.
+  const [session, { data: factors }, { required }] = await Promise.all([
+    getAuthSession(),
+    supabase.auth.mfa.listFactors(),
+    searchParams,
+  ]);
 
-  const factor = (session?.user.factors ?? []).find((f) => f.factor_type === "totp" && f.status === "verified");
+  const factor = factors?.totp[0];
   const on = Boolean(factor);
   const unlockedMainAdmin = profile.is_main_admin && on && Boolean(session?.twoStepVerified);
   const team = unlockedMainAdmin ? await getTeamTwoStep() : null;

@@ -1669,6 +1669,7 @@ export type Database = {
       is_active_member: { Args: Record<PropertyKey, never>; Returns: boolean };
       nic_birth_date: { Args: { nic: string }; Returns: string | null };
       is_main_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
+      my_two_step_on: { Args: Record<PropertyKey, never>; Returns: boolean };
       log_event: { Args: { p_action: string; p_target?: string | null; p_details?: Json }; Returns: undefined };
       close_pay_month: { Args: { p_month: string; p_note?: string | null }; Returns: number };
       reopen_pay_month: { Args: { p_month: string }; Returns: undefined };
