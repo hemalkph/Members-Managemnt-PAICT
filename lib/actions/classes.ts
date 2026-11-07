@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { friendlyDbError, type ActionResult } from "@/lib/action-result";
+import { friendlyDbError, type ActionResult } from "@/lib/core/action-result";
 import { getActionContext, NOT_ALLOWED } from "@/lib/auth";
 import {
   batchSchema,
@@ -12,7 +12,7 @@ import {
   type BatchInput,
   type CentreInput,
   type ExamInput,
-} from "@/lib/validation";
+} from "@/lib/core/validation";
 
 function revalidateClasses() {
   revalidatePath("/admin/classes");

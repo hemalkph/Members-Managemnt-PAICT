@@ -25,13 +25,13 @@ import { MultiSelect, type MultiSelectOption } from "@/components/ui/multi-selec
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { createMemberAction, updateMemberAction } from "@/lib/actions/admin";
-import { accessMap, editablePages, type AccessLevel, type PageAccessMap } from "@/lib/page-access";
+import { accessMap, editablePages, type AccessLevel, type PageAccessMap } from "@/lib/auth/page-access";
 import {
   memberCreateSchema,
   memberUpdateSchema,
   type MemberCreateInput,
   type MemberUpdateInput,
-} from "@/lib/validation";
+} from "@/lib/core/validation";
 
 type CommonFields = {
   full_name: string;

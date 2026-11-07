@@ -9,7 +9,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { forgotPasswordAction } from "@/lib/actions/auth";
-import { forgotPasswordSchema, type ForgotPasswordInput } from "@/lib/validation";
+import { forgotPasswordSchema, type ForgotPasswordInput } from "@/lib/core/validation";
 
 export function ForgotPasswordForm() {
   const [sent, setSent] = useState(false);

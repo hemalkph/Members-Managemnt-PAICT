@@ -4,12 +4,12 @@ import { PageHeader } from "@/components/page-header";
 import { PeopleGrants, type DispatchPerson } from "@/components/dispatch/people-grants";
 import { DispatchSettingsForm } from "@/components/dispatch/settings-form";
 import { TemplateCard, type StoredTemplate } from "@/components/dispatch/template-card";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime } from "@/lib/core/format";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { mainAdminUnlocked } from "@/lib/auth";
-import type { DispatchCapability } from "@/lib/database.types";
+import type { DispatchCapability } from "@/lib/supabase/database.types";
 import { requireDispatch } from "@/lib/dispatch/access";
-import { pageAccess } from "@/lib/page-access";
+import { pageAccess } from "@/lib/auth/page-access";
 import { createClient } from "@/lib/supabase/server";
 
 import { getT } from "@/lib/dispatch/i18n/server";

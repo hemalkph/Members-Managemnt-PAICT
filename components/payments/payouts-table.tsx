@@ -28,7 +28,7 @@ import {
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { markPaidAction } from "@/lib/actions/payments";
-import { formatDate, formatLKR, maskAccountNumber } from "@/lib/format";
+import { formatDate, formatLKR, maskAccountNumber } from "@/lib/core/format";
 import { MarkPaidDialog } from "./mark-paid-dialog";
 
 export type PayoutRow = {

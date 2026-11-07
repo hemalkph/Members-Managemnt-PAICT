@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { setRoundStudentsAction } from "@/lib/actions/dispatch-rounds";
-import { formatLKR } from "@/lib/format";
+import { formatLKR } from "@/lib/core/format";
 import { gets } from "@/lib/dispatch/review";
 import { cn } from "@/lib/utils";
 

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import type { DispatchCapability } from "@/lib/database.types";
+import type { DispatchCapability } from "@/lib/supabase/database.types";
 import { nextAction, roundStages, waitingFor, type RoundProgress } from "@/lib/dispatch/stages";
 
 const base: RoundProgress = {

@@ -1,9 +1,9 @@
 "use server";
 
-import { friendlyDbError, type ActionResult } from "@/lib/action-result";
+import { friendlyDbError, type ActionResult } from "@/lib/core/action-result";
 import { getActionContext, NOT_ALLOWED } from "@/lib/auth";
-import { pushConfigured, sendPushToUser } from "@/lib/push";
-import { pushSubscriptionSchema } from "@/lib/validation";
+import { pushConfigured, sendPushToUser } from "@/lib/notifications/push";
+import { pushSubscriptionSchema } from "@/lib/core/validation";
 
 /** Saves this phone/browser so notifications reach it. */
 export async function savePushSubscriptionAction(input: {

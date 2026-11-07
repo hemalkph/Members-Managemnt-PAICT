@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { ExternalLinkIcon, FilmIcon } from "lucide-react";
-import { driveThumbnailUrl, driveViewUrl, formatDuration, VIDEO_SOURCES, type VideoSource } from "@/lib/drive-videos";
+import { driveThumbnailUrl, driveViewUrl, formatDuration, VIDEO_SOURCES, type VideoSource } from "@/lib/work/drive-videos";
 
 export type SavedVideo = {
   drive_file_id: string;

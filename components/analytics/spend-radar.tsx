@@ -5,7 +5,7 @@ import { useReducedMotion } from "motion/react";
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
-import { formatLKR } from "@/lib/format";
+import { formatLKR } from "@/lib/core/format";
 import { TrendNote } from "./trend-note";
 
 const chartConfig = {

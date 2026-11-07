@@ -29,7 +29,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { setGroupLinksAction, setStageLinkAction, updatePaperStageAction } from "@/lib/actions/papers";
 import { setTaskStatusAction } from "@/lib/actions/tasks";
-import type { ActionResult } from "@/lib/action-result";
+import type { ActionResult } from "@/lib/core/action-result";
 
 const NONE = "none";
 

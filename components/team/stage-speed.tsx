@@ -1,5 +1,5 @@
 import { TriangleAlertIcon } from "lucide-react";
-import type { StagePerformance } from "@/lib/performance";
+import type { StagePerformance } from "@/lib/tasks/performance";
 import { cn } from "@/lib/utils";
 
 const days = (n: number | null) => (n === null ? "—" : `${n} day${n === 1 ? "" : "s"}`);

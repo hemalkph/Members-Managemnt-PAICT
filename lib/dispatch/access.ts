@@ -3,7 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { getActionContext, requirePage } from "@/lib/auth";
-import type { DispatchCapability } from "@/lib/database.types";
+import type { DispatchCapability } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
 
 /** The signed-in user's dispatch permissions (from the database). Cached per request. */

@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getActionContext } from "@/lib/auth";
 import { PAPERS_BUCKET } from "@/lib/papers";
-import { uuid } from "@/lib/validation";
+import { uuid } from "@/lib/core/validation";
 
 /**
  * Opens a paper file. RLS decides who may read the row (admins and the

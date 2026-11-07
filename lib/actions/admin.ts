@@ -1,10 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { friendlyDbError, type ActionResult } from "@/lib/action-result";
+import { friendlyDbError, type ActionResult } from "@/lib/core/action-result";
 import { getActionContext, mainAdminUnlocked, NOT_ALLOWED } from "@/lib/auth";
-import { sameStoredAccess, toStoredAccess, type PageAccessMap, type PageKey } from "@/lib/page-access";
-import { getSiteUrl } from "@/lib/env";
+import { sameStoredAccess, toStoredAccess, type PageAccessMap, type PageKey } from "@/lib/auth/page-access";
+import { getSiteUrl } from "@/lib/core/env";
 import { createAdminClient, hasServiceRoleKey } from "@/lib/supabase/admin";
 import {
   adminResetPasswordSchema,
@@ -23,7 +23,7 @@ import {
   type ReviewInput,
   type RoleInput,
   type SectionInput,
-} from "@/lib/validation";
+} from "@/lib/core/validation";
 
 type AdminCtx = NonNullable<Awaited<ReturnType<typeof getActionContext>>>;
 

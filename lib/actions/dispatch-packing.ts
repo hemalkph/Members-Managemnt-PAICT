@@ -2,12 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { friendlyDbError, type ActionResult } from "@/lib/action-result";
+import { friendlyDbError, type ActionResult } from "@/lib/core/action-result";
 import { getActionContext, NOT_ALLOWED } from "@/lib/auth";
 import { dispatchActionContext } from "@/lib/dispatch/access";
 import type { ConfirmResult, LookupResult, Progress, ScanMode } from "@/lib/dispatch/packing";
 import { cleanScan } from "@/lib/dispatch/scanner";
-import { firstError, uuid } from "@/lib/validation";
+import { firstError, uuid } from "@/lib/core/validation";
 
 const mode = z.enum(["pack", "verify"]);
 const device = z.string().max(64).optional();

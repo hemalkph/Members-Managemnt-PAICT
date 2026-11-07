@@ -16,8 +16,8 @@ import SpotlightCard from "@/components/reactbits/spotlight-card";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { SubmissionStatus } from "@/lib/database.types";
-import { formatBytes, formatDate, formatLKR } from "@/lib/format";
+import type { SubmissionStatus } from "@/lib/supabase/database.types";
+import { formatBytes, formatDate, formatLKR } from "@/lib/core/format";
 import { DeleteSubmissionButton } from "./delete-submission-button";
 import { DriveVideoList, type SavedVideo } from "./drive-video-list";
 

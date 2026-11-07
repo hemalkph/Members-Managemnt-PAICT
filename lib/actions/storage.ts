@@ -1,10 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { friendlyDbError, type ActionResult } from "@/lib/action-result";
+import { friendlyDbError, type ActionResult } from "@/lib/core/action-result";
 import { getActionContext, NOT_ALLOWED } from "@/lib/auth";
-import { formatBytes } from "@/lib/format";
-import { cleanupPaperFiles } from "@/lib/paper-cleanup";
+import { formatBytes } from "@/lib/core/format";
+import { cleanupPaperFiles } from "@/lib/papers/cleanup";
 import { createAdminClient, hasServiceRoleKey } from "@/lib/supabase/admin";
 
 /** Main admins: how many days after hand-over paper files are kept. */

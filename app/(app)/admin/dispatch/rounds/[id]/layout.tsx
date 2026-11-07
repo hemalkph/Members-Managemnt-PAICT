@@ -6,7 +6,7 @@ import { loadRoundProgress } from "@/lib/dispatch/round-progress";
 import { countsFromProgress, nextStep } from "@/lib/dispatch/rounds";
 import { nextAction, roundStages, waitingFor } from "@/lib/dispatch/stages";
 import { createClient } from "@/lib/supabase/server";
-import { uuid } from "@/lib/validation";
+import { uuid } from "@/lib/core/validation";
 
 /** Every page of a round shows where the round is and the one next thing to do. */
 export default async function RoundLayout({ children, params }: LayoutProps<"/admin/dispatch/rounds/[id]">) {

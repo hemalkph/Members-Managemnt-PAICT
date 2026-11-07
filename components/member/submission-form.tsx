@@ -23,10 +23,10 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { DriveVideoPicker } from "@/components/member/drive-video-picker";
 import { createSubmissionAction, updateSubmissionAction } from "@/lib/actions/submissions";
-import { isVideoRole, type PickedVideo } from "@/lib/drive-videos";
-import { formatBytes, formatLKR } from "@/lib/format";
-import { monthLabel, periodRangeLabel } from "@/lib/month";
-import { isPerPage, pdfPageCount } from "@/lib/pdf-pages";
+import { isVideoRole, type PickedVideo } from "@/lib/work/drive-videos";
+import { formatBytes, formatLKR } from "@/lib/core/format";
+import { monthLabel, periodRangeLabel } from "@/lib/core/month";
+import { isPerPage, pdfPageCount } from "@/lib/work/pdf-pages";
 import { createClient } from "@/lib/supabase/client";
 import {
   MAX_ATTACHMENT_BYTES,
@@ -35,7 +35,7 @@ import {
   submissionSchema,
   type AttachmentInput,
   type SubmissionInput,
-} from "@/lib/validation";
+} from "@/lib/core/validation";
 
 type RoleOption = {
   id: string;

@@ -1,7 +1,7 @@
 import { CheckCircle2Icon, ClockIcon, LayersIcon, WalletIcon } from "lucide-react";
 import { StatCard } from "@/components/stat-card";
-import { formatLKR } from "@/lib/format";
-import { monthLabel } from "@/lib/month";
+import { formatLKR } from "@/lib/core/format";
+import { monthLabel } from "@/lib/core/month";
 
 export function MonthlySummary({
   month,

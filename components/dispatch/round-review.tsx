@@ -21,7 +21,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cancelRoundAction, finaliseRoundAction } from "@/lib/actions/dispatch-rounds";
 import type { RoundReview } from "@/lib/dispatch/review";
-import { formatLKR } from "@/lib/format";
+import { formatLKR } from "@/lib/core/format";
 
 import { useT } from "@/components/dispatch/lang";
 /** The final manifest check. Finalising is blocked while any blocking problem remains. */

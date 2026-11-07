@@ -17,7 +17,7 @@ import { loadRoundProgress } from "@/lib/dispatch/round-progress";
 import { countsFromProgress, nextStep, ROUND_STATE } from "@/lib/dispatch/rounds";
 import { nextAction, roundStages, waitingFor } from "@/lib/dispatch/stages";
 import { cn } from "@/lib/utils";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime } from "@/lib/core/format";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Tute dispatch" };

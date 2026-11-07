@@ -22,9 +22,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { saveRoleRatesAction } from "@/lib/actions/rates";
-import { formatLKR } from "@/lib/format";
+import { formatLKR } from "@/lib/core/format";
 import { cn } from "@/lib/utils";
-import { MAX_RATE } from "@/lib/validation";
+import { MAX_RATE } from "@/lib/core/validation";
 
 export type RatesRole = {
   id: string;

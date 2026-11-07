@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getActionContext } from "@/lib/auth";
-import { ATTACHMENTS_BUCKET } from "@/lib/storage";
-import { uuid } from "@/lib/validation";
+import { ATTACHMENTS_BUCKET } from "@/lib/core/storage";
+import { uuid } from "@/lib/core/validation";
 
 /**
  * Opens a private attachment. RLS decides who may read the row (owner or

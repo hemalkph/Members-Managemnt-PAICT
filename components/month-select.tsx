@@ -5,7 +5,7 @@ import { useTransition } from "react";
 import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { monthLabel, periodRangeLabel, recentMonths, shiftMonth } from "@/lib/month";
+import { monthLabel, periodRangeLabel, recentMonths, shiftMonth } from "@/lib/core/month";
 import { cn } from "@/lib/utils";
 
 /** Month filter stored in the URL (?month=YYYY-MM). */

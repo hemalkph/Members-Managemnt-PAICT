@@ -9,10 +9,10 @@ import { MonthSelect } from "@/components/month-select";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { requireCompleteProfile } from "@/lib/auth";
-import { SHOW_MEMBERS_THEIR_EARNINGS } from "@/lib/config";
-import { getMySalary, getSubmissionsForMonth, summarise } from "@/lib/member-queries";
-import { monthLabel, parseMonthParam } from "@/lib/month";
-import { getPaperDrafts, toDraftItems } from "@/lib/paper-drafts";
+import { SHOW_MEMBERS_THEIR_EARNINGS } from "@/lib/core/config";
+import { getMySalary, getSubmissionsForMonth, summarise } from "@/lib/members/queries";
+import { monthLabel, parseMonthParam } from "@/lib/core/month";
+import { getPaperDrafts, toDraftItems } from "@/lib/papers/drafts";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "My work" };

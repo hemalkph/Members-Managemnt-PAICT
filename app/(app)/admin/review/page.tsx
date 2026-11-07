@@ -8,11 +8,11 @@ import { PageHeader } from "@/components/page-header";
 import { ReadOnlyNotice } from "@/components/read-only-notice";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { requirePage } from "@/lib/auth";
-import { dateToMonthKey, monthKeyToDate, monthLabel, parseMonthParam } from "@/lib/month";
+import { dateToMonthKey, monthKeyToDate, monthLabel, parseMonthParam } from "@/lib/core/month";
 import { getPayMonth } from "@/lib/payments";
-import { getStructure } from "@/lib/queries";
+import { getStructure } from "@/lib/organisation/structure";
 import { createClient } from "@/lib/supabase/server";
-import { uuid } from "@/lib/validation";
+import { uuid } from "@/lib/core/validation";
 
 export const metadata: Metadata = { title: "Work review" };
 

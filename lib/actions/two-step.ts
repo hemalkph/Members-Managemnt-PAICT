@@ -1,11 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { type ActionResult } from "@/lib/action-result";
+import { type ActionResult } from "@/lib/core/action-result";
 import { getActionContext, getAuthSession, NOT_ALLOWED } from "@/lib/auth";
 import { createAdminClient, hasServiceRoleKey } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { confirmTwoStepSchema, firstError, otpCodeSchema, uuid, type OtpCodeInput } from "@/lib/validation";
+import { confirmTwoStepSchema, firstError, otpCodeSchema, uuid, type OtpCodeInput } from "@/lib/core/validation";
 
 const WRONG_CODE = "That code didn't work. Check that the time on your phone is correct and try the newest code.";
 

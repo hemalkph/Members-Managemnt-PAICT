@@ -10,7 +10,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { signInAction } from "@/lib/actions/auth";
-import { loginSchema, type LoginInput } from "@/lib/validation";
+import { loginSchema, type LoginInput } from "@/lib/core/validation";
 
 export function LoginForm({ initialError }: { initialError?: string }) {
   const router = useRouter();

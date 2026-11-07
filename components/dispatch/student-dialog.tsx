@@ -22,7 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { saveStudentAction } from "@/lib/actions/dispatch";
-import { studentSchema, type StudentInput } from "@/lib/validation";
+import { studentSchema, type StudentInput } from "@/lib/core/validation";
 
 import { useT } from "@/components/dispatch/lang";
 export type BatchOption = { id: string; name: string };

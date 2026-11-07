@@ -38,7 +38,7 @@ import {
   type DeliveryState,
   type SettableState,
 } from "@/lib/dispatch/delivery";
-import { formatLKR } from "@/lib/format";
+import { formatLKR } from "@/lib/core/format";
 
 import { useT } from "@/components/dispatch/lang";
 export type Recipient = {

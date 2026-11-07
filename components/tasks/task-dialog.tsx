@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { saveTaskAction } from "@/lib/actions/tasks";
-import type { TaskView } from "@/lib/task-queries";
+import type { TaskView } from "@/lib/tasks/queries";
 import { PendingFiles, uploadTaskFiles } from "./task-files";
 
 export type TaskFormOptions = {

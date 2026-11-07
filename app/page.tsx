@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
-import { pageAccess } from "@/lib/page-access";
+import { pageAccess } from "@/lib/auth/page-access";
 
 export default async function Home() {
   const profile = await requireUser();

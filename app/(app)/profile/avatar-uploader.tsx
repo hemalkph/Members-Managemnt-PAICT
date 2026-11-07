@@ -7,9 +7,9 @@ import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { removeAvatarAction, setAvatarAction } from "@/lib/actions/profile";
-import { initials } from "@/lib/format";
+import { initials } from "@/lib/core/format";
 import { createClient } from "@/lib/supabase/client";
-import { MAX_AVATAR_BYTES } from "@/lib/validation";
+import { MAX_AVATAR_BYTES } from "@/lib/core/validation";
 
 const TYPES: Record<string, string> = {
   "image/jpeg": "jpg",

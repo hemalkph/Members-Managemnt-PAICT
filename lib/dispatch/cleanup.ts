@@ -1,7 +1,7 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/lib/database.types";
+import type { Database } from "@/lib/supabase/database.types";
 
 const DAY = 86_400_000;
 const BUCKET = "dispatch";

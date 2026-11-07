@@ -4,8 +4,8 @@ import CountUp from "@/components/reactbits/count-up";
 import SpotlightCard from "@/components/reactbits/spotlight-card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import type { MonthDeadline } from "@/lib/deadlines";
-import { monthLabel, shiftMonth } from "@/lib/month";
+import type { MonthDeadline } from "@/lib/work/deadlines";
+import { monthLabel, shiftMonth } from "@/lib/core/month";
 import { cn } from "@/lib/utils";
 
 /**

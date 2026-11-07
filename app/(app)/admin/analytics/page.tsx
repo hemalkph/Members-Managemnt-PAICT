@@ -12,10 +12,10 @@ import { StatCard } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getAnalytics, percentChange } from "@/lib/analytics";
+import { getAnalytics, percentChange } from "@/lib/payments/analytics";
 import { requireMainAdmin } from "@/lib/auth";
-import { formatLKR, formatNumber, maskAccountNumber } from "@/lib/format";
-import { monthLabel, parseMonthParam, shiftMonth } from "@/lib/month";
+import { formatLKR, formatNumber, maskAccountNumber } from "@/lib/core/format";
+import { monthLabel, parseMonthParam, shiftMonth } from "@/lib/core/month";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Analytics" };

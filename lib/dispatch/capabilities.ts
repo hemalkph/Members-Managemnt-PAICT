@@ -1,4 +1,4 @@
-import type { DispatchCapability } from "@/lib/database.types";
+import type { DispatchCapability } from "@/lib/supabase/database.types";
 
 /** What each dispatch permission allows (shown on the People tab). */
 export const CAPABILITIES: { key: DispatchCapability; title: string; description: string; adminDefault: boolean }[] = [

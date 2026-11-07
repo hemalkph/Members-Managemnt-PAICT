@@ -21,8 +21,8 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { createPaperAction, setPaperDefaultOwnersAction } from "@/lib/actions/papers";
-import type { PaperStageName } from "@/lib/database.types";
-import { formatDay as day } from "@/lib/format";
+import type { PaperStageName } from "@/lib/supabase/database.types";
+import { formatDay as day } from "@/lib/core/format";
 import { addDays, defaultExamDay, defaultSchedule, onlineExamDay, STAGES, type PaperMedium } from "@/lib/papers";
 import { cn } from "@/lib/utils";
 

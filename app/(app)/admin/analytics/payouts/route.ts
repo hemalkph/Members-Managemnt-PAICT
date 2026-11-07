@@ -1,11 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getAnalytics } from "@/lib/analytics";
+import { getAnalytics } from "@/lib/payments/analytics";
 import { getActionContext } from "@/lib/auth";
-import { PAYROLL_CSV_INCLUDES_FULL_ACCOUNT_NUMBER } from "@/lib/config";
-import { maskAccountNumber } from "@/lib/format";
-import { monthLabel, parseMonthParam } from "@/lib/month";
+import { PAYROLL_CSV_INCLUDES_FULL_ACCOUNT_NUMBER } from "@/lib/core/config";
+import { maskAccountNumber } from "@/lib/core/format";
+import { monthLabel, parseMonthParam } from "@/lib/core/month";
 import { getPayMonth, getPayoutsForMonth, salaryLinesOf } from "@/lib/payments";
-import { csvCell } from "@/lib/report";
+import { csvCell } from "@/lib/work/report";
 
 type CsvRow = {
   payslipNo: string;

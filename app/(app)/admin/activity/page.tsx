@@ -7,12 +7,12 @@ import { EmptyState } from "@/components/empty-state";
 import BlurText from "@/components/reactbits/blur-text";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { ACTIVITY_CATEGORIES, isActivityCategory } from "@/lib/activity";
+import { ACTIVITY_CATEGORIES, isActivityCategory } from "@/lib/notifications/activity";
 import { requireMainAdmin } from "@/lib/auth";
-import { formatDateTime } from "@/lib/format";
-import { isMonthKey, shiftMonth } from "@/lib/month";
+import { formatDateTime } from "@/lib/core/format";
+import { isMonthKey, shiftMonth } from "@/lib/core/month";
 import { createClient } from "@/lib/supabase/server";
-import { uuid } from "@/lib/validation";
+import { uuid } from "@/lib/core/validation";
 
 export const metadata: Metadata = { title: "Activity log" };
 

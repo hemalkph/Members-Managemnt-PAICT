@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getActionContext } from "@/lib/auth";
-import { canUseDriveVideos, DriveError, fetchThumbnail } from "@/lib/drive";
-import { DRIVE_FILE_ID } from "@/lib/drive-videos";
+import { canUseDriveVideos, DriveError, fetchThumbnail } from "@/lib/work/drive";
+import { DRIVE_FILE_ID } from "@/lib/work/drive-videos";
 
 /**
  * A Drive video's thumbnail, fetched with the app's Drive account so viewers

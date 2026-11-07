@@ -5,7 +5,7 @@ import { useReducedMotion } from "motion/react";
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
-import { formatLKR, formatLKRCompact } from "@/lib/format";
+import { formatLKR, formatLKRCompact } from "@/lib/core/format";
 import { cn } from "@/lib/utils";
 
 /** Radial Chart – Shape: this month's spending against the monthly budget. */

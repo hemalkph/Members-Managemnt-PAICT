@@ -34,9 +34,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { deleteTaskAction, setTaskStatusAction } from "@/lib/actions/tasks";
-import type { TaskView } from "@/lib/task-queries";
-import { getSiteUrl } from "@/lib/env";
-import { taskWhatsAppText, whatsAppLink } from "@/lib/task-whatsapp";
+import type { TaskView } from "@/lib/tasks/queries";
+import { getSiteUrl } from "@/lib/core/env";
+import { taskWhatsAppText, whatsAppLink } from "@/lib/tasks/whatsapp";
 import { cn } from "@/lib/utils";
 import { TaskFilesButton } from "./task-files";
 

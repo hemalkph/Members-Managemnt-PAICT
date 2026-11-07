@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { addPastPaperAction } from "@/lib/actions/papers";
-import type { PastPaperInput } from "@/lib/validation";
+import type { PastPaperInput } from "@/lib/core/validation";
 
 const PARTS: { value: PastPaperInput["parts"]; label: string }[] = [
   { value: "split", label: "MCQ + SE & Essay" },

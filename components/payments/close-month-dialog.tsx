@@ -18,7 +18,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { closeMonthAction } from "@/lib/actions/payments";
-import { formatLKR } from "@/lib/format";
+import { formatLKR } from "@/lib/core/format";
 
 export function CloseMonthDialog({
   month,

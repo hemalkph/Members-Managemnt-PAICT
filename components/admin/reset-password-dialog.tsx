@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { resetMemberPasswordAction } from "@/lib/actions/admin";
-import { strongPassword } from "@/lib/validation";
+import { strongPassword } from "@/lib/core/validation";
 
 const UPPER = "ABCDEFGHJKLMNPQRSTUVWXYZ";
 const LOWER = "abcdefghijkmnopqrstuvwxyz";

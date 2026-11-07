@@ -6,7 +6,7 @@ import { BrandLogo } from "@/components/brand-logo";
 import BlurText from "@/components/reactbits/blur-text";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
-import { ordinal } from "@/lib/birthday";
+import { ordinal } from "@/lib/members/birthday";
 
 const COLORS = ["#1e6fe8", "#22c3f5", "#0a3fb3", "#f59e0b", "#ec4899", "#22c55e", "#0888f8"];
 

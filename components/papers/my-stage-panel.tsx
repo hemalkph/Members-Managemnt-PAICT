@@ -5,8 +5,8 @@ import { FinishStageButton, StageLinkDialog } from "@/components/papers/stage-co
 import SpotlightCard from "@/components/reactbits/spotlight-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { PaperStageName } from "@/lib/database.types";
-import { formatBytes } from "@/lib/format";
+import type { PaperStageName } from "@/lib/supabase/database.types";
+import { formatBytes } from "@/lib/core/format";
 import { cn } from "@/lib/utils";
 
 export type StageInput = {

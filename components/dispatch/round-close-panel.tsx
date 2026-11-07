@@ -18,7 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { closeRoundAction, reopenRoundAction } from "@/lib/actions/dispatch-money";
-import { formatDateTime, formatLKR } from "@/lib/format";
+import { formatDateTime, formatLKR } from "@/lib/core/format";
 
 import { useT } from "@/components/dispatch/lang";
 export type CloseCheck = {

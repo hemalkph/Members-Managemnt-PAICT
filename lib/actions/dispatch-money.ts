@@ -3,12 +3,12 @@
 import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { friendlyDbError, type ActionResult } from "@/lib/action-result";
+import { friendlyDbError, type ActionResult } from "@/lib/core/action-result";
 import { getActionContext, NOT_ALLOWED } from "@/lib/auth";
 import { dispatchActionContext } from "@/lib/dispatch/access";
 import { receiptLooksRight } from "@/lib/dispatch/delivery";
 import { parsePaymentLines } from "@/lib/dispatch/money";
-import { firstError, uuid } from "@/lib/validation";
+import { firstError, uuid } from "@/lib/core/validation";
 
 function revalidateMoney(settlementId?: string) {
   revalidatePath("/admin/dispatch", "layout");

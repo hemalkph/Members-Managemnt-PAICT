@@ -3,7 +3,7 @@ import { ClassesManager } from "@/components/classes/classes-manager";
 import BlurText from "@/components/reactbits/blur-text";
 import { ReadOnlyNotice } from "@/components/read-only-notice";
 import { requirePage } from "@/lib/auth";
-import { getClassOptions } from "@/lib/classes";
+import { getClassOptions } from "@/lib/organisation/classes";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Batches & exams" };

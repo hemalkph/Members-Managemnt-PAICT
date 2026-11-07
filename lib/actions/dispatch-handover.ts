@@ -3,14 +3,14 @@
 import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { friendlyDbError, type ActionResult } from "@/lib/action-result";
+import { friendlyDbError, type ActionResult } from "@/lib/core/action-result";
 import { NOT_ALLOWED } from "@/lib/auth";
 import { dispatchActionContext } from "@/lib/dispatch/access";
 import { receiptExtension, receiptLooksRight, SETTABLE, type HandoverScanResult } from "@/lib/dispatch/delivery";
 import { cleanScan } from "@/lib/dispatch/scanner";
 import { normalisePhone } from "@/lib/dispatch/phone";
-import type { Json } from "@/lib/database.types";
-import { firstError, uuid } from "@/lib/validation";
+import type { Json } from "@/lib/supabase/database.types";
+import { firstError, uuid } from "@/lib/core/validation";
 
 function revalidateRound(roundId: string) {
   revalidatePath(`/admin/dispatch/rounds/${roundId}`, "layout");

@@ -20,10 +20,10 @@ import { mainAdminUnlocked } from "@/lib/auth";
 import { requireDispatch } from "@/lib/dispatch/access";
 import { reviewRound } from "@/lib/dispatch/review";
 import { monthLabelFromDate, ROUND_STATE } from "@/lib/dispatch/rounds";
-import { formatLKR } from "@/lib/format";
+import { formatLKR } from "@/lib/core/format";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
-import { uuid } from "@/lib/validation";
+import { uuid } from "@/lib/core/validation";
 import { CheckCircle2Icon, HashIcon, PackageCheckIcon, PackageIcon } from "lucide-react";
 
 import { getT } from "@/lib/dispatch/i18n/server";

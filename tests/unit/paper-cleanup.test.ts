@@ -1,7 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
-import { removableFiles } from "@/lib/paper-cleanup";
+import { removableFiles } from "@/lib/papers/cleanup";
 
 describe("paper file clean-up", () => {
   test("keeps the latest reviewed papers and final outputs, removes drafts and older versions", () => {

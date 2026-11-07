@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { requireDispatch } from "@/lib/dispatch/access";
 import type { DeliveryState } from "@/lib/dispatch/delivery";
 import { createClient } from "@/lib/supabase/server";
-import { uuid } from "@/lib/validation";
+import { uuid } from "@/lib/core/validation";
 
 import { getT } from "@/lib/dispatch/i18n/server";
 export const metadata: Metadata = { title: "Delivery – Tute dispatch" };

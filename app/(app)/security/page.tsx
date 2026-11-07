@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getAuthSession, requireUser } from "@/lib/auth";
-import { formatDate } from "@/lib/format";
+import { formatDate } from "@/lib/core/format";
 import { createAdminClient, hasServiceRoleKey } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 

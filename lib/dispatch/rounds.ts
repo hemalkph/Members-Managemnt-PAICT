@@ -1,4 +1,4 @@
-import type { Database } from "@/lib/database.types";
+import type { Database } from "@/lib/supabase/database.types";
 import { makeT, plural, type T } from "./i18n";
 import { closeReady, OPTIONAL_STEPS, type OptionalStep, type RoundProgress } from "./stages";
 

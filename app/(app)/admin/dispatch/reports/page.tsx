@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { requireDispatch } from "@/lib/dispatch/access";
 import { reportRange } from "@/lib/dispatch/money";
 import { monthLabelFromDate, ROUND_STATE, type RoundState } from "@/lib/dispatch/rounds";
-import { formatLKR } from "@/lib/format";
+import { formatLKR } from "@/lib/core/format";
 import { createClient } from "@/lib/supabase/server";
 import { PackageIcon, TruckIcon, Undo2Icon, BanknoteIcon } from "lucide-react";
 

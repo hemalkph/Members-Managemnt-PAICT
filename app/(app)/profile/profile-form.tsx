@@ -10,9 +10,9 @@ import { SubmitButton } from "@/components/submit-button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { updateProfileAction } from "@/lib/actions/profile";
-import { formatDate } from "@/lib/format";
-import { parseNic } from "@/lib/nic";
-import { profileSchema, type ProfileInput } from "@/lib/validation";
+import { formatDate } from "@/lib/core/format";
+import { parseNic } from "@/lib/members/nic";
+import { profileSchema, type ProfileInput } from "@/lib/core/validation";
 
 export function ProfileForm({ defaultValues }: { defaultValues: ProfileInput }) {
   const router = useRouter();

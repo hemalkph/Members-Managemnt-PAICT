@@ -27,9 +27,9 @@ Built with Next.js 16 (App Router) · TypeScript (strict) · Tailwind CSS v4 · 
 - Rates & budget: set per-unit prices for each role (per page for Type Setting and Converting, per design category such as Thumbnail / Flyer / Banner / Template for Graphic Design, per paper and per marking scheme for Paper Creating). Categories can be added or removed; roles like WhatsApp Admin and LMS Admin can be marked **Fixed salary**. A **live budget preview in a phone mock-up** calculates the cost as you type prices and quantities
 - **Analytics (main admins only):** monthly spending (radar chart), spending by section (donut), budget used (radial), payouts per member (salary + work), spending by role, and a monthly budget setting
 - **Fixed salaries:** for salaried roles (e.g. WhatsApp Admin, LMS Admin) main admins enter each member's monthly salary in Rates & budget. Salaries are included in Analytics and the live preview
-- **Payroll CSV (main admins only):** one row per member with phone, bank, branch, account holder, **full account number**, salary, work amount, total to pay and a TOTAL row — ready for making payments. Set `PAYROLL_CSV_INCLUDES_FULL_ACCOUNT_NUMBER = false` in `lib/config.ts` to export masked numbers instead
+- **Payroll CSV (main admins only):** one row per member with phone, bank, branch, account holder, **full account number**, salary, work amount, total to pay and a TOTAL row — ready for making payments. Set `PAYROLL_CSV_INCLUDES_FULL_ACCOUNT_NUMBER = false` in `lib/core/config.ts` to export masked numbers instead
 - **Payments (main admins only):** close a month when all its work is reviewed. Closing locks that month's work (nobody can add, change or delete it) and creates a **payslip** for every member with a salary or approved work, using the amounts at that moment. Then mark members as **paid** one by one or all at once, with the date and a bank reference. A month can be reopened while nobody in it is marked as paid. A warning shows when a member changed their bank details after the month was closed
-- **Payslips:** members open and download their own payslips as PDF in **My payslips** (salary lines, work lines with quantity × rate, total, paid date and reference, masked bank account). Main admins can open anyone's payslip from Payments. Turn off member access with `MEMBERS_CAN_SEE_PAYSLIPS` in `lib/config.ts`
+- **Payslips:** members open and download their own payslips as PDF in **My payslips** (salary lines, work lines with quantity × rate, total, paid date and reference, masked bank account). Main admins can open anyone's payslip from Payments. Turn off member access with `MEMBERS_CAN_SEE_PAYSLIPS` in `lib/core/config.ts`
 - **Activity log (main admins only):** every approval and rejection, rate, salary, budget and role change, bank detail change, member activation/deactivation, admin change, password reset, month close/reopen, payment and payroll CSV download is recorded with who did it and when. The database writes the log itself (triggers), so it can't be skipped, edited or deleted from the app. Search and filter by type, person and month
 - **Two-step login:** anyone can turn on an authenticator app (Google Authenticator, Microsoft Authenticator…) in **Two-step login**. It is **required for main admins**: Analytics, Payments, Rates & budget, the Activity log and the payroll CSV only open after the 6-digit code was entered, and the database enforces this too. Main admins can reset another person's two-step login if they lose their phone
 - **Notifications:** a bell in the top bar (live updates) and a Notifications page. Members are told when their work is approved or rejected, when their payslip is ready and when they are paid, about new notices, new roles and salary changes, and about deadlines. Admins get one grouped "N submissions waiting for review" message and a note when a month's deadline has passed. The database creates the messages itself
@@ -39,7 +39,7 @@ Built with Next.js 16 (App Router) · TypeScript (strict) · Tailwind CSS v4 · 
 - **Paper production tracker:** in **Papers**, admins add a paper or tute for an exam and choose an owner and due date for each stage: Create → Type set → Convert to English → Mark (stages can be skipped). Each stage becomes a task for its owner. When one stage is marked done the next starts and its owner gets a “Your turn” notification; when every stage is done the paper is finished. Each paper page shows the stepper, who has it now, overdue stages and the files for every stage with **version numbers** (v1, v2…; private storage, 25 MB per file). Stage owners can see and upload files only for their papers
 - **Notice board:** admins post notices (pinned / with an end date); members see them on their dashboard
 - **Quick search:** press Ctrl/⌘ + K anywhere to jump to a page or switch the theme
-- **Work types and amounts:** when a role has rates, members pick the type of work (e.g. Flyer); amount = quantity × rate. The price is locked when the work is approved, so later price changes don't rewrite history. Members see their own estimated earnings (turn off with `SHOW_MEMBERS_THEIR_EARNINGS` in `lib/config.ts`)
+- **Work types and amounts:** when a role has rates, members pick the type of work (e.g. Flyer); amount = quantity × rate. The price is locked when the work is approved, so later price changes don't rewrite history. Members see their own estimated earnings (turn off with `SHOW_MEMBERS_THEIR_EARNINGS` in `lib/core/config.ts`)
 - **Log again:** start a new submission from an earlier one in one tap
 - Birthdays: a banner on admin pages on the day, an "Upcoming birthdays" card on the overview, and a 🎂 next to the member's name
 
@@ -188,7 +188,7 @@ Migration 09 schedules a daily job at 9:00 Sri Lanka time with **pg_cron** (Supa
 
 - **Row Level Security is on for every table.** Members can only read and write their own profile, bank details, roles (read-only) and submissions; admins (`is_admin = true` and active) can read and write everything. The anonymous role has no access at all.
 - Database triggers also stop members from making themselves admin, changing review fields, or editing work after it was reviewed, even if someone calls the API directly.
-- Bank details are in their own `bank_details` table. Pages only load the last 4 digits (`account_last4`); the full number is fetched by a server action only when the owner presses **Show**. To let admins reveal it too, set `ADMINS_CAN_REVEAL_ACCOUNT_NUMBER = true` in [`lib/config.ts`](lib/config.ts).
+- Bank details are in their own `bank_details` table. Pages only load the last 4 digits (`account_last4`); the full number is fetched by a server action only when the owner presses **Show**. To let admins reveal it too, set `ADMINS_CAN_REVEAL_ACCOUNT_NUMBER = true` in [`lib/core/config.ts`](lib/core/config.ts).
 - Storage buckets are **private**. Files are stored under `<user id>/…` and opened through `/files/<id>`, which checks access and redirects to a signed URL that expires after 60 seconds.
 - Every server action and route handler validates its input with Zod and re-checks who is signed in.
 - Main-admin powers (rates, salaries, payments, payouts, the activity log) need a **two-step (aal2) session**: `is_main_admin()` checks the `aal` claim of the login token, so they can't be used with just a stolen password.
@@ -217,27 +217,25 @@ npx shadcn@latest add https://reactbits.dev/r/BlurText-TS-TW
 
 ## Project structure
 
+The full picture (diagrams, layers, request flow, security, data model) is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
 ```
-app/
-  (auth)/            login, forgot-password, reset-password (Aurora background)
-  (app)/             signed-in area with the sidebar
-    dashboard, profile, bank, work/            member pages
-    admin/                                     admin pages (guarded by requireAdmin)
-  auth/confirm       email link handler · auth/signout
-  files/[id]         private attachment → signed URL
-components/
-  ui/                shadcn/ui components
-  reactbits/         React Bits components
-  admin/, member/    feature components
+app/                 pages and routes: (auth) login, (app) member and admin pages, api, files
+components/          React components: ui/ base components, one folder per feature
 lib/
-  actions/           server actions (all inputs validated with Zod)
-  supabase/          browser, server, proxy and service-role clients
-  validation.ts      Zod schemas shared by forms and server actions
-  database.types.ts  types for the database schema
+  actions/           Server Actions: every write, inputs checked with Zod
+  auth/              session, page access, admin menu
+  core/              config, env, validation, dates, formatting, storage
+  supabase/          database clients and generated types
+  members/ organisation/ work/ payments/ papers/ tasks/ notifications/ dispatch/
+                     one folder per feature: rules, calculations, read queries
 proxy.ts             refreshes the session and protects private pages
 supabase/
-  migrations/        SQL migrations
+  migrations/        SQL migrations (tables, security rules, functions, triggers)
   seed.sql           starter data
+tests/
+  unit/              pure logic
+  db/                security rules and concurrency against a real database
 ```
 
 ## Speed

@@ -17,9 +17,9 @@ import {
   type DriveVideosResponse,
   type PickedVideo,
   type VideoSource,
-} from "@/lib/drive-videos";
-import { formatBytes } from "@/lib/format";
-import { MAX_DRIVE_VIDEOS } from "@/lib/validation";
+} from "@/lib/work/drive-videos";
+import { formatBytes } from "@/lib/core/format";
+import { MAX_DRIVE_VIDEOS } from "@/lib/core/validation";
 import { cn } from "@/lib/utils";
 
 /**

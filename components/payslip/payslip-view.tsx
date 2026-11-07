@@ -5,10 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PAYSLIP_ORGANISATION } from "@/lib/config";
-import { formatDate, formatDateTime, formatLKR, formatNumber, maskAccountNumber } from "@/lib/format";
-import { monthLabel } from "@/lib/month";
-import { workLineLabel, type Payslip } from "@/lib/payslip";
+import { PAYSLIP_ORGANISATION } from "@/lib/core/config";
+import { formatDate, formatDateTime, formatLKR, formatNumber, maskAccountNumber } from "@/lib/core/format";
+import { monthLabel } from "@/lib/core/month";
+import { workLineLabel, type Payslip } from "@/lib/payments/payslip";
 
 function Field({ label, value, mono }: { label: string; value: string | null | undefined; mono?: boolean }) {
   return (

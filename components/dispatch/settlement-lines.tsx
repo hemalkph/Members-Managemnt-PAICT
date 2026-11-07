@@ -29,7 +29,7 @@ import {
   setSettlementLineAction,
 } from "@/lib/actions/dispatch-money";
 import { DELIVERY, type DeliveryState } from "@/lib/dispatch/delivery";
-import { formatLKR } from "@/lib/format";
+import { formatLKR } from "@/lib/core/format";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 

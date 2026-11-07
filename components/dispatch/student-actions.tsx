@@ -22,7 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { deleteStudentAction, setStudentActiveAction } from "@/lib/actions/dispatch";
-import type { StudentInput } from "@/lib/validation";
+import type { StudentInput } from "@/lib/core/validation";
 import { StudentDialog, type BatchOption } from "./student-dialog";
 
 import { useT } from "@/components/dispatch/lang";

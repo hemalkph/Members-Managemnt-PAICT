@@ -35,8 +35,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { deleteRoleAction, deleteSectionAction, saveRoleAction, saveSectionAction } from "@/lib/actions/admin";
-import type { ActionResult } from "@/lib/action-result";
-import { roleSchema, sectionSchema, type RoleInput, type SectionInput } from "@/lib/validation";
+import type { ActionResult } from "@/lib/core/action-result";
+import { roleSchema, sectionSchema, type RoleInput, type SectionInput } from "@/lib/core/validation";
 
 export type StructureSection = {
   id: string;

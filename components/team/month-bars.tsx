@@ -3,7 +3,7 @@
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { useReducedMotion } from "motion/react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
-import { formatLKR, formatLKRCompact } from "@/lib/format";
+import { formatLKR, formatLKRCompact } from "@/lib/core/format";
 
 /** One series per month (pages or rupees) – a single colour, so no legend; hover shows the value. */
 export function MonthBars({

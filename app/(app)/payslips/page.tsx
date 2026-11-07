@@ -11,10 +11,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { requireUser } from "@/lib/auth";
-import { MEMBERS_CAN_SEE_PAYSLIPS } from "@/lib/config";
-import { formatDate, formatLKR } from "@/lib/format";
-import { getMySalary, getSubmissionsForMonth, summarise } from "@/lib/member-queries";
-import { currentMonthKey, dateToMonthKey, monthLabel, todayISO } from "@/lib/month";
+import { MEMBERS_CAN_SEE_PAYSLIPS } from "@/lib/core/config";
+import { formatDate, formatLKR } from "@/lib/core/format";
+import { getMySalary, getSubmissionsForMonth, summarise } from "@/lib/members/queries";
+import { currentMonthKey, dateToMonthKey, monthLabel, todayISO } from "@/lib/core/month";
 import { normalisePayout } from "@/lib/payments";
 import { createClient } from "@/lib/supabase/server";
 

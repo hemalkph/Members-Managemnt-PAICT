@@ -3,7 +3,7 @@ import { StructureManager } from "@/components/admin/structure-manager";
 import { PageHeader } from "@/components/page-header";
 import { ReadOnlyNotice } from "@/components/read-only-notice";
 import { requirePage } from "@/lib/auth";
-import { getStructure } from "@/lib/queries";
+import { getStructure } from "@/lib/organisation/structure";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Sections & roles" };

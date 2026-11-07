@@ -1,9 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { friendlyDbError, type ActionResult } from "@/lib/action-result";
+import { friendlyDbError, type ActionResult } from "@/lib/core/action-result";
 import { getActionContext, NOT_ALLOWED } from "@/lib/auth";
-import { pageAccess } from "@/lib/page-access";
+import { pageAccess } from "@/lib/auth/page-access";
 import { addDays, PAPERS_BUCKET, PART_LABEL, SCHEME_STAGES } from "@/lib/papers";
 import {
   firstError,
@@ -19,7 +19,7 @@ import {
   type PaperFileInput,
   type PaperInput,
   type PastPaperInput,
-} from "@/lib/validation";
+} from "@/lib/core/validation";
 
 function revalidatePapers(id?: string) {
   revalidatePath("/admin/papers");

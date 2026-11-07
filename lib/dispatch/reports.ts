@@ -1,7 +1,7 @@
 import "server-only";
 
 import ExcelJS from "exceljs";
-import type { Database } from "@/lib/database.types";
+import type { Database } from "@/lib/supabase/database.types";
 import { safeCell } from "./money";
 
 export { reportRange } from "./money";

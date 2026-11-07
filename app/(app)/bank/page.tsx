@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { revealMyAccountNumberAction } from "@/lib/actions/bank";
 import { requireCompleteProfile } from "@/lib/auth";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime } from "@/lib/core/format";
 import { createClient } from "@/lib/supabase/server";
 import { BankForm } from "./bank-form";
 

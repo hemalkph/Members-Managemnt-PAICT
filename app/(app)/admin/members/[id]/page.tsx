@@ -13,17 +13,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { adminRevealAccountNumberAction } from "@/lib/actions/bank";
-import { roleOptionsFrom } from "@/lib/admin-queries";
+import { roleOptionsFrom } from "@/lib/members/roles";
 import { mainAdminUnlocked, requirePage } from "@/lib/auth";
-import { ADMINS_CAN_REVEAL_ACCOUNT_NUMBER } from "@/lib/config";
-import { ageOn, formatBirthday, isBirthdayToday } from "@/lib/birthday";
-import { formatDate, formatLKR, initials } from "@/lib/format";
-import { dateToMonthKey, monthLabel, todayISO } from "@/lib/month";
-import { getMemberRoles, getStructure } from "@/lib/queries";
-import { signedAvatarUrl } from "@/lib/storage";
+import { ADMINS_CAN_REVEAL_ACCOUNT_NUMBER } from "@/lib/core/config";
+import { ageOn, formatBirthday, isBirthdayToday } from "@/lib/members/birthday";
+import { formatDate, formatLKR, initials } from "@/lib/core/format";
+import { dateToMonthKey, monthLabel, todayISO } from "@/lib/core/month";
+import { getMemberRoles, getStructure } from "@/lib/organisation/structure";
+import { signedAvatarUrl } from "@/lib/core/storage";
 import { hasServiceRoleKey } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { uuid } from "@/lib/validation";
+import { uuid } from "@/lib/core/validation";
 
 export const metadata: Metadata = { title: "Member" };
 

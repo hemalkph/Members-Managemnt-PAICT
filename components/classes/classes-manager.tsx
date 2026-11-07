@@ -30,9 +30,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { deleteClassItemAction, saveBatchAction, saveCentreAction, saveExamAction } from "@/lib/actions/classes";
-import type { ActionResult } from "@/lib/action-result";
-import type { ClassOptions } from "@/lib/classes";
-import { formatDate } from "@/lib/format";
+import type { ActionResult } from "@/lib/core/action-result";
+import type { ClassOptions } from "@/lib/organisation/classes";
+import { formatDate } from "@/lib/core/format";
 
 type Kind = "batch" | "exam" | "centre";
 type Editing = { kind: Kind; id?: string; name: string; batchId: string; examDate: string; isActive: boolean };

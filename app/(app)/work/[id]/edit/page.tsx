@@ -8,12 +8,12 @@ import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { requireCompleteProfile } from "@/lib/auth";
-import { currentMonthKey, dateToMonthKey, todayISO } from "@/lib/month";
-import { SHOW_MEMBERS_THEIR_EARNINGS } from "@/lib/config";
-import { activeOptions, getClassOptions } from "@/lib/classes";
-import { getMemberRoles, getRatesForRoles } from "@/lib/queries";
+import { currentMonthKey, dateToMonthKey, todayISO } from "@/lib/core/month";
+import { SHOW_MEMBERS_THEIR_EARNINGS } from "@/lib/core/config";
+import { activeOptions, getClassOptions } from "@/lib/organisation/classes";
+import { getMemberRoles, getRatesForRoles } from "@/lib/organisation/structure";
 import { createClient } from "@/lib/supabase/server";
-import { uuid } from "@/lib/validation";
+import { uuid } from "@/lib/core/validation";
 
 export const metadata: Metadata = { title: "Edit submission" };
 

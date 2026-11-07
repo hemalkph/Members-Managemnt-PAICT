@@ -9,7 +9,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { resetPasswordAction } from "@/lib/actions/auth";
-import { resetPasswordSchema, type ResetPasswordInput } from "@/lib/validation";
+import { resetPasswordSchema, type ResetPasswordInput } from "@/lib/core/validation";
 
 export function ResetPasswordForm({ redirectTo }: { redirectTo: string }) {
   const router = useRouter();

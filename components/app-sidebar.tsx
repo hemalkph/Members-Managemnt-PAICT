@@ -30,9 +30,9 @@ import {
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { initials } from "@/lib/format";
-import { adminNav as getAdminNav, MEMBER_NAV, type NavItem as BaseNavItem } from "@/lib/navigation";
-import type { AccessLevel, PageKey } from "@/lib/page-access";
+import { initials } from "@/lib/core/format";
+import { adminNav as getAdminNav, MEMBER_NAV, type NavItem as BaseNavItem } from "@/lib/auth/navigation";
+import type { AccessLevel, PageKey } from "@/lib/auth/page-access";
 
 type NavItem = BaseNavItem & { badge?: number };
 
