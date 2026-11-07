@@ -21,7 +21,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { DriveVideoPicker } from "@/components/member/drive-video-picker";
 import { createSubmissionAction, updateSubmissionAction } from "@/lib/actions/submissions";
+import { isVideoRole, type PickedVideo } from "@/lib/drive-videos";
 import { formatBytes, formatLKR } from "@/lib/format";
 import { monthLabel, periodRangeLabel } from "@/lib/month";
 import { isPerPage, pdfPageCount } from "@/lib/pdf-pages";
@@ -60,6 +62,7 @@ export function SubmissionForm({
   defaultValues,
   submissionId,
   existingAttachments = [],
+  existingVideos = [],
   showMoney = false,
   exams = [],
   centres = [],
@@ -71,6 +74,8 @@ export function SubmissionForm({
   defaultValues: SubmissionInput;
   submissionId?: string;
   existingAttachments?: ExistingAttachment[];
+  /** Drive videos already in this entry (video roles). */
+  existingVideos?: PickedVideo[];
   /** Show prices and the estimated amount. */
   showMoney?: boolean;
   /** Optional tags. */
@@ -85,6 +90,7 @@ export function SubmissionForm({
   const [uploading, setUploading] = useState<string[]>([]);
   const [newFiles, setNewFiles] = useState<NewAttachment[]>([]);
   const [removedIds, setRemovedIds] = useState<string[]>([]);
+  const [driveVideos, setDriveVideos] = useState<PickedVideo[]>(existingVideos);
 
   const form = useForm<SubmissionInput>({
     resolver: zodResolver(submissionSchema),
@@ -106,6 +112,13 @@ export function SubmissionForm({
   const pdfPages = newFiles.reduce((n, f) => n + (f.pages ?? 0), 0);
   const countsPages = isPerPage(chosenRate?.unit) && keptExisting.length === 0;
   const setQuantity = (n: number) => form.setValue("quantity", n, { shouldValidate: true });
+
+  // Video roles: tick the edited videos in Google Drive; the count fills the quantity.
+  const videoRole = isVideoRole(roles.find((r) => r.id === roleId)?.name);
+  const pickVideos = (videos: PickedVideo[]) => {
+    setDriveVideos(videos);
+    if (videos.length > 0) setQuantity(videos.length);
+  };
 
   const groups = new Map<string, RoleOption[]>();
   for (const role of roles) groups.set(role.sectionName, [...(groups.get(role.sectionName) ?? []), role]);
@@ -178,6 +191,7 @@ export function SubmissionForm({
           size_bytes: f.size_bytes,
         })),
         removed_attachment_ids: removedIds,
+        drive_videos: videoRole ? driveVideos.map((v) => v.id) : [],
       };
       const result = submissionId
         ? await updateSubmissionAction(submissionId, payload)
@@ -280,6 +294,18 @@ export function SubmissionForm({
               </FormItem>
             )}
           />
+        )}
+
+        {videoRole && (
+          <div className="grid gap-2">
+            <div>
+              <p className="text-sm font-medium">Videos you edited</p>
+              <p className="text-muted-foreground text-xs">
+                From Google Drive → Social Media Videos. Tick each video you edited this time.
+              </p>
+            </div>
+            <DriveVideoPicker value={driveVideos} onChange={pickVideos} submissionId={submissionId} />
+          </div>
         )}
 
         {(exams.length > 0 || centres.length > 0) && (
@@ -402,6 +428,20 @@ export function SubmissionForm({
                       : `Number of ${chosenRate.unit}s`
                     : "e.g. papers marked or designs made"}
                 </FormDescription>
+                {videoRole && driveVideos.length > 0 && quantity !== driveVideos.length && (
+                  <p className="text-muted-foreground flex flex-wrap items-center gap-x-2 text-xs">
+                    You picked {driveVideos.length} video{driveVideos.length > 1 ? "s" : ""}.
+                    <Button
+                      type="button"
+                      variant="link"
+                      size="sm"
+                      className="h-auto p-0 text-xs"
+                      onClick={() => setQuantity(driveVideos.length)}
+                    >
+                      Use {driveVideos.length}
+                    </Button>
+                  </p>
+                )}
                 {countsPages && pdfPages > 0 && (
                   <p className="text-muted-foreground flex flex-wrap items-center gap-x-2 text-xs">
                     {quantity === pdfPages
