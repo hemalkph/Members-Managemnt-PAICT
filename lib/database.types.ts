@@ -1441,6 +1441,63 @@ export type Database = {
           },
         ];
       };
+      submission_videos: {
+        Row: {
+          id: string;
+          submission_id: string;
+          user_id: string;
+          drive_file_id: string;
+          name: string;
+          source: "edited" | "external";
+          folder_name: string | null;
+          mime_type: string | null;
+          size_bytes: number | null;
+          duration_ms: number | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          submission_id: string;
+          user_id: string;
+          drive_file_id: string;
+          name: string;
+          source: "edited" | "external";
+          folder_name?: string | null;
+          mime_type?: string | null;
+          size_bytes?: number | null;
+          duration_ms?: number | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          submission_id?: string;
+          user_id?: string;
+          drive_file_id?: string;
+          name?: string;
+          source?: "edited" | "external";
+          folder_name?: string | null;
+          mime_type?: string | null;
+          size_bytes?: number | null;
+          duration_ms?: number | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "submission_videos_submission_id_fkey";
+            columns: ["submission_id"];
+            isOneToOne: false;
+            referencedRelation: "submissions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "submission_videos_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       approved_work_summary: {
@@ -1670,6 +1727,10 @@ export type Database = {
       nic_birth_date: { Args: { nic: string }; Returns: string | null };
       is_main_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
       my_two_step_on: { Args: Record<PropertyKey, never>; Returns: boolean };
+      claimed_drive_videos: {
+        Args: { p_ids: string[]; p_submission?: string | null };
+        Returns: { drive_file_id: string; mine: boolean }[];
+      };
       log_event: { Args: { p_action: string; p_target?: string | null; p_details?: Json }; Returns: undefined };
       close_pay_month: { Args: { p_month: string; p_note?: string | null }; Returns: number };
       reopen_pay_month: { Args: { p_month: string }; Returns: undefined };

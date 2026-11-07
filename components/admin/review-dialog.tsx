@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { CheckIcon, DownloadIcon, FileIcon, Link2Icon, Loader2Icon, RotateCcwIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 
+import { DriveVideoList, type SavedVideo } from "@/components/member/drive-video-list";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -40,6 +41,7 @@ export type ReviewRow = {
   unitPrice: number | null;
   amount: number | null;
   attachments: { id: string; file_name: string; size_bytes: number }[];
+  videos: SavedVideo[];
   /** A page count logged from a finished paper stage ("Ready to log"). */
   fromPaper?: boolean;
 };
@@ -149,6 +151,13 @@ export function ReviewDialog({
         </dl>
 
         {row.description && <p className="bg-muted/50 rounded-lg p-3 text-sm whitespace-pre-line">{row.description}</p>}
+
+        {row.videos.length > 0 && (
+          <div className="grid gap-2">
+            <p className="text-sm font-medium">Videos ({row.videos.length})</p>
+            <DriveVideoList videos={row.videos} />
+          </div>
+        )}
 
         {(row.links.length > 0 || row.attachments.length > 0) && (
           <div className="grid gap-2">

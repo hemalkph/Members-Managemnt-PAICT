@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { friendlyDbError, type ActionResult } from "@/lib/action-result";
 import { getActionContext, NOT_ALLOWED } from "@/lib/auth";
 import { getDeadlines } from "@/lib/deadlines";
+import { DriveError, verifyVideos, type VerifiedVideo } from "@/lib/drive";
+import { isVideoRole } from "@/lib/drive-videos";
 import { APP_TIME_ZONE, currentMonthKey, monthKeyToDate, todayISO } from "@/lib/month";
 import { getMarkingRates, MARKING_LABEL, setKey, setParts, setTitle } from "@/lib/marking";
 import { getPaperDrafts } from "@/lib/paper-drafts";
@@ -55,6 +57,47 @@ async function checkWorkType(ctx: Ctx, roleId: string, rateItemId: string): Prom
   return ids.includes(rateItemId) ? null : "That work type doesn't belong to the chosen role.";
 }
 
+/**
+ * Drive videos for an entry: only for video roles, and each one is checked with
+ * Google (a video in an Edited / External edits folder). Returns the rows to save.
+ */
+async function checkVideos(
+  ctx: Ctx,
+  roleId: string,
+  ids: string[],
+  alreadySaved: Set<string> = new Set(),
+): Promise<{ rows: VerifiedVideo[] } | { error: string }> {
+  if (ids.length === 0) return { rows: [] };
+  const { data: role } = await ctx.supabase.from("roles").select("name").eq("id", roleId).maybeSingle();
+  if (!isVideoRole(role?.name)) return { error: "Drive videos can only be logged for a video role." };
+  try {
+    return { rows: await verifyVideos([...new Set(ids)].filter((id) => !alreadySaved.has(id))) };
+  } catch (error) {
+    if (error instanceof DriveError) return { error: error.message };
+    throw error;
+  }
+}
+
+async function insertVideos(ctx: Ctx, submissionId: string, videos: VerifiedVideo[]) {
+  if (videos.length === 0) return null;
+  const { error } = await ctx.supabase.from("submission_videos").insert(
+    videos.map((v) => ({
+      submission_id: submissionId,
+      user_id: ctx.profile.id,
+      drive_file_id: v.id,
+      name: v.name,
+      source: v.source,
+      folder_name: v.monthName.slice(0, 100),
+      mime_type: v.mimeType,
+      size_bytes: v.sizeBytes,
+      duration_ms: v.durationMs,
+    })),
+  );
+  if (!error) return null;
+  // The database names the video that is already logged elsewhere.
+  return error.code === "23505" && error.message.includes("already logged") ? error.message : "Could not save the videos.";
+}
+
 async function insertAttachments(ctx: Ctx, submissionId: string, attachments: AttachmentInput[]) {
   if (attachments.length === 0) return null;
   const { error } = await ctx.supabase.from("submission_attachments").insert(
@@ -85,6 +128,8 @@ export async function createSubmissionAction(input: SubmissionActionInput): Prom
   if (!ownAttachments(ctx, v.attachments)) return { ok: false, error: "Invalid attachment." };
   const typeError = await checkWorkType(ctx, v.role_id, v.rate_item_id);
   if (typeError) return { ok: false, error: typeError, fieldErrors: { rate_item_id: [typeError] } };
+  const videos = await checkVideos(ctx, v.role_id, v.drive_videos);
+  if ("error" in videos) return { ok: false, error: videos.error };
 
   const { data: created, error } = await ctx.supabase
     .from("submissions")
@@ -108,10 +153,11 @@ export async function createSubmissionAction(input: SubmissionActionInput): Prom
   if (error || !created) return { ok: false, error: friendlyDbError(error) };
 
   const attachError = await insertAttachments(ctx, created.id, v.attachments);
-  if (attachError) {
+  const videoError = attachError ? null : await insertVideos(ctx, created.id, videos.rows);
+  if (attachError || videoError) {
     // Keep things consistent: undo the submission if its files could not be saved.
     await ctx.supabase.from("submissions").delete().eq("id", created.id);
-    return { ok: false, error: "Could not save the attachments. Please try again." };
+    return { ok: false, error: videoError ?? "Could not save the attachments. Please try again." };
   }
 
   revalidateWork();
@@ -133,7 +179,7 @@ export async function updateSubmissionAction(
 
   const { data: existing } = await ctx.supabase
     .from("submissions")
-    .select("id, status, user_id, submission_attachments(id, storage_path)")
+    .select("id, status, user_id, submission_attachments(id, storage_path), submission_videos(id, drive_file_id)")
     .eq("id", id)
     .eq("user_id", ctx.profile.id)
     .maybeSingle();
@@ -144,6 +190,11 @@ export async function updateSubmissionAction(
   if (!ownAttachments(ctx, v.attachments)) return { ok: false, error: "Invalid attachment." };
   const typeError = await checkWorkType(ctx, v.role_id, v.rate_item_id);
   if (typeError) return { ok: false, error: typeError, fieldErrors: { rate_item_id: [typeError] } };
+
+  // Videos: v.drive_videos is the full list; only new ones are checked with Drive.
+  const savedVideoIds = new Set(existing.submission_videos.map((x) => x.drive_file_id));
+  const videos = await checkVideos(ctx, v.role_id, v.drive_videos, savedVideoIds);
+  if ("error" in videos) return { ok: false, error: videos.error };
 
   const kept = existing.submission_attachments.filter((a) => !v.removed_attachment_ids.includes(a.id)).length;
   if (kept + v.attachments.length > 10) return { ok: false, error: "Up to 10 files per submission." };
@@ -180,8 +231,21 @@ export async function updateSubmissionAction(
     await ctx.supabase.storage.from(ATTACHMENTS_BUCKET).remove(toRemove.map((a) => a.storage_path));
   }
 
+  const removedVideos = existing.submission_videos.filter((x) => !v.drive_videos.includes(x.drive_file_id));
+  if (removedVideos.length > 0) {
+    await ctx.supabase
+      .from("submission_videos")
+      .delete()
+      .in(
+        "id",
+        removedVideos.map((x) => x.id),
+      );
+  }
+
   const attachError = await insertAttachments(ctx, id, v.attachments);
   if (attachError) return { ok: false, error: "Saved, but some new files could not be attached." };
+  const videoError = await insertVideos(ctx, id, videos.rows);
+  if (videoError) return { ok: false, error: `Saved, but the videos weren't: ${videoError}` };
 
   revalidateWork();
   return { ok: true, message: "Submission updated", data: { id } };

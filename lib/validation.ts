@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DRIVE_FILE_ID } from "@/lib/drive-videos";
 import { parseNic } from "@/lib/nic";
 
 // Shared by client forms (react-hook-form) and Server Actions.
@@ -8,6 +9,7 @@ export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024; // 10 MB
 export const MAX_AVATAR_BYTES = 5 * 1024 * 1024; // 5 MB
 export const MAX_ATTACHMENTS = 10;
 export const MAX_LINKS = 10;
+export const MAX_DRIVE_VIDEOS = 50;
 
 const trimmed = (min: number, max: number, label: string) =>
   z
@@ -129,6 +131,11 @@ export type SubmissionInput = z.input<typeof submissionSchema>;
 export const submissionActionSchema = submissionSchema.extend({
   attachments: z.array(attachmentInputSchema).max(MAX_ATTACHMENTS, `Up to ${MAX_ATTACHMENTS} files`),
   removed_attachment_ids: z.array(uuid).max(50).default([]),
+  /** Google Drive videos the member picked (video roles): the full list for this entry. */
+  drive_videos: z
+    .array(z.string().regex(DRIVE_FILE_ID, "Invalid video"))
+    .max(MAX_DRIVE_VIDEOS, `Up to ${MAX_DRIVE_VIDEOS} videos per entry`)
+    .default([]),
 });
 
 /** Paper work draft: only the page count is entered. */

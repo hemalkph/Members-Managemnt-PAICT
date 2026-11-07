@@ -130,9 +130,9 @@ export function ReviewTable({ rows, readOnly = false }: { rows: ReviewRow[]; rea
                   <p className="text-muted-foreground flex items-center gap-1 truncate text-xs md:hidden">
                     {r.memberName} · {r.roleName}
                   </p>
-                  {r.attachments.length + r.links.length > 0 && (
+                  {r.attachments.length + r.links.length + r.videos.length > 0 && (
                     <p className="text-muted-foreground hidden items-center gap-1 text-xs md:flex">
-                      <PaperclipIcon className="size-3" /> {r.attachments.length + r.links.length}
+                      <PaperclipIcon className="size-3" /> {r.attachments.length + r.links.length + r.videos.length}
                     </p>
                   )}
                 </TableCell>

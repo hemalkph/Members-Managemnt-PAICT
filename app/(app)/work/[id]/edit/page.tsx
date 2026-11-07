@@ -26,7 +26,7 @@ export default async function EditWorkPage({ params }: PageProps<"/work/[id]/edi
   const [{ data: submission }, roles] = await Promise.all([
     supabase
       .from("submissions")
-      .select("id, role_id, rate_item_id, work_month, title, description, quantity, date_done, links, status, exam_id, centre_id, task_id, task:tasks(title), submission_attachments(id, file_name, size_bytes)")
+      .select("id, role_id, rate_item_id, work_month, title, description, quantity, date_done, links, status, exam_id, centre_id, task_id, task:tasks(title), submission_attachments(id, file_name, size_bytes), submission_videos(drive_file_id, name)")
       .eq("id", id)
       .eq("user_id", profile.id)
       .maybeSingle(),
@@ -78,6 +78,7 @@ export default async function EditWorkPage({ params }: PageProps<"/work/[id]/edi
             showMoney={SHOW_MEMBERS_THEIR_EARNINGS}
             today={todayISO()}
             existingAttachments={submission.submission_attachments}
+            existingVideos={submission.submission_videos.map((v) => ({ id: v.drive_file_id, name: v.name }))}
             exams={tags.exams.map((e) => ({ id: e.id, label: e.label }))}
             centres={tags.centres.map((c) => ({ id: c.id, name: c.name }))}
             taskTitle={submission.task?.title ?? null}

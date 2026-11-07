@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import type { SubmissionStatus } from "@/lib/database.types";
 import { formatBytes, formatDate, formatLKR } from "@/lib/format";
 import { DeleteSubmissionButton } from "./delete-submission-button";
+import { DriveVideoList, type SavedVideo } from "./drive-video-list";
 
 export type MemberSubmission = {
   id: string;
@@ -36,6 +37,7 @@ export type MemberSubmission = {
   centre?: { name: string } | null;
   roles: { name: string; sections: { name: string } | null } | null;
   submission_attachments: { id: string; file_name: string; size_bytes: number }[];
+  submission_videos: SavedVideo[];
 };
 
 export function SubmissionCard({
@@ -99,6 +101,8 @@ export function SubmissionCard({
       </div>
 
       {s.description && <p className="text-sm whitespace-pre-line">{s.description}</p>}
+
+      <DriveVideoList videos={s.submission_videos} />
 
       {(s.links.length > 0 || s.submission_attachments.length > 0) && (
         <div className="flex flex-wrap gap-2">
