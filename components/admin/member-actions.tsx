@@ -27,7 +27,7 @@ import {
 import type { MultiSelectOption } from "@/components/ui/multi-select";
 import { setMemberActiveAction } from "@/lib/actions/admin";
 import { cn } from "@/lib/utils";
-import type { MemberUpdateInput } from "@/lib/validation";
+import type { MemberUpdateInput } from "@/lib/core/validation";
 import { EditMemberDialog } from "./member-dialogs";
 import { ResetPasswordDialog } from "./reset-password-dialog";
 

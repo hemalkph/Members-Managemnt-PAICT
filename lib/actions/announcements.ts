@@ -1,9 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { friendlyDbError, type ActionResult } from "@/lib/action-result";
+import { friendlyDbError, type ActionResult } from "@/lib/core/action-result";
 import { getActionContext, NOT_ALLOWED } from "@/lib/auth";
-import { announcementSchema, fieldErrorsOf, firstError, idSchema, type AnnouncementInput } from "@/lib/validation";
+import { announcementSchema, fieldErrorsOf, firstError, idSchema, type AnnouncementInput } from "@/lib/core/validation";
 
 function revalidateNotices() {
   revalidatePath("/admin/notices");

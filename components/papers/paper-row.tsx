@@ -2,7 +2,7 @@ import Link from "next/link";
 import { CalendarDaysIcon, ChevronRightIcon, LinkIcon, SendIcon, TriangleAlertIcon } from "lucide-react";
 import type { StepState } from "@/components/reactbits/stepper";
 import { Badge } from "@/components/ui/badge";
-import { formatDate, formatDay } from "@/lib/format";
+import { formatDate, formatDay } from "@/lib/core/format";
 import { MEDIUM_LABEL, PART_LABEL, paperSteps, STAGE_LABEL, type PaperView } from "@/lib/papers";
 import { cn } from "@/lib/utils";
 

@@ -21,7 +21,7 @@ import ShinyText from "@/components/reactbits/shiny-text";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { createClient } from "@/lib/supabase/client";
-import { formatLKR } from "@/lib/format";
+import { formatLKR } from "@/lib/core/format";
 import { cn } from "@/lib/utils";
 
 export type PhoneDueItem = { id: string; title: string; dueLabel: string | null; overdue: boolean; high: boolean; href: string };

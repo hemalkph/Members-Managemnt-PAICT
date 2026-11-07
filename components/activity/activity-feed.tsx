@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import AnimatedList from "@/components/reactbits/animated-list";
 import { Badge } from "@/components/ui/badge";
-import { activityGroupLabel, activityTone } from "@/lib/activity";
+import { activityGroupLabel, activityTone } from "@/lib/notifications/activity";
 import { cn } from "@/lib/utils";
 
 export type ActivityItem = {

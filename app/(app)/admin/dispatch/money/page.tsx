@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { requireDispatch } from "@/lib/dispatch/access";
 import { SETTLEMENT_STATE } from "@/lib/dispatch/money";
-import { formatDate, formatLKR } from "@/lib/format";
+import { formatDate, formatLKR } from "@/lib/core/format";
 import { createClient } from "@/lib/supabase/server";
 
 import { getT } from "@/lib/dispatch/i18n/server";

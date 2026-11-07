@@ -1,8 +1,8 @@
 import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@/lib/database.types";
-import { getSupabaseUrl } from "@/lib/env";
+import type { Database } from "@/lib/supabase/database.types";
+import { getSupabaseUrl } from "@/lib/core/env";
 
 /**
  * Service-role client. BYPASSES Row Level Security — server only.

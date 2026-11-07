@@ -11,15 +11,15 @@ import BlurText from "@/components/reactbits/blur-text";
 import { StatCard } from "@/components/stat-card";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { mainAdminUnlocked, requirePage } from "@/lib/auth";
-import { STORAGE_LIMIT_BYTES } from "@/lib/paper-cleanup";
-import { activeOptions, getClassOptions } from "@/lib/classes";
-import { todayISO } from "@/lib/month";
-import { getPapers } from "@/lib/paper-queries";
+import { STORAGE_LIMIT_BYTES } from "@/lib/papers/cleanup";
+import { activeOptions, getClassOptions } from "@/lib/organisation/classes";
+import { todayISO } from "@/lib/core/month";
+import { getPapers } from "@/lib/papers/queries";
 import { nextExamDay } from "@/lib/papers";
 import { createClient } from "@/lib/supabase/server";
-import { getTeamDirectory, teamNames } from "@/lib/team-directory";
+import { getTeamDirectory, teamNames } from "@/lib/members/team-directory";
 import { ReadOnlyNotice } from "@/components/read-only-notice";
-import { uuid } from "@/lib/validation";
+import { uuid } from "@/lib/core/validation";
 
 export const metadata: Metadata = { title: "Papers" };
 

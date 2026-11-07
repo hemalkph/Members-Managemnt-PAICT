@@ -8,12 +8,12 @@ import { safeFileName } from "@/components/papers/paper-files";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import type { ActionResult } from "@/lib/action-result";
+import type { ActionResult } from "@/lib/core/action-result";
 import { addTaskFilesAction, deleteTaskFileAction } from "@/lib/actions/tasks";
-import { formatBytes } from "@/lib/format";
+import { formatBytes } from "@/lib/core/format";
 import { createClient } from "@/lib/supabase/client";
-import type { TaskFileView, TaskView } from "@/lib/task-queries";
-import { MAX_TASK_FILE_BYTES, MAX_TASK_FILES_AT_ONCE, TASKS_BUCKET } from "@/lib/validation";
+import type { TaskFileView, TaskView } from "@/lib/tasks/queries";
+import { MAX_TASK_FILE_BYTES, MAX_TASK_FILES_AT_ONCE, TASKS_BUCKET } from "@/lib/core/validation";
 
 /** Upload files to storage, then save them on the task. All or nothing. */
 export async function uploadTaskFiles(taskId: string, kind: "brief" | "work", files: File[]): Promise<ActionResult> {

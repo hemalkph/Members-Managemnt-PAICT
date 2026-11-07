@@ -1,9 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { friendlyDbError, type ActionResult } from "@/lib/action-result";
+import { friendlyDbError, type ActionResult } from "@/lib/core/action-result";
 import { getActionContext, NOT_ALLOWED } from "@/lib/auth";
-import { pageAccess } from "@/lib/page-access";
+import { pageAccess } from "@/lib/auth/page-access";
 import {
   firstError,
   idSchema,
@@ -13,7 +13,7 @@ import {
   TASKS_BUCKET,
   type TaskFilesInput,
   type TaskInput,
-} from "@/lib/validation";
+} from "@/lib/core/validation";
 
 function revalidateTasks() {
   revalidatePath("/tasks");

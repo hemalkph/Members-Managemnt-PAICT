@@ -1,7 +1,7 @@
 "use server";
 
-import { type ActionResult } from "@/lib/action-result";
-import { getSiteUrl } from "@/lib/env";
+import { type ActionResult } from "@/lib/core/action-result";
+import { getSiteUrl } from "@/lib/core/env";
 import { createClient } from "@/lib/supabase/server";
 import {
   fieldErrorsOf,
@@ -12,7 +12,7 @@ import {
   type ForgotPasswordInput,
   type LoginInput,
   type ResetPasswordInput,
-} from "@/lib/validation";
+} from "@/lib/core/validation";
 
 export async function signInAction(input: LoginInput): Promise<ActionResult<{ redirectTo: string }>> {
   const parsed = loginSchema.safeParse(input);

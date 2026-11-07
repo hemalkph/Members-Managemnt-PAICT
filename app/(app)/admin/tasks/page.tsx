@@ -6,14 +6,14 @@ import { waNumber } from "@/components/papers/review-contacts";
 import { AdminTaskBoard } from "@/components/tasks/admin-task-board";
 import { TaskFilters } from "@/components/tasks/task-filters";
 import { requirePage } from "@/lib/auth";
-import { activeOptions, getClassOptions } from "@/lib/classes";
-import type { TaskStatus } from "@/lib/database.types";
-import { todayISO } from "@/lib/month";
+import { activeOptions, getClassOptions } from "@/lib/organisation/classes";
+import type { TaskStatus } from "@/lib/supabase/database.types";
+import { todayISO } from "@/lib/core/month";
 import { createClient } from "@/lib/supabase/server";
-import { getTeamDirectory, teamNames } from "@/lib/team-directory";
+import { getTeamDirectory, teamNames } from "@/lib/members/team-directory";
 import { ReadOnlyNotice } from "@/components/read-only-notice";
-import { getTasks } from "@/lib/task-queries";
-import { uuid } from "@/lib/validation";
+import { getTasks } from "@/lib/tasks/queries";
+import { uuid } from "@/lib/core/validation";
 
 export const metadata: Metadata = { title: "Tasks" };
 

@@ -17,8 +17,8 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { adminNav, MEMBER_NAV, type NavItem } from "@/lib/navigation";
-import type { AccessLevel, PageKey } from "@/lib/page-access";
+import { adminNav, MEMBER_NAV, type NavItem } from "@/lib/auth/navigation";
+import type { AccessLevel, PageKey } from "@/lib/auth/page-access";
 
 /** Quick search (Ctrl/⌘ + K) to jump to any page or switch the theme. */
 export function CommandMenu({ pages }: { pages: Record<PageKey, AccessLevel> }) {

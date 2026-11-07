@@ -22,9 +22,9 @@ import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { requirePage } from "@/lib/auth";
-import { monthLabel } from "@/lib/month";
-import { getTeamPerformance, MIN_FOR_RANKING, type MemberPerformance } from "@/lib/performance";
-import { signedAvatarUrls } from "@/lib/storage";
+import { monthLabel } from "@/lib/core/month";
+import { getTeamPerformance, MIN_FOR_RANKING, type MemberPerformance } from "@/lib/tasks/performance";
+import { signedAvatarUrls } from "@/lib/core/storage";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Team performance" };

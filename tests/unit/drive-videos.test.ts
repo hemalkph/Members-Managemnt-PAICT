@@ -7,7 +7,7 @@ import {
   isVideoRole,
   monthFolderKey,
   sortMonthFolders,
-} from "@/lib/drive-videos";
+} from "@/lib/work/drive-videos";
 
 describe("monthFolderKey", () => {
   it("reads the team's folder names", () => {

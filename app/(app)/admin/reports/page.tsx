@@ -9,9 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { requirePage } from "@/lib/auth";
-import { formatNumber } from "@/lib/format";
-import { monthLabel, parseMonthParam } from "@/lib/month";
-import { getMonthlyReport } from "@/lib/report";
+import { formatNumber } from "@/lib/core/format";
+import { monthLabel, parseMonthParam } from "@/lib/core/month";
+import { getMonthlyReport } from "@/lib/work/report";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Monthly report" };

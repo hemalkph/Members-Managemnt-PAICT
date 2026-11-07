@@ -12,9 +12,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { requireDispatch } from "@/lib/dispatch/access";
-import { formatDate } from "@/lib/format";
+import { formatDate } from "@/lib/core/format";
 import { createClient } from "@/lib/supabase/server";
-import { uuid } from "@/lib/validation";
+import { uuid } from "@/lib/core/validation";
 
 import { getT } from "@/lib/dispatch/i18n/server";
 export const metadata: Metadata = { title: "Students – Tute dispatch" };

@@ -8,14 +8,14 @@ import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { requireCompleteProfile } from "@/lib/auth";
-import { SHOW_MEMBERS_THEIR_EARNINGS } from "@/lib/config";
-import { currentMonthKey, todayISO } from "@/lib/month";
-import { activeOptions, getClassOptions } from "@/lib/classes";
-import { getMarkingRates } from "@/lib/marking";
-import { getPaperDrafts, toDraftItems } from "@/lib/paper-drafts";
-import { getMemberRoles, getRatesForRoles } from "@/lib/queries";
+import { SHOW_MEMBERS_THEIR_EARNINGS } from "@/lib/core/config";
+import { currentMonthKey, todayISO } from "@/lib/core/month";
+import { activeOptions, getClassOptions } from "@/lib/organisation/classes";
+import { getMarkingRates } from "@/lib/work/marking";
+import { getPaperDrafts, toDraftItems } from "@/lib/papers/drafts";
+import { getMemberRoles, getRatesForRoles } from "@/lib/organisation/structure";
 import { createClient } from "@/lib/supabase/server";
-import { uuid } from "@/lib/validation";
+import { uuid } from "@/lib/core/validation";
 
 export const metadata: Metadata = { title: "Submit work" };
 

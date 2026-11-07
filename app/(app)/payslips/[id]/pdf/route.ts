@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getActionContext } from "@/lib/auth";
-import { getPayslip } from "@/lib/payslip";
-import { buildPayslipPdf } from "@/lib/payslip-pdf";
-import { uuid } from "@/lib/validation";
+import { getPayslip } from "@/lib/payments/payslip";
+import { buildPayslipPdf } from "@/lib/payments/payslip-pdf";
+import { uuid } from "@/lib/core/validation";
 
 async function loadLogo(request: NextRequest): Promise<Uint8Array | null> {
   try {

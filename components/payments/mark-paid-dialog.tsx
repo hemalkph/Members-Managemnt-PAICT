@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { markPaidAction } from "@/lib/actions/payments";
-import { formatLKR } from "@/lib/format";
+import { formatLKR } from "@/lib/core/format";
 import type { PayoutRow } from "./payouts-table";
 
 export function MarkPaidDialog({

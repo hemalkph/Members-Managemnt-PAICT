@@ -5,7 +5,7 @@ import { useReducedMotion } from "motion/react";
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
-import { formatLKR, formatLKRCompact } from "@/lib/format";
+import { formatLKR, formatLKRCompact } from "@/lib/core/format";
 
 /** Pie Chart – Donut with Text: this month's spending split by section. */
 export function SectionDonut({

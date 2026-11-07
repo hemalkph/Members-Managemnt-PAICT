@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PartyPopperIcon } from "lucide-react";
-import { ordinal } from "@/lib/birthday";
-import type { BirthdayPerson } from "@/lib/birthday-queries";
+import { ordinal } from "@/lib/members/birthday";
+import type { BirthdayPerson } from "@/lib/members/birthday-queries";
 
 /** Shown at the top of admin pages on someone's birthday. */
 export function BirthdayBanner({ people }: { people: BirthdayPerson[] }) {

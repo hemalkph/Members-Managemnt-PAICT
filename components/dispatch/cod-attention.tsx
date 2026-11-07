@@ -20,7 +20,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { writeOffAction } from "@/lib/actions/dispatch-money";
 import { COD_STATUS, type CodStatus } from "@/lib/dispatch/money";
-import { formatLKR } from "@/lib/format";
+import { formatLKR } from "@/lib/core/format";
 
 import { useT } from "@/components/dispatch/lang";
 export type CodRow = {

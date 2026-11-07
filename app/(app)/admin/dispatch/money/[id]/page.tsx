@@ -11,9 +11,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { requireDispatch } from "@/lib/dispatch/access";
 import type { DeliveryState } from "@/lib/dispatch/delivery";
 import { SETTLEMENT_STATE } from "@/lib/dispatch/money";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime } from "@/lib/core/format";
 import { createClient } from "@/lib/supabase/server";
-import { uuid } from "@/lib/validation";
+import { uuid } from "@/lib/core/validation";
 
 import { getT } from "@/lib/dispatch/i18n/server";
 export const metadata: Metadata = { title: "Settlement – Tute dispatch" };

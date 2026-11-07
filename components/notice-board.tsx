@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { MegaphoneIcon, PinIcon } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatDate } from "@/lib/format";
+import { formatDate } from "@/lib/core/format";
 
 export type NoticeItem = {
   id: string;

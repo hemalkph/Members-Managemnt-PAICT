@@ -27,9 +27,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { effectivePageAccess, requireUser } from "@/lib/auth";
-import { getSiteUrl } from "@/lib/env";
-import { formatDate, formatDateTime, formatDay, formatDayRange } from "@/lib/format";
-import { getPaper, getPaperFiles } from "@/lib/paper-queries";
+import { getSiteUrl } from "@/lib/core/env";
+import { formatDate, formatDateTime, formatDay, formatDayRange } from "@/lib/core/format";
+import { getPaper, getPaperFiles } from "@/lib/papers/queries";
 import {
   FINAL_STAGES,
   MEDIUM_LABEL,
@@ -41,9 +41,9 @@ import {
   STAGE_META,
 } from "@/lib/papers";
 import { createClient } from "@/lib/supabase/server";
-import { getTeamDirectory, teamNames } from "@/lib/team-directory";
+import { getTeamDirectory, teamNames } from "@/lib/members/team-directory";
 import { cn } from "@/lib/utils";
-import { UPLOAD_STAGES, uuid } from "@/lib/validation";
+import { UPLOAD_STAGES, uuid } from "@/lib/core/validation";
 
 export const metadata: Metadata = { title: "Paper" };
 

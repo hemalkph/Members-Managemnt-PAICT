@@ -4,8 +4,8 @@ import { useState, useTransition } from "react";
 import { EyeIcon, EyeOffIcon, Loader2Icon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import type { ActionResult } from "@/lib/action-result";
-import { maskAccountNumber } from "@/lib/format";
+import type { ActionResult } from "@/lib/core/action-result";
+import { maskAccountNumber } from "@/lib/core/format";
 
 /**
  * Shows ****1234. The full number is never sent to the browser until the

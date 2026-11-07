@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { dateInColombo, periodDays, periodOfDay, periodRangeLabel } from "@/lib/month";
+import { dateInColombo, periodDays, periodOfDay, periodRangeLabel } from "@/lib/core/month";
 
 describe("pay months run 11th → 10th (same rule as public.pay_period_of)", () => {
   test.each([

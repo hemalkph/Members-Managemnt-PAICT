@@ -8,10 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { requireDispatch } from "@/lib/dispatch/access";
 import { plural } from "@/lib/dispatch/i18n";
 import { monthLabelFromDate } from "@/lib/dispatch/rounds";
-import { shiftMonth } from "@/lib/month";
+import { shiftMonth } from "@/lib/core/month";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
-import { uuid } from "@/lib/validation";
+import { uuid } from "@/lib/core/validation";
 
 import { getT } from "@/lib/dispatch/i18n/server";
 export const metadata: Metadata = { title: "New round – Tute dispatch" };

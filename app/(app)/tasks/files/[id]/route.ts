@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getActionContext } from "@/lib/auth";
-import { TASKS_BUCKET, uuid } from "@/lib/validation";
+import { TASKS_BUCKET, uuid } from "@/lib/core/validation";
 
 /**
  * Opens a task file. RLS decides who may read the row (people who can see the

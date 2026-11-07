@@ -1,7 +1,7 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/lib/database.types";
+import type { Database } from "@/lib/supabase/database.types";
 import { OPTIONAL_STEPS, type OptionalStep, type RoundProgress } from "./stages";
 
 export type RoundWithProgress = { id: string; name: string; progress: RoundProgress };

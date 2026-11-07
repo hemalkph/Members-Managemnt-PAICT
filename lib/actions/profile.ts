@@ -1,10 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { friendlyDbError, type ActionResult } from "@/lib/action-result";
+import { friendlyDbError, type ActionResult } from "@/lib/core/action-result";
 import { getActionContext, NOT_ALLOWED } from "@/lib/auth";
-import { AVATARS_BUCKET } from "@/lib/storage";
-import { avatarSchema, fieldErrorsOf, firstError, profileSchema, type ProfileInput } from "@/lib/validation";
+import { AVATARS_BUCKET } from "@/lib/core/storage";
+import { avatarSchema, fieldErrorsOf, firstError, profileSchema, type ProfileInput } from "@/lib/core/validation";
 
 export async function updateProfileAction(input: ProfileInput): Promise<ActionResult> {
   const ctx = await getActionContext();

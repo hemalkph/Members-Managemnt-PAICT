@@ -3,7 +3,7 @@ import { NoticesManager } from "@/components/admin/notices-manager";
 import { PageHeader } from "@/components/page-header";
 import { ReadOnlyNotice } from "@/components/read-only-notice";
 import { requirePage } from "@/lib/auth";
-import { todayISO } from "@/lib/month";
+import { todayISO } from "@/lib/core/month";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Notice board" };

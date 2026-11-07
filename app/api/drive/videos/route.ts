@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getActionContext, NOT_ALLOWED } from "@/lib/auth";
-import { canUseDriveVideos, defaultMonthId, DriveError, listMonthFolders, listVideos } from "@/lib/drive";
-import type { DriveVideosResponse, VideoSource } from "@/lib/drive-videos";
-import { uuid } from "@/lib/validation";
+import { canUseDriveVideos, defaultMonthId, DriveError, listMonthFolders, listVideos } from "@/lib/work/drive";
+import type { DriveVideosResponse, VideoSource } from "@/lib/work/drive-videos";
+import { uuid } from "@/lib/core/validation";
 
 const json = (body: DriveVideosResponse, status = 200) =>
   NextResponse.json(body, { status, headers: { "Cache-Control": "private, no-store" } });

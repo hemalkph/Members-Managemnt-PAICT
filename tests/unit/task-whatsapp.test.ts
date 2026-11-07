@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
-import type { TaskView } from "@/lib/task-queries";
-import { taskWhatsAppText, whatsAppLink } from "@/lib/task-whatsapp";
+import type { TaskView } from "@/lib/tasks/queries";
+import { taskWhatsAppText, whatsAppLink } from "@/lib/tasks/whatsapp";
 
 const base = {
   title: "Type set Paper 2",

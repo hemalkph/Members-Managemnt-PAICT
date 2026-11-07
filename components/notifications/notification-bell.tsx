@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { markNotificationsReadAction } from "@/lib/actions/notifications";
-import type { AppNotification } from "@/lib/database.types";
+import type { AppNotification } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { NotificationItem, relativeTime, type NotificationView } from "./notification-item";

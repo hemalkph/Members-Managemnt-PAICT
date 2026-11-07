@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cleanupPaperFilesNowAction, setPaperFileDaysAction } from "@/lib/actions/storage";
-import { formatBytes } from "@/lib/format";
+import { formatBytes } from "@/lib/core/format";
 import { cn } from "@/lib/utils";
 
 const BUCKET_LABEL: Record<string, string> = {

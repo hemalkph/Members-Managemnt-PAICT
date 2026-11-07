@@ -21,7 +21,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { setDispatchGrantAction } from "@/lib/actions/dispatch";
 import { CAPABILITIES } from "@/lib/dispatch/capabilities";
-import type { DispatchCapability } from "@/lib/database.types";
+import type { DispatchCapability } from "@/lib/supabase/database.types";
 
 import { useT } from "@/components/dispatch/lang";
 export type DispatchPerson = {

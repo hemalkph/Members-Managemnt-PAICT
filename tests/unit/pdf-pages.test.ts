@@ -1,7 +1,7 @@
 import { PDFDocument } from "pdf-lib";
 import { describe, expect, it } from "vitest";
 
-import { isPerPage, pdfPageCount } from "@/lib/pdf-pages";
+import { isPerPage, pdfPageCount } from "@/lib/work/pdf-pages";
 
 async function pdfFile(pages: number, name = "paper.pdf", type = "application/pdf") {
   const doc = await PDFDocument.create();

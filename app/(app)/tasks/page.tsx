@@ -8,7 +8,7 @@ import { TaskCard } from "@/components/tasks/task-card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { getTasks } from "@/lib/task-queries";
+import { getTasks } from "@/lib/tasks/queries";
 
 export const metadata: Metadata = { title: "My tasks" };
 

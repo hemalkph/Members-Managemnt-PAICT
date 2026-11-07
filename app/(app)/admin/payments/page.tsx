@@ -25,10 +25,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getAnalytics } from "@/lib/analytics";
+import { getAnalytics } from "@/lib/payments/analytics";
 import { requireMainAdmin } from "@/lib/auth";
-import { formatDateTime, formatLKR } from "@/lib/format";
-import { monthKeyToDate, monthLabel, parseMonthParam, periodDays, periodRangeLabel, shiftMonth, todayISO } from "@/lib/month";
+import { formatDateTime, formatLKR } from "@/lib/core/format";
+import { monthKeyToDate, monthLabel, parseMonthParam, periodDays, periodRangeLabel, shiftMonth, todayISO } from "@/lib/core/month";
 import { getPayMonth, getPayoutsForMonth, payoutTotals } from "@/lib/payments";
 import { createClient } from "@/lib/supabase/server";
 

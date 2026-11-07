@@ -1,6 +1,6 @@
 import { CheckCircle2Icon, ClockIcon, XCircleIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import type { SubmissionStatus } from "@/lib/database.types";
+import type { SubmissionStatus } from "@/lib/supabase/database.types";
 
 const CONFIG = {
   pending: { label: "Pending", variant: "warning", Icon: ClockIcon },

@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { logPaperPagesAction } from "@/lib/actions/submissions";
-import { formatLKR } from "@/lib/format";
+import { formatLKR } from "@/lib/core/format";
 
 export type DraftItem = {
   taskId: string;

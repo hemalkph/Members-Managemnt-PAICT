@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowRightIcon, CalendarClockIcon, FlameIcon, ListTodoIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import type { TaskView } from "@/lib/task-queries";
+import type { TaskView } from "@/lib/tasks/queries";
 import { cn } from "@/lib/utils";
 
 /** Dashboard: the next few open tasks. */

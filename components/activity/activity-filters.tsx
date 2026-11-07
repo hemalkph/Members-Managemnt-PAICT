@@ -6,8 +6,8 @@ import { useUrlFilters } from "@/components/admin/url-filters";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ACTIVITY_CATEGORIES } from "@/lib/activity";
-import { monthLabel, recentMonths } from "@/lib/month";
+import { ACTIVITY_CATEGORIES } from "@/lib/notifications/activity";
+import { monthLabel, recentMonths } from "@/lib/core/month";
 import { cn } from "@/lib/utils";
 
 export function ActivityFilters({ people }: { people: { id: string; name: string }[] }) {

@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import type { RoleWithSection } from "@/lib/queries";
+import type { RoleWithSection } from "@/lib/organisation/structure";
 
 /** Roles grouped by section (read-only). */
 export function RolesList({ roles, emptyText = "No roles assigned yet." }: { roles: RoleWithSection[]; emptyText?: string }) {

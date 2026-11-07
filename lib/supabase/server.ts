@@ -2,8 +2,8 @@ import "server-only";
 
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import type { Database } from "@/lib/database.types";
-import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/env";
+import type { Database } from "@/lib/supabase/database.types";
+import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/core/env";
 
 /**
  * Supabase client for Server Components, Server Actions and Route Handlers.

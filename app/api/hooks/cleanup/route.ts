@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cleanupDispatchImports, cleanupDispatchRetention } from "@/lib/dispatch/cleanup";
-import { cleanupPaperFiles } from "@/lib/paper-cleanup";
-import { hookAuthorized } from "@/lib/push";
+import { cleanupPaperFiles } from "@/lib/papers/cleanup";
+import { hookAuthorized } from "@/lib/notifications/push";
 import { createAdminClient, hasServiceRoleKey } from "@/lib/supabase/admin";
 
 /**

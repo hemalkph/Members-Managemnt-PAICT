@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getActionContext } from "@/lib/auth";
-import { uuid } from "@/lib/validation";
+import { uuid } from "@/lib/core/validation";
 
 /**
  * Opens a private courier file (waybills, Citypak sheets, template). Needs the

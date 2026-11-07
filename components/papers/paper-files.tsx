@@ -11,12 +11,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { addPaperFileAction, deletePaperFileAction } from "@/lib/actions/papers";
-import type { PaperStageName } from "@/lib/database.types";
-import { formatBytes } from "@/lib/format";
+import type { PaperStageName } from "@/lib/supabase/database.types";
+import { formatBytes } from "@/lib/core/format";
 import { PAPERS_BUCKET, STAGE_LABEL, STAGES } from "@/lib/papers";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import { MAX_PAPER_FILE_BYTES, type UPLOAD_STAGES } from "@/lib/validation";
+import { MAX_PAPER_FILE_BYTES, type UPLOAD_STAGES } from "@/lib/core/validation";
 
 export type FileItem = {
   id: string;

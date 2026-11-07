@@ -15,7 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { saveDispatchSettingsAction } from "@/lib/actions/dispatch";
 import { STAGE_LABEL, type OptionalStep, type StageKey } from "@/lib/dispatch/stages";
 import { cn } from "@/lib/utils";
-import { dispatchSettingsSchema, type DispatchSettingsInput } from "@/lib/validation";
+import { dispatchSettingsSchema, type DispatchSettingsInput } from "@/lib/core/validation";
 
 import { useT } from "@/components/dispatch/lang";
 type Field = { name: keyof DispatchSettingsInput; label: string; hint?: string; type?: string; wide?: boolean };

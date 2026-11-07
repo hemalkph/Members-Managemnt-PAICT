@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { accessMap, editablePages, pageAccess, sameStoredAccess, toStoredAccess } from "@/lib/page-access";
+import { accessMap, editablePages, pageAccess, sameStoredAccess, toStoredAccess } from "@/lib/auth/page-access";
 
 const member = { is_admin: false, is_main_admin: false };
 const admin = { is_admin: true, is_main_admin: false };

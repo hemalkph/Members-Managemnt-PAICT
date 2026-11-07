@@ -19,8 +19,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { requireCompleteProfile } from "@/lib/auth";
-import { monthLabel } from "@/lib/month";
-import { getTeamPerformance } from "@/lib/performance";
+import { monthLabel } from "@/lib/core/month";
+import { getTeamPerformance } from "@/lib/tasks/performance";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "My performance" };

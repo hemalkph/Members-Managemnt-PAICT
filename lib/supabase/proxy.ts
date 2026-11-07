@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import type { Database } from "@/lib/database.types";
-import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/env";
+import type { Database } from "@/lib/supabase/database.types";
+import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/core/env";
 
 // /api/hooks: called by the database with its own secret (no login cookie).
 const PUBLIC_PATHS = ["/login", "/forgot-password", "/auth", "/api/hooks"];

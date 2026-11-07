@@ -1,10 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { friendlyDbError, type ActionResult } from "@/lib/action-result";
+import { friendlyDbError, type ActionResult } from "@/lib/core/action-result";
 import { getActionContext, NOT_ALLOWED } from "@/lib/auth";
-import { ADMINS_CAN_REVEAL_ACCOUNT_NUMBER } from "@/lib/config";
-import { bankSchema, fieldErrorsOf, firstError, idSchema, type BankInput } from "@/lib/validation";
+import { ADMINS_CAN_REVEAL_ACCOUNT_NUMBER } from "@/lib/core/config";
+import { bankSchema, fieldErrorsOf, firstError, idSchema, type BankInput } from "@/lib/core/validation";
 
 export async function saveBankDetailsAction(input: BankInput): Promise<ActionResult> {
   const ctx = await getActionContext();

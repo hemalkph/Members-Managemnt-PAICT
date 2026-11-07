@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getActionContext } from "@/lib/auth";
-import { parseMonthParam } from "@/lib/month";
-import { csvCell, getMonthlyReport } from "@/lib/report";
+import { parseMonthParam } from "@/lib/core/month";
+import { csvCell, getMonthlyReport } from "@/lib/work/report";
 
 /** CSV of approved work per member per role for ?month=YYYY-MM (admins only). */
 export async function GET(request: NextRequest) {

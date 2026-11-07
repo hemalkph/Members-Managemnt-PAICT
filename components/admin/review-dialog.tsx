@@ -13,9 +13,9 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { reviewSubmissionsAction } from "@/lib/actions/admin";
-import type { SubmissionStatus } from "@/lib/database.types";
-import { formatBytes, formatDate, formatDateTime, formatLKR } from "@/lib/format";
-import { monthLabel } from "@/lib/month";
+import type { SubmissionStatus } from "@/lib/supabase/database.types";
+import { formatBytes, formatDate, formatDateTime, formatLKR } from "@/lib/core/format";
+import { monthLabel } from "@/lib/core/month";
 
 export type ReviewRow = {
   id: string;

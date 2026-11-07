@@ -11,10 +11,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { requirePage } from "@/lib/auth";
-import { getClassOptions } from "@/lib/classes";
-import { formatDate, formatNumber } from "@/lib/format";
+import { getClassOptions } from "@/lib/organisation/classes";
+import { formatDate, formatNumber } from "@/lib/core/format";
 import { createClient } from "@/lib/supabase/server";
-import { uuid } from "@/lib/validation";
+import { uuid } from "@/lib/core/validation";
 
 export const metadata: Metadata = { title: "Work by exam" };
 

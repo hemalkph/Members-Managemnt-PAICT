@@ -1,9 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { friendlyDbError, type ActionResult } from "@/lib/action-result";
+import { friendlyDbError, type ActionResult } from "@/lib/core/action-result";
 import { getActionContext, NOT_ALLOWED } from "@/lib/auth";
-import { notificationIdsSchema } from "@/lib/validation";
+import { notificationIdsSchema } from "@/lib/core/validation";
 
 /** Mark some (or, with no ids, all) of your notifications as read. */
 export async function markNotificationsReadAction(input: { ids?: number[] } = {}): Promise<ActionResult> {

@@ -1,9 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { friendlyDbError, type ActionResult } from "@/lib/action-result";
+import { friendlyDbError, type ActionResult } from "@/lib/core/action-result";
 import { getActionContext, NOT_ALLOWED } from "@/lib/auth";
-import { monthKeyToDate, monthLabel } from "@/lib/month";
+import { monthKeyToDate, monthLabel } from "@/lib/core/month";
 import {
   closeMonthSchema,
   firstError,
@@ -11,7 +11,7 @@ import {
   reopenMonthSchema,
   type CloseMonthInput,
   type MarkPaidInput,
-} from "@/lib/validation";
+} from "@/lib/core/validation";
 
 function revalidatePayments() {
   revalidatePath("/admin/payments");

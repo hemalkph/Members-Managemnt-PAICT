@@ -2,7 +2,7 @@
 
 import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
-import { friendlyDbError, type ActionResult } from "@/lib/action-result";
+import { friendlyDbError, type ActionResult } from "@/lib/core/action-result";
 import { getActionContext, NOT_ALLOWED } from "@/lib/auth";
 import { dispatchActionContext } from "@/lib/dispatch/access";
 import { normalisePhone } from "@/lib/dispatch/phone";
@@ -31,7 +31,7 @@ import {
   type RoundStudentsInput,
   type RoundTutesInput,
   type SavedTuteInput,
-} from "@/lib/validation";
+} from "@/lib/core/validation";
 
 const BUCKET = "dispatch";
 type Ctx = NonNullable<Awaited<ReturnType<typeof dispatchActionContext>>>;

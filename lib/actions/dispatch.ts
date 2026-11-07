@@ -2,7 +2,7 @@
 
 import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
-import { friendlyDbError, type ActionResult } from "@/lib/action-result";
+import { friendlyDbError, type ActionResult } from "@/lib/core/action-result";
 import { getActionContext, NOT_ALLOWED } from "@/lib/auth";
 import { createAdminClient, hasServiceRoleKey } from "@/lib/supabase/admin";
 import { dispatchActionContext } from "@/lib/dispatch/access";
@@ -29,7 +29,7 @@ import {
   uuid,
   type DispatchSettingsInput,
   type StudentInput,
-} from "@/lib/validation";
+} from "@/lib/core/validation";
 
 const BUCKET = "dispatch";
 const IMPORT_PATH = /^imports\/[0-9a-f-]{36}\.(xlsx|csv)$/;

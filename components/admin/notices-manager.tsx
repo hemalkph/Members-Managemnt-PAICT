@@ -28,8 +28,8 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { deleteAnnouncementAction, saveAnnouncementAction } from "@/lib/actions/announcements";
-import { formatDate } from "@/lib/format";
-import { announcementSchema, type AnnouncementInput } from "@/lib/validation";
+import { formatDate } from "@/lib/core/format";
+import { announcementSchema, type AnnouncementInput } from "@/lib/core/validation";
 
 export type ManagedNotice = {
   id: string;

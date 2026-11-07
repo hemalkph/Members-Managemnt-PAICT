@@ -8,7 +8,7 @@ import { roundProgressAction } from "@/lib/actions/dispatch-packing";
 import { requireDispatch } from "@/lib/dispatch/access";
 import { EMPTY_PROGRESS } from "@/lib/dispatch/packing";
 import { createClient } from "@/lib/supabase/server";
-import { uuid } from "@/lib/validation";
+import { uuid } from "@/lib/core/validation";
 
 import { getT } from "@/lib/dispatch/i18n/server";
 export const metadata: Metadata = { title: "Packing station – Tute dispatch" };

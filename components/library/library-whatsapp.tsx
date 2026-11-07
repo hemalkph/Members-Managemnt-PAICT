@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { whatsAppLink } from "@/lib/task-whatsapp";
+import { whatsAppLink } from "@/lib/tasks/whatsapp";
 
 export type LibraryContact = {
   userId: string;

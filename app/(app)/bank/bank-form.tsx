@@ -9,8 +9,8 @@ import { SubmitButton } from "@/components/submit-button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { saveBankDetailsAction } from "@/lib/actions/bank";
-import { maskAccountNumber } from "@/lib/format";
-import { bankSchema, type BankInput } from "@/lib/validation";
+import { maskAccountNumber } from "@/lib/core/format";
+import { bankSchema, type BankInput } from "@/lib/core/validation";
 
 export function BankForm({
   defaultValues,

@@ -9,11 +9,11 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { requireUser } from "@/lib/auth";
-import { accessMap } from "@/lib/page-access";
-import { ageOn, isBirthdayToday } from "@/lib/birthday";
-import { todayISO } from "@/lib/month";
+import { accessMap } from "@/lib/auth/page-access";
+import { ageOn, isBirthdayToday } from "@/lib/members/birthday";
+import { todayISO } from "@/lib/core/month";
 import { getBellNotifications } from "@/lib/notifications";
-import { signedAvatarUrl } from "@/lib/storage";
+import { signedAvatarUrl } from "@/lib/core/storage";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {

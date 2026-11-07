@@ -1,9 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { friendlyDbError, type ActionResult } from "@/lib/action-result";
+import { friendlyDbError, type ActionResult } from "@/lib/core/action-result";
 import { getActionContext, NOT_ALLOWED } from "@/lib/auth";
-import { fieldErrorsOf, firstError, roleRatesSchema, type RoleRatesInput } from "@/lib/validation";
+import { fieldErrorsOf, firstError, roleRatesSchema, type RoleRatesInput } from "@/lib/core/validation";
 
 export type SavedRateItem = { id: string; name: string; unit: string; price: number };
 export type SavedSalary = { user_id: string; amount: number };

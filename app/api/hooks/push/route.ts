@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { hookAuthorized, sendPushToUser } from "@/lib/push";
+import { hookAuthorized, sendPushToUser } from "@/lib/notifications/push";
 import { createAdminClient, hasServiceRoleKey } from "@/lib/supabase/admin";
 
 /**

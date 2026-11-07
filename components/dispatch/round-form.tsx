@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { copyRoundAction, saveRoundAction } from "@/lib/actions/dispatch-rounds";
-import { roundSchema, type RoundInput } from "@/lib/validation";
+import { roundSchema, type RoundInput } from "@/lib/core/validation";
 
 import { useT } from "@/components/dispatch/lang";
 import { usePlanStep } from "@/components/dispatch/plan-steps";

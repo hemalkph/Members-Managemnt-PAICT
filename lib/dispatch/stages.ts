@@ -1,6 +1,6 @@
 // The seven steps of a round, worked out from what is saved, and the one
 // thing this person should do next. Pure, so it is unit tested.
-import type { DispatchCapability } from "@/lib/database.types";
+import type { DispatchCapability } from "@/lib/supabase/database.types";
 
 export type StageKey = "plan" | "tracking" | "pack" | "handover" | "delivery" | "money" | "close";
 /** Steps an office may switch off in Settings (Delivery needs Handover, COD money needs Delivery). */

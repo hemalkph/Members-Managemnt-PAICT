@@ -1,17 +1,17 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { friendlyDbError, type ActionResult } from "@/lib/action-result";
+import { friendlyDbError, type ActionResult } from "@/lib/core/action-result";
 import { getActionContext, NOT_ALLOWED } from "@/lib/auth";
-import { getDeadlines } from "@/lib/deadlines";
-import { DriveError, verifyVideos, type VerifiedVideo } from "@/lib/drive";
-import { isVideoRole } from "@/lib/drive-videos";
-import { APP_TIME_ZONE, currentMonthKey, monthKeyToDate, todayISO } from "@/lib/month";
-import { getMarkingRates, MARKING_LABEL, setKey, setParts, setTitle } from "@/lib/marking";
-import { getPaperDrafts } from "@/lib/paper-drafts";
+import { getDeadlines } from "@/lib/work/deadlines";
+import { DriveError, verifyVideos, type VerifiedVideo } from "@/lib/work/drive";
+import { isVideoRole } from "@/lib/work/drive-videos";
+import { APP_TIME_ZONE, currentMonthKey, monthKeyToDate, todayISO } from "@/lib/core/month";
+import { getMarkingRates, MARKING_LABEL, setKey, setParts, setTitle } from "@/lib/work/marking";
+import { getPaperDrafts } from "@/lib/papers/drafts";
 import { getClosedMonthKeys } from "@/lib/payments";
-import { isProfileComplete } from "@/lib/profile-completion";
-import { ATTACHMENTS_BUCKET } from "@/lib/storage";
+import { isProfileComplete } from "@/lib/members/profile-completion";
+import { ATTACHMENTS_BUCKET } from "@/lib/core/storage";
 import {
   fieldErrorsOf,
   firstError,
@@ -20,7 +20,7 @@ import {
   paperPagesSchema,
   submissionActionSchema,
   type AttachmentInput,
-} from "@/lib/validation";
+} from "@/lib/core/validation";
 import type { z } from "zod";
 
 type SubmissionActionInput = z.input<typeof submissionActionSchema>;

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ListTodoIcon, PlusIcon } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
-import type { TaskView } from "@/lib/task-queries";
+import type { TaskView } from "@/lib/tasks/queries";
 import { TaskCard } from "./task-card";
 import { TaskDialog, type TaskFormOptions } from "./task-dialog";
 

@@ -5,9 +5,9 @@ import { ArrowLeftIcon, DownloadIcon } from "lucide-react";
 import { PayslipView } from "@/components/payslip/payslip-view";
 import { Button } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
-import { getPayslip } from "@/lib/payslip";
+import { getPayslip } from "@/lib/payments/payslip";
 import { createClient } from "@/lib/supabase/server";
-import { uuid } from "@/lib/validation";
+import { uuid } from "@/lib/core/validation";
 
 export const metadata: Metadata = { title: "Payslip" };
 

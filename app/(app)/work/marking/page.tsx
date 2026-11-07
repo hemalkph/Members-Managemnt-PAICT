@@ -8,10 +8,10 @@ import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireCompleteProfile } from "@/lib/auth";
-import { formatDate, formatDay, formatNumber } from "@/lib/format";
-import { getMarkingRates, markingKind, setKey, setParts, setTitle } from "@/lib/marking";
+import { formatDate, formatDay, formatNumber } from "@/lib/core/format";
+import { getMarkingRates, markingKind, setKey, setParts, setTitle } from "@/lib/work/marking";
 import { addDays, PART_LABEL } from "@/lib/papers";
-import { todayISO } from "@/lib/month";
+import { todayISO } from "@/lib/core/month";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Log marking" };
