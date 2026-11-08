@@ -1036,6 +1036,54 @@ export type Database = {
           },
         ];
       };
+      task_types: {
+        Row: {
+          id: string;
+          name: string;
+          icon: string | null;
+          color: string;
+          description: string | null;
+          role_id: string | null;
+          default_assignee_id: string | null;
+          title_template: string | null;
+          due_days: number | null;
+          priority: "normal" | "high";
+          fields: Json;
+          active: boolean;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          icon?: string | null;
+          color?: string;
+          description?: string | null;
+          role_id?: string | null;
+          default_assignee_id?: string | null;
+          title_template?: string | null;
+          due_days?: number | null;
+          priority?: "normal" | "high";
+          fields?: Json;
+          active?: boolean;
+          created_by?: string | null;
+        };
+        Update: {
+          name?: string;
+          icon?: string | null;
+          color?: string;
+          description?: string | null;
+          role_id?: string | null;
+          default_assignee_id?: string | null;
+          title_template?: string | null;
+          due_days?: number | null;
+          priority?: "normal" | "high";
+          fields?: Json;
+          active?: boolean;
+        };
+        Relationships: [];
+      };
       tasks: {
         Row: {
           id: string;
@@ -1054,6 +1102,8 @@ export type Database = {
           created_at: string;
           updated_at: string;
           completed_at: string | null;
+          type_id: string | null;
+          details: Json;
         };
         Insert: {
           id?: string;
@@ -1068,6 +1118,8 @@ export type Database = {
           priority?: "normal" | "high";
           status?: TaskStatus;
           created_by?: string | null;
+          type_id?: string | null;
+          details?: Json;
         };
         Update: {
           title?: string;
@@ -1080,6 +1132,8 @@ export type Database = {
           due_date?: string | null;
           priority?: "normal" | "high";
           status?: TaskStatus;
+          type_id?: string | null;
+          details?: Json;
         };
         Relationships: [
           {
@@ -1087,6 +1141,13 @@ export type Database = {
             columns: ["assignee_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tasks_type_id_fkey";
+            columns: ["type_id"];
+            isOneToOne: false;
+            referencedRelation: "task_types";
             referencedColumns: ["id"];
           },
           {

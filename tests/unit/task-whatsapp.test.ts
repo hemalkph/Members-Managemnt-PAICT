@@ -17,6 +17,7 @@ const base = {
     { id: "2", kind: "brief", fileName: "b.psd", sizeBytes: 1, when: "", seen: false },
     { id: "3", kind: "work", fileName: "c.pdf", sizeBytes: 1, when: "", seen: false },
   ],
+  details: [],
 } as unknown as TaskView;
 
 describe("task WhatsApp message", () => {
@@ -29,6 +30,21 @@ describe("task WhatsApp message", () => {
     expect(text).toContain("Files: 2 attached");
     expect(text).toContain("Details: Use the new cover.");
     expect(text).toContain("Open your task: https://example.app/tasks");
+  });
+
+  test("task type fields are listed", () => {
+    const text = taskWhatsAppText(
+      {
+        ...base,
+        details: [
+          { id: "lesson", label: "Lesson", kind: "select", value: "Networking Theory" },
+          { id: "class_date", label: "Class date", kind: "date", value: "2026-11-07" },
+        ],
+      },
+      "https://example.app",
+    );
+    expect(text).toContain("Lesson: Networking Theory");
+    expect(text).toContain("Class date: 7 Nov 2026");
   });
 
   test("overdue task gets a reminder", () => {

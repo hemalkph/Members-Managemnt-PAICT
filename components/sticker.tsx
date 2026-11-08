@@ -5,7 +5,7 @@ import type { AnimationItem } from "lottie-web";
 import { cn } from "@/lib/utils";
 
 /** Animated stickers (Lottie JSON files in public/animations). */
-export type StickerName = "money-out" | "billion" | "hey" | "flamy" | "press" | "translate";
+export type StickerName = "money-out" | "billion" | "hey" | "flamy" | "press" | "translate" | "study";
 
 const loadPlayer = () => import("lottie-web/build/player/lottie_light").then((m) => m.default);
 

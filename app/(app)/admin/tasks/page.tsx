@@ -5,6 +5,7 @@ import { StatCard } from "@/components/stat-card";
 import { waNumber } from "@/components/papers/review-contacts";
 import { AdminTaskBoard } from "@/components/tasks/admin-task-board";
 import { TaskFilters } from "@/components/tasks/task-filters";
+import { TaskTypesButton } from "@/components/tasks/task-type-manager";
 import { requirePage } from "@/lib/auth";
 import { activeOptions, getClassOptions } from "@/lib/organisation/classes";
 import type { TaskStatus } from "@/lib/supabase/database.types";
@@ -12,7 +13,7 @@ import { todayISO } from "@/lib/core/month";
 import { createClient } from "@/lib/supabase/server";
 import { getTeamDirectory, teamNames } from "@/lib/members/team-directory";
 import { ReadOnlyNotice } from "@/components/read-only-notice";
-import { getTasks } from "@/lib/tasks/queries";
+import { getTasks, getTaskTypes } from "@/lib/tasks/queries";
 import { uuid } from "@/lib/core/validation";
 
 export const metadata: Metadata = { title: "Tasks" };
@@ -31,21 +32,23 @@ export default async function AdminTasksPage({ searchParams }: PageProps<"/admin
   const view = VIEWS[one(sp.view)] ? one(sp.view) : "open";
   const member = uuid.safeParse(one(sp.member)).success ? one(sp.member) : "";
   const exam = uuid.safeParse(one(sp.exam)).success ? one(sp.exam) : "";
+  const type = uuid.safeParse(one(sp.type)).success ? one(sp.type) : "";
   const today = todayISO();
 
   const supabase = await createClient();
   const team = await getTeamDirectory(supabase);
   const names = teamNames(team);
-  const [tasks, openTasks, classOptions, { data: roles }, { data: memberRoles }] = await Promise.all([
+  const [tasks, openTasks, classOptions, { data: roles }, { data: memberRoles }, types] = await Promise.all([
     getTasks(
       supabase,
-      { statuses: VIEWS[view].statuses, assigneeId: member || undefined, examId: exam || undefined },
+      { statuses: VIEWS[view].statuses, assigneeId: member || undefined, examId: exam || undefined, typeId: type || undefined },
       names,
     ),
     getTasks(supabase, { statuses: ["open"], limit: 1000 }, names),
     getClassOptions(supabase),
     supabase.from("roles").select("id, name").order("sort_order").order("name"),
     supabase.from("member_roles").select("user_id, role_id"),
+    getTaskTypes(supabase),
   ]);
   const tags = activeOptions(classOptions);
   const weekAhead = new Date(Date.parse(`${today}T00:00:00Z`) + 7 * 86_400_000).toISOString().slice(0, 10);
@@ -70,13 +73,17 @@ export default async function AdminTasksPage({ searchParams }: PageProps<"/admin
     roles: roles ?? [],
     exams: tags.exams.map((e) => ({ id: e.id, label: e.label })),
     centres: tags.centres.map((c) => ({ id: c.id, name: c.name })),
+    types,
   };
 
   return (
     <div className="space-y-6">
-      <div className="space-y-1">
-        <BlurText as="h1" text="Tasks" className="text-2xl font-semibold tracking-tight sm:text-3xl" />
-        <p className="text-muted-foreground text-sm">Give members work with a due date and see what is overdue.</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-1">
+          <BlurText as="h1" text="Tasks" className="text-2xl font-semibold tracking-tight sm:text-3xl" />
+          <p className="text-muted-foreground text-sm">Give members work with a due date and see what is overdue.</p>
+        </div>
+        {canEdit && <TaskTypesButton types={types} options={options} />}
       </div>
 
       {!canEdit && <ReadOnlyNotice />}
@@ -92,6 +99,8 @@ export default async function AdminTasksPage({ searchParams }: PageProps<"/admin
         view={view}
         member={member}
         exam={exam}
+        type={type}
+        types={types.map((t) => ({ id: t.id, label: t.name }))}
         members={team.map((p) => ({ id: p.id, name: p.name }))}
         exams={classOptions.exams.map((e) => ({ id: e.id, label: e.label }))}
       />

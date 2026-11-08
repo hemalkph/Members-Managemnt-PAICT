@@ -1,5 +1,11 @@
 import { z } from "zod";
 import { DRIVE_FILE_ID } from "@/lib/work/drive-videos";
+import {
+  MAX_FIELDS as MAX_TASK_FIELDS,
+  MAX_OPTIONS as MAX_TASK_FIELD_OPTIONS,
+  TASK_COLORS,
+  TASK_ICON_NAMES,
+} from "@/lib/tasks/types";
 import { parseNic } from "@/lib/members/nic";
 
 // Shared by client forms (react-hook-form) and Server Actions.
@@ -357,8 +363,53 @@ export const taskSchema = z.object({
   quantity: z.number().int().min(1, "At least 1").max(100000, "Too large").nullable(),
   due_date: z.union([isoDate, z.literal("")]),
   priority: z.enum(["normal", "high"]),
+  /** Task type, and its field values by field id (checked against the type on the server). */
+  type_id: optionalUuid.default(""),
+  details: z.record(z.string().max(40), z.string().max(2000)).default({}),
 });
 export type TaskInput = z.input<typeof taskSchema>;
+
+const taskFieldSchema = z
+  .object({
+    id: z.string().regex(/^[a-z0-9_]{1,40}$/, "Invalid field"),
+    label: trimmed(1, 60, "Field name"),
+    kind: z.enum(["text", "long", "link", "date", "number", "select", "file"]),
+    required: z.boolean(),
+    options: z.array(z.string().trim().min(1).max(80)).max(MAX_TASK_FIELD_OPTIONS).default([]),
+  })
+  .refine((f) => f.kind !== "select" || f.options.length > 0, { message: "A dropdown needs at least one option" });
+
+export const taskTypeSchema = z.object({
+  id: uuid.optional(),
+  name: trimmed(2, 60, "Name"),
+  icon: z.union([z.enum(TASK_ICON_NAMES), z.literal("")]).default(""),
+  color: z.enum(TASK_COLORS).default("blue"),
+  description: optionalText(300, "Description"),
+  role_id: optionalUuid,
+  default_assignee_id: optionalUuid,
+  title_template: z.string().trim().max(150).default(""),
+  due_days: z.number().int().min(0).max(90).nullable(),
+  priority: z.enum(["normal", "high"]),
+  active: z.boolean().default(true),
+  fields: z
+    .array(taskFieldSchema)
+    .max(MAX_TASK_FIELDS, `Up to ${MAX_TASK_FIELDS} fields`)
+    .refine((fs) => new Set(fs.map((f) => f.id)).size === fs.length, { message: "Two fields have the same id" })
+    .refine((fs) => new Set(fs.map((f) => f.label.toLowerCase())).size === fs.length, {
+      message: "Two fields have the same name",
+    }),
+});
+export type TaskTypeInput = z.input<typeof taskTypeSchema>;
+
+/** Files uploaded for a task's "File upload" fields: which file goes in which field. */
+export const taskFieldFilesSchema = z.object({
+  task_id: uuid,
+  files: z
+    .array(z.object({ field_id: z.string().regex(/^[a-z0-9_]{1,40}$/), file_id: uuid }))
+    .min(1)
+    .max(20),
+});
+export type TaskFieldFilesInput = z.input<typeof taskFieldFilesSchema>;
 
 export const taskStatusSchema = z.object({
   id: uuid,

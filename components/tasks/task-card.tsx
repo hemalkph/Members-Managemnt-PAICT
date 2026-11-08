@@ -38,6 +38,8 @@ import type { TaskView } from "@/lib/tasks/queries";
 import { getSiteUrl } from "@/lib/core/env";
 import { taskWhatsAppText, whatsAppLink } from "@/lib/tasks/whatsapp";
 import { cn } from "@/lib/utils";
+import { TaskDetails } from "./task-details";
+import { TaskTypeIcon } from "./task-type-icon";
 import { TaskFilesButton } from "./task-files";
 
 const STATUS_BADGE = {
@@ -120,6 +122,12 @@ export function TaskCard({
                 <FileStackIcon /> Paper stage
               </Badge>
             )}
+            {task.typeName && (
+              <Badge variant="outline" className="gap-1.5 pl-0.5">
+                <TaskTypeIcon icon={task.typeIcon} color={task.typeColor} size={12} className="size-5 rounded-md" />
+                {task.typeName}
+              </Badge>
+            )}
           </div>
         </div>
         {mode === "admin" && readOnly && task.paperId && (
@@ -172,6 +180,12 @@ export function TaskCard({
           </DropdownMenu>
         )}
       </div>
+
+      {task.typeInstructions && !finished && (
+        <p className="text-muted-foreground text-xs whitespace-pre-line">{task.typeInstructions}</p>
+      )}
+
+      <TaskDetails details={task.details} files={task.files} />
 
       {task.description && <p className="text-muted-foreground line-clamp-3 text-sm">{task.description}</p>}
 

@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, TaskStatus } from "@/lib/supabase/database.types";
 import { formatDate, formatDateTime } from "@/lib/core/format";
 import { todayISO } from "@/lib/core/month";
+import { readDetails, readFields, TASK_COLORS, type TaskColor, type TaskDetail, type TaskTypeView } from "@/lib/tasks/types";
 
 export type TaskFileView = {
   id: string;
@@ -42,12 +43,23 @@ export type TaskView = {
   completedAt: string | null;
   /** Oldest first. */
   files: TaskFileView[];
+  typeId: string | null;
+  typeName: string | null;
+  typeIcon: string | null;
+  typeColor: TaskColor;
+  /** The type's instructions (shown on every task of the type). */
+  typeInstructions: string | null;
+  /** The type's fields as filled in when the task was given. */
+  details: TaskDetail[];
 };
 
 const SELECT =
-  "id, title, description, assignee_id, role_id, exam_id, centre_id, quantity, due_date, priority, status, completed_at, paper_stage_id, created_by, assignee:profiles!tasks_assignee_id_fkey(full_name, email), creator:profiles!tasks_created_by_fkey(full_name, email), roles(name), exam:exams(name, batch:batches(name)), centre:centres(name), stage:paper_stages(paper_id), submissions(count), task_files(id, kind, file_name, size_bytes, seen_at, created_at)";
+  "id, title, description, assignee_id, role_id, exam_id, centre_id, quantity, due_date, priority, status, completed_at, paper_stage_id, created_by, assignee:profiles!tasks_assignee_id_fkey(full_name, email), creator:profiles!tasks_created_by_fkey(full_name, email), roles(name), exam:exams(name, batch:batches(name)), centre:centres(name), stage:paper_stages(paper_id), submissions(count), task_files(id, kind, file_name, size_bytes, seen_at, created_at), type_id, details, task_types(name, icon, color, description)";
 
 const DAY = 86_400_000;
+
+const asColor = (c: string | null | undefined): TaskColor =>
+  (TASK_COLORS as readonly string[]).includes(c ?? "") ? (c as TaskColor) : "blue";
 
 export function dueInfo(dueDate: string | null, status: TaskStatus, today = todayISO()) {
   if (!dueDate) return { dueLabel: null, overdue: false, dueSoon: false };
@@ -83,11 +95,14 @@ type Row = {
   stage: { paper_id: string } | null;
   submissions: { count: number }[];
   task_files: { id: string; kind: "brief" | "work"; file_name: string; size_bytes: number; seen_at: string | null; created_at: string }[];
+  type_id: string | null;
+  details: unknown;
+  task_types: { name: string; icon: string | null; color: string; description: string | null } | null;
 };
 
 export async function getTasks(
   supabase: SupabaseClient<Database>,
-  filters: { assigneeId?: string; statuses?: TaskStatus[]; examId?: string; limit?: number } = {},
+  filters: { assigneeId?: string; statuses?: TaskStatus[]; examId?: string; typeId?: string; limit?: number } = {},
   /** Names for people the viewer can't read directly (from the team directory). */
   names?: Map<string, string>,
 ): Promise<TaskView[]> {
@@ -95,6 +110,7 @@ export async function getTasks(
   if (filters.assigneeId) query = query.eq("assignee_id", filters.assigneeId);
   if (filters.statuses?.length) query = query.in("status", filters.statuses);
   if (filters.examId) query = query.eq("exam_id", filters.examId);
+  if (filters.typeId) query = query.eq("type_id", filters.typeId);
   const { data } = await query
     .order("due_date", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: false })
@@ -132,5 +148,34 @@ export async function getTasks(
         when: formatDateTime(f.created_at),
         seen: f.seen_at !== null,
       })),
+    typeId: t.type_id,
+    typeName: t.task_types?.name ?? null,
+    typeIcon: t.task_types?.icon ?? null,
+    typeColor: asColor(t.task_types?.color),
+    typeInstructions: t.task_types?.description ?? null,
+    details: readDetails(t.details),
+  }));
+}
+
+/** Task types, active ones first then by name. */
+export async function getTaskTypes(supabase: SupabaseClient<Database>): Promise<TaskTypeView[]> {
+  const { data } = await supabase
+    .from("task_types")
+    .select("id, name, icon, color, description, role_id, default_assignee_id, title_template, due_days, priority, fields, active")
+    .order("active", { ascending: false })
+    .order("name");
+  return (data ?? []).map((t) => ({
+    id: t.id,
+    name: t.name,
+    icon: t.icon,
+    color: asColor(t.color),
+    description: t.description,
+    roleId: t.role_id,
+    defaultAssigneeId: t.default_assignee_id,
+    titleTemplate: t.title_template,
+    dueDays: t.due_days,
+    priority: t.priority,
+    fields: readFields(t.fields),
+    active: t.active,
   }));
 }

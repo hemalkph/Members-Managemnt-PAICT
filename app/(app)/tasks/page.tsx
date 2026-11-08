@@ -3,6 +3,7 @@ import Link from "next/link";
 import { CheckCheckIcon, HourglassIcon, ListTodoIcon, TriangleAlertIcon } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import BlurText from "@/components/reactbits/blur-text";
+import { Sticker } from "@/components/sticker";
 import { StatCard } from "@/components/stat-card";
 import { TaskCard } from "@/components/tasks/task-card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -31,9 +32,12 @@ export default async function MyTasksPage({ searchParams }: PageProps<"/tasks">)
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-1">
-          <BlurText as="h1" text="My tasks" className="text-2xl font-semibold tracking-tight sm:text-3xl" />
-          <p className="text-muted-foreground text-sm">Work the admins gave you. Log your work, then mark it done.</p>
+        <div className="flex items-center gap-3">
+          <Sticker name="study" size={64} loop />
+          <div className="space-y-1">
+            <BlurText as="h1" text="My tasks" className="text-2xl font-semibold tracking-tight sm:text-3xl" />
+            <p className="text-muted-foreground text-sm">Work the admins gave you. Log your work, then mark it done.</p>
+          </div>
         </div>
         <Tabs value={showDone ? "done" : "todo"}>
           <TabsList>
@@ -57,6 +61,7 @@ export default async function MyTasksPage({ searchParams }: PageProps<"/tasks">)
       {list.length === 0 ? (
         <EmptyState
           icon={ListTodoIcon}
+          art={showDone ? undefined : <Sticker name="study" size={120} loop />}
           title={showDone ? "Nothing finished yet" : "No tasks right now"}
           description={showDone ? undefined : "When an admin gives you a task, it appears here and you get a notification."}
         />

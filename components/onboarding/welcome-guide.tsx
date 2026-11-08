@@ -12,7 +12,7 @@ import {
   SparklesIcon,
   WalletIcon,
 } from "lucide-react";
-import { BrandLogo } from "@/components/brand-logo";
+import { Sticker } from "@/components/sticker";
 import GradientText from "@/components/reactbits/gradient-text";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -98,8 +98,9 @@ export function WelcomeGuide({ userId, firstName }: { userId: string; firstName:
   return (
     <Dialog open={open} onOpenChange={close}>
       <DialogContent className="overflow-hidden sm:max-w-md">
-        <div className="from-primary/15 to-chart-2/10 -mx-6 -mt-6 flex items-center justify-center bg-gradient-to-br py-6">
-          <BrandLogo className="h-12" />
+        <div className="from-primary/15 to-chart-2/10 -mx-6 -mt-6 flex items-center justify-center bg-gradient-to-br py-3">
+          {/* The studying duck with the class logo behind it. */}
+          <Sticker name="study" size={112} loop />
         </div>
         <AnimatePresence mode="wait" initial={false}>
           <motion.div

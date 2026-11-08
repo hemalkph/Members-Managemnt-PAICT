@@ -12,6 +12,7 @@ import {
 import { EmptyState } from "@/components/empty-state";
 import BlurText from "@/components/reactbits/blur-text";
 import SpotlightCard from "@/components/reactbits/spotlight-card";
+import { Sticker } from "@/components/sticker";
 import { Badge } from "@/components/ui/badge";
 import { requireCompleteProfile } from "@/lib/auth";
 import type { PaperStageName } from "@/lib/supabase/database.types";
@@ -154,11 +155,15 @@ export default async function MyWeekPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <div className="space-y-1">
-        <BlurText as="h1" text="My week" className="text-2xl font-semibold tracking-tight sm:text-3xl" />
-        <p className="text-muted-foreground text-sm">
-          Your paper stages and tasks for the next 7 days. You also get a phone alert the evening before a stage starts.
-        </p>
+      <div className="flex items-center gap-3">
+        <Sticker name="study" size={64} loop />
+        <div className="space-y-1">
+          <BlurText as="h1" text="My week" className="text-2xl font-semibold tracking-tight sm:text-3xl" />
+          <p className="text-muted-foreground text-sm">
+            Your paper stages and tasks for the next 7 days. You also get a phone alert the evening before a stage
+            starts.
+          </p>
+        </div>
       </div>
 
       {nothing ? (

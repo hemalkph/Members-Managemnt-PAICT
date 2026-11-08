@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ClassesManager } from "@/components/classes/classes-manager";
 import BlurText from "@/components/reactbits/blur-text";
 import { ReadOnlyNotice } from "@/components/read-only-notice";
+import { Sticker } from "@/components/sticker";
 import { requirePage } from "@/lib/auth";
 import { getClassOptions } from "@/lib/organisation/classes";
 import { createClient } from "@/lib/supabase/server";
@@ -25,12 +26,15 @@ export default async function ClassesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-1">
-        <BlurText as="h1" text="Batches & exams" className="text-2xl font-semibold tracking-tight sm:text-3xl" />
-        <p className="text-muted-foreground text-sm">
-          A/L batches, their tests and class centres. Members tag their work with them, and tasks and papers are grouped
-          by exam.
-        </p>
+      <div className="flex items-center gap-3">
+        <Sticker name="study" size={64} loop />
+        <div className="space-y-1">
+          <BlurText as="h1" text="Batches & exams" className="text-2xl font-semibold tracking-tight sm:text-3xl" />
+          <p className="text-muted-foreground text-sm">
+            A/L batches, their tests and class centres. Members tag their work with them, and tasks and papers are
+            grouped by exam.
+          </p>
+        </div>
       </div>
       {!canEdit && <ReadOnlyNotice />}
       <ClassesManager options={options} counts={counts} readOnly={!canEdit} />
