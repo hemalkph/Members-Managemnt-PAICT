@@ -3,6 +3,7 @@ import { NoteForm, type NoteItem } from "@/components/papers/paper-notes";
 import { PaperFileUploader, type FileItem } from "@/components/papers/paper-files";
 import { FinishStageButton, StageLinkDialog } from "@/components/papers/stage-controls";
 import SpotlightCard from "@/components/reactbits/spotlight-card";
+import { Sticker } from "@/components/sticker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { PaperStageName } from "@/lib/supabase/database.types";
@@ -156,6 +157,7 @@ export function MyStagePanel({ paperId, stage: s }: { paperId: string; stage: My
           Your part · Stage {s.number}
         </p>
         <div className="flex flex-wrap items-center gap-2">
+          {s.stage === "convert" && !finished && <Sticker name="translate" size={44} loop />}
           <p className="text-lg font-semibold">{s.label}</p>
           {finished ? (
             <Badge variant="success">Done</Badge>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BadgeCheckIcon, CircleDashedIcon, DownloadIcon, FileTextIcon, TrendingUpIcon, WalletIcon } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
+import { Sticker } from "@/components/sticker";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { MonthBars } from "@/components/team/month-bars";
@@ -48,6 +49,8 @@ export default async function MyEarningsPage({ searchParams }: PageProps<"/paysl
     getSubmissionsForMonth(supabase, profile.id, thisMonth),
   ]);
   const payslips = (data ?? []).map(normalisePayout);
+  // The money duck celebrates the newest paid payslip (payslips are newest first).
+  const newestPaidId = payslips.find((p) => p.status === "paid")?.id;
 
   // This month so far (not closed yet): approved work + salary earned day by day.
   const closedThisMonth = payslips.some((p) => dateToMonthKey(p.month) === thisMonth);
@@ -146,6 +149,15 @@ export default async function MyEarningsPage({ searchParams }: PageProps<"/paysl
               : `${inYear.length} month${inYear.length === 1 ? "" : "s"} in ${year}`}
           </CardDescription>
         </CardHeader>
+        {payslips.length === 0 && (
+          <CardContent className="flex flex-col items-center gap-2 py-4 text-center">
+            <Sticker name="money-out" size={120} loop />
+            <p className="font-medium">No payslips yet</p>
+            <p className="text-muted-foreground max-w-sm text-sm">
+              Your first payslip appears here when a main admin closes the month. Keep logging your work!
+            </p>
+          </CardContent>
+        )}
         {inYear.length > 0 && (
           <CardContent className="px-0 sm:px-6">
             <Table>
@@ -176,9 +188,12 @@ export default async function MyEarningsPage({ searchParams }: PageProps<"/paysl
                     <TableCell className="text-right font-semibold tabular-nums">{formatLKR(p.total_amount)}</TableCell>
                     <TableCell>
                       {p.status === "paid" ? (
-                        <Badge variant="success">
-                          <BadgeCheckIcon /> Paid {formatDate(p.paid_on)}
-                        </Badge>
+                        <span className="inline-flex items-center gap-1.5">
+                          {p.id === newestPaidId && <Sticker name="money-out" size={36} />}
+                          <Badge variant="success">
+                            <BadgeCheckIcon /> Paid {formatDate(p.paid_on)}
+                          </Badge>
+                        </span>
                       ) : p.total_amount > 0 ? (
                         <Badge variant="warning">
                           <CircleDashedIcon /> Not paid yet

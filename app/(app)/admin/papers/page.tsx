@@ -8,6 +8,7 @@ import { PaperFilters } from "@/components/papers/paper-filters";
 import { PaperRow } from "@/components/papers/paper-row";
 import { GroupLinksForm } from "@/components/papers/stage-controls";
 import BlurText from "@/components/reactbits/blur-text";
+import { Sticker } from "@/components/sticker";
 import { StatCard } from "@/components/stat-card";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { mainAdminUnlocked, requirePage } from "@/lib/auth";
@@ -79,11 +80,14 @@ export default async function PapersPage({ searchParams }: PageProps<"/admin/pap
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-1">
-          <BlurText as="h1" text="Papers" className="text-2xl font-semibold tracking-tight sm:text-3xl" />
-          <p className="text-muted-foreground text-sm">
-            Create → Type set + Convert → Type set (English) → Review → Hand over → Marking scheme, all in the system.
-          </p>
+        <div className="flex items-center gap-3">
+          <Sticker name="translate" size={64} loop />
+          <div className="space-y-1">
+            <BlurText as="h1" text="Papers" className="text-2xl font-semibold tracking-tight sm:text-3xl" />
+            <p className="text-muted-foreground text-sm">
+              Create → Type set + Convert → Type set (English) → Review → Hand over → Marking scheme, all in the system.
+            </p>
+          </div>
         </div>
         {canEdit && (
         <div className="flex flex-wrap gap-2">

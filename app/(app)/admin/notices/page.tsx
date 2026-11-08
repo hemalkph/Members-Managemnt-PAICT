@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { NoticesManager } from "@/components/admin/notices-manager";
 import { PageHeader } from "@/components/page-header";
+import { Sticker } from "@/components/sticker";
 import { ReadOnlyNotice } from "@/components/read-only-notice";
 import { requirePage } from "@/lib/auth";
 import { todayISO } from "@/lib/core/month";
@@ -20,7 +21,11 @@ export default async function NoticesPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Notice board" description="Post reminders and news. Members see current notices on their dashboard." />
+      <PageHeader
+        title="Notice board"
+        description="Post reminders and news. Members see current notices on their dashboard."
+        leading={<Sticker name="press" size={64} loop />}
+      />
       {!canEdit && <ReadOnlyNotice />}
       <NoticesManager
         readOnly={!canEdit}

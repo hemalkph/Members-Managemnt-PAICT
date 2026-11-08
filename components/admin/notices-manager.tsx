@@ -8,6 +8,7 @@ import { MegaphoneIcon, PencilIcon, PinIcon, PlusIcon, Trash2Icon } from "lucide
 import { toast } from "sonner";
 
 import { EmptyState } from "@/components/empty-state";
+import { Sticker } from "@/components/sticker";
 import { SubmitButton } from "@/components/submit-button";
 import {
   AlertDialog,
@@ -78,6 +79,7 @@ export function NoticesManager({ notices, readOnly = false }: { notices: Managed
       {notices.length === 0 ? (
         <EmptyState
           icon={MegaphoneIcon}
+          art={<Sticker name="press" size={120} loop />}
           title="No notices yet"
           description="Post reminders, deadlines or good news. Members see them on their dashboard."
         />

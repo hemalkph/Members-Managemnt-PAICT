@@ -3,9 +3,8 @@
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { BrandLogo } from "@/components/brand-logo";
-import { usePageLoading } from "@/components/route-loading";
-import ShinyText from "@/components/reactbits/shiny-text";
+import { isPageChangeCancelled, usePageLoading } from "@/components/route-loading";
+import { preloadSticker, Sticker } from "@/components/sticker";
 
 // Links that download a file or leave the app (route handlers) – no overlay.
 const SKIP = /^\/(files|auth|papers\/files)\/|\/(pdf|payouts|export)(\/|$)/;
@@ -14,10 +13,11 @@ const SKIP = /^\/(files|auth|papers\/files)\/|\/(pdf|payouts|export)(\/|$)/;
 const keyOf = (url: URL) => `${url.pathname}?${url.searchParams.toString()}`;
 
 /**
- * Page-change animation: when an in-app link is clicked, the page blurs and the
- * class logo pulses inside a spinning ring until the next page's content is
- * ready (including while its loading placeholder shows). It only appears
- * after ~150 ms, so fast navigations don't flash.
+ * Page-change animation: when an in-app link is clicked, the page blurs step by
+ * step and the waving duck plays in the middle until the next page is ready
+ * (including while its loading placeholder shows). Once the duck is on screen it
+ * finishes its wave before the overlay goes, so it never stops half-way.
+ * It only appears after ~150 ms, so fast page changes don't flash.
  */
 export function RouteTransition() {
   const pathname = usePathname();
@@ -27,15 +27,40 @@ export function RouteTransition() {
   const [loading, setLoading] = useState(false);
   // A page's loading placeholder is on screen (its data is still coming).
   const placeholder = usePageLoading();
+  const busy = loading || placeholder;
+  // The overlay is on screen; when the page is ready it stays until the duck's wave ends.
+  const [shown, setShown] = useState(false);
+  const finishing = shown && !busy;
   const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // The new page has arrived: hide the overlay (state update during render,
+  // The new page has arrived: stop waiting for it (state update during render,
   // React's pattern for reacting to a changed value without an effect).
   const [shownFor, setShownFor] = useState(current);
   if (shownFor !== current) {
     setShownFor(current);
     setLoading(false);
   }
+
+  // Show the overlay ~150 ms after a page change starts.
+  useEffect(() => {
+    if (!busy || shown) return;
+    const show = setTimeout(() => setShown(true), 150);
+    return () => clearTimeout(show);
+  }, [busy, shown]);
+
+  // Page ready: hide straight away without motion, otherwise after the wave
+  // (with a fallback in case the animation never reports its end).
+  useEffect(() => {
+    if (!finishing) return;
+    const hide = setTimeout(() => setShown(false), reduce ? 0 : 3500);
+    return () => clearTimeout(hide);
+  }, [finishing, reduce]);
+
+  // Fetch the duck in the background so the first page change shows it at once.
+  useEffect(() => {
+    const idle = window.requestIdleCallback ?? ((fn: () => void) => setTimeout(fn, 1500));
+    idle(() => preloadSticker("hey"));
+  }, []);
 
   useEffect(() => {
     const onClick = (event: MouseEvent) => {
@@ -50,9 +75,10 @@ export function RouteTransition() {
       if (keyOf(url) === keyOf(here)) return; // same page (or just a #hash)
 
       // Listened to before the link's own handler: wait a tick so a link that
-      // cancels its navigation (e.g. "you have unsaved changes") shows no overlay.
+      // cancels its page change (cancelPageChange, e.g. "you have unsaved changes")
+      // shows no overlay. defaultPrevented can't be used: <Link> always sets it.
       setTimeout(() => {
-        if (event.defaultPrevented) return;
+        if (isPageChangeCancelled(event)) return;
         setLoading(true);
         if (timeout.current) clearTimeout(timeout.current);
         // Never get stuck (e.g. the request failed).
@@ -68,42 +94,33 @@ export function RouteTransition() {
 
   return (
     <AnimatePresence>
-      {(loading || placeholder) && (
+      {shown && (
         <motion.div
           key="route-transition"
           role="status"
           aria-live="polite"
           aria-label="Loading page"
-          className="bg-background/45 fixed inset-0 z-[60] flex items-center justify-center backdrop-blur-md"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1, transition: { duration: 0.2, delay: 0.15 } }}
-          exit={{ opacity: 0, transition: { duration: 0.18 } }}
+          className="fixed inset-0 z-[60] flex items-center justify-center"
+          // Progressive blur: the page fades and blurs a little more each moment.
+          initial={{ backdropFilter: "blur(0px)", backgroundColor: "color-mix(in oklch, var(--background) 0%, transparent)" }}
+          animate={{
+            backdropFilter: "blur(6px)",
+            backgroundColor: "color-mix(in oklch, var(--background) 35%, transparent)",
+            transition: { duration: 0.45, ease: "easeOut" },
+          }}
+          exit={{
+            backdropFilter: "blur(0px)",
+            backgroundColor: "color-mix(in oklch, var(--background) 0%, transparent)",
+            transition: { duration: 0.25, ease: "easeIn" },
+          }}
         >
-          <div className="flex flex-col items-center gap-4">
-            <div className="relative flex size-28 items-center justify-center">
-              {/* Soft glow */}
-              <div className="bg-primary/25 absolute inset-2 rounded-full blur-2xl" />
-              {/* Spinning gradient ring */}
-              <div
-                className="absolute inset-0 rounded-full motion-safe:animate-[spin_1.4s_linear_infinite]"
-                style={{
-                  background:
-                    "conic-gradient(from 0deg, transparent 0deg, var(--primary) 120deg, var(--chart-2) 220deg, transparent 360deg)",
-                  mask: "radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px))",
-                  WebkitMask: "radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px))",
-                }}
-              />
-              {/* Logo card, gently breathing */}
-              <motion.div
-                className="bg-card/90 relative flex size-20 items-center justify-center rounded-full border shadow-lg"
-                animate={reduce ? undefined : { scale: [1, 1.07, 1] }}
-                transition={reduce ? undefined : { duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
-              >
-                <BrandLogo className="h-9" priority />
-              </motion.div>
-            </div>
-            <ShinyText text="Loading…" className="text-sm font-medium" />
-          </div>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1, transition: { duration: 0.3, delay: 0.1 } }}
+            exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+          >
+            <Sticker name="hey" size={150} loop={!finishing} onComplete={() => setShown(false)} />
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>

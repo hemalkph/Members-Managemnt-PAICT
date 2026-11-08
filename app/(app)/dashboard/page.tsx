@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRightIcon, FilePlus2Icon, InboxIcon, LandmarkIcon } from "lucide-react";
 import BlurText from "@/components/reactbits/blur-text";
+import { Sticker } from "@/components/sticker";
 import { DeadlineCard } from "@/components/deadline/deadline-card";
 import { EmptyState } from "@/components/empty-state";
 import { MonthlySummary } from "@/components/member/monthly-summary";
@@ -117,9 +118,12 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-1">
-          <BlurText as="h1" text={`Hi, ${firstName}!`} className="text-2xl font-semibold tracking-tight sm:text-3xl" />
-          <p className="text-muted-foreground text-sm">Here&apos;s your work for {monthLabel(month)}.</p>
+        <div className="flex items-center gap-3">
+          <Sticker name="flamy" size={64} loop />
+          <div className="space-y-1">
+            <BlurText as="h1" text={`Hi, ${firstName}!`} className="text-2xl font-semibold tracking-tight sm:text-3xl" />
+            <p className="text-muted-foreground text-sm">Here&apos;s your work for {monthLabel(month)}.</p>
+          </div>
         </div>
         <Button asChild size="lg" className="w-full sm:w-auto">
           <Link href="/work/new">

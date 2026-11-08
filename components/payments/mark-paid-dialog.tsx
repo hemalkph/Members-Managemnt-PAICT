@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { BadgeCheckIcon, Loader2Icon } from "lucide-react";
 import { toast } from "sonner";
+import { Sticker } from "@/components/sticker";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -49,7 +50,23 @@ export function MarkPaidDialog({
         toast.error(result.error);
         return;
       }
-      toast.success(result.message);
+      if (result.data?.count) {
+        // Paid: the money duck plays in the confirmation.
+        toast.custom(
+          () => (
+            <div className="bg-popover text-popover-foreground flex w-[356px] max-w-full items-center gap-3 rounded-xl border p-3 shadow-lg">
+              <Sticker name="money-out" size={64} />
+              <div className="grid min-w-0 gap-0.5">
+                <p className="text-sm font-semibold">{result.message}</p>
+                <p className="text-muted-foreground text-xs">{formatLKR(total)} · their payslips now show it.</p>
+              </div>
+            </div>
+          ),
+          { duration: 4000 },
+        );
+      } else {
+        toast.success(result.message);
+      }
       setReference("");
       onDone();
       router.refresh();
