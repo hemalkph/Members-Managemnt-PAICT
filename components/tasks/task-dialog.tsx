@@ -18,15 +18,20 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { saveTaskAction } from "@/lib/actions/tasks";
+import { saveTaskAction, setTaskFieldFilesAction } from "@/lib/actions/tasks";
+import { MAX_TASK_FILE_BYTES } from "@/lib/core/validation";
 import type { TaskView } from "@/lib/tasks/queries";
+import { fillTitle, type TaskTypeView } from "@/lib/tasks/types";
 import { PendingFiles, uploadTaskFiles } from "./task-files";
+import { TaskTypeIcon } from "./task-type-icon";
 
 export type TaskFormOptions = {
   members: { id: string; name: string; roleIds: string[] }[];
   roles: { id: string; name: string }[];
   exams: { id: string; label: string }[];
   centres: { id: string; name: string }[];
+  /** Task types (presets) and their fields. */
+  types: TaskTypeView[];
 };
 
 type State = {
@@ -39,6 +44,9 @@ type State = {
   quantity: string;
   due_date: string;
   high: boolean;
+  type_id: string;
+  /** Field values by field id. */
+  details: Record<string, string>;
 };
 
 const NONE = "none";
@@ -54,7 +62,13 @@ function initial(task: TaskView | null): State {
     quantity: task?.quantity ? String(task.quantity) : "",
     due_date: task?.dueDate ?? "",
     high: task?.priority === "high",
+    type_id: task?.typeId ?? "",
+    details: Object.fromEntries((task?.details ?? []).map((d) => [d.id, d.value])),
   };
+}
+
+function addDays(day: string, days: number) {
+  return new Date(Date.parse(`${day}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
 }
 
 /** Admins: assign a new task or edit one. */
@@ -75,8 +89,41 @@ export function TaskDialog({
   const [state, setState] = useState<State>(() => initial(task));
   const [pending, startTransition] = useTransition();
   const [files, setFiles] = useState<File[]>([]);
+  // Files chosen for the type's "File upload" fields, by field id.
+  const [fieldFiles, setFieldFiles] = useState<Record<string, File>>({});
   const fileInput = useRef<HTMLInputElement>(null);
   const set = <K extends keyof State>(key: K, value: State[K]) => setState((s) => ({ ...s, [key]: value }));
+  // The title follows the type's title pattern until it is typed over.
+  const [titleTouched, setTitleTouched] = useState(Boolean(task));
+  const type = options.types.find((t) => t.id === state.type_id) ?? null;
+  const pickable = options.types.filter((t) => t.active || t.id === state.type_id);
+
+  const chooseType = (id: string) => {
+    const next = options.types.find((t) => t.id === id) ?? null;
+    setFieldFiles({});
+    setState((s) => ({
+      ...s,
+      type_id: next?.id ?? "",
+      details: {},
+      // New tasks take the type's defaults; edits keep what was chosen.
+      ...(next && !task
+        ? {
+            assignee_id: next.defaultAssigneeId ?? s.assignee_id,
+            role_id: next.roleId ?? s.role_id,
+            due_date: next.dueDays !== null ? addDays(today, next.dueDays) : s.due_date,
+            high: next.priority === "high",
+            title: next.titleTemplate && !titleTouched ? fillTitle(next.titleTemplate, next.fields, {}) : s.title,
+          }
+        : {}),
+    }));
+  };
+
+  const setDetail = (id: string, value: string) =>
+    setState((s) => {
+      const details = { ...s.details, [id]: value };
+      const title = type?.titleTemplate && !titleTouched ? fillTitle(type.titleTemplate, type.fields, details) : s.title;
+      return { ...s, details, title };
+    });
 
   const member = options.members.find((m) => m.id === state.assignee_id);
   // Their roles first, so the right role is easy to pick.
@@ -91,6 +138,17 @@ export function TaskDialog({
       toast.error("Quantity must be a whole number");
       return;
     }
+    const fileFields = type?.fields.filter((f) => f.kind === "file") ?? [];
+    const missing = fileFields.find((f) => f.required && !fieldFiles[f.id] && !state.details[f.id]);
+    if (missing) {
+      toast.error(`${missing.label}: choose a file.`);
+      return;
+    }
+    const tooBig = Object.values(fieldFiles).find((f) => f.size > MAX_TASK_FILE_BYTES);
+    if (tooBig) {
+      toast.error(`${tooBig.name} is over 50 MB. Share a link to it instead.`);
+      return;
+    }
     startTransition(async () => {
       const result = await saveTaskAction({
         id: task?.id,
@@ -103,10 +161,31 @@ export function TaskDialog({
         quantity,
         due_date: state.due_date,
         priority: state.high ? "high" : "normal",
+        type_id: state.type_id,
+        details: type ? Object.fromEntries(type.fields.map((f) => [f.id, state.details[f.id] ?? ""])) : {},
       });
       if (!result.ok) {
         toast.error(result.error);
         return;
+      }
+      // Files for "File upload" fields: upload, then link each to its field.
+      const chosen = Object.entries(fieldFiles).filter(([id]) => type?.fields.some((f) => f.id === id));
+      if (chosen.length > 0 && result.data) {
+        const taskId = result.data.id;
+        const upload = await uploadTaskFiles(taskId, "brief", chosen.map(([, file]) => file));
+        const linked =
+          upload.ok && upload.data
+            ? await setTaskFieldFilesAction({
+                task_id: taskId,
+                files: chosen.map(([field_id], i) => ({ field_id, file_id: upload.data!.ids[i] })),
+              })
+            : upload;
+        if (!linked.ok) {
+          toast.error(`${result.message}, but the files weren't attached: ${linked.error}`);
+          if (!task) onOpenChange(false);
+          router.refresh();
+          return;
+        }
       }
       if (files.length > 0 && result.data) {
         const upload = await uploadTaskFiles(result.data.id, "brief", files);
@@ -132,6 +211,108 @@ export function TaskDialog({
             <DialogDescription>The member is notified and sees it in My tasks.</DialogDescription>
           </DialogHeader>
 
+          {pickable.length > 0 && (
+            <div className="grid gap-2">
+              <Label>Type</Label>
+              <Select value={state.type_id || NONE} onValueChange={(v) => chooseType(v === NONE ? "" : v)}>
+                <SelectTrigger aria-label="Task type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>No type (just a title)</SelectItem>
+                  {pickable.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      <TaskTypeIcon icon={t.icon} color={t.color} size={14} className="size-6 rounded-md" />
+                      {t.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {type?.description && <p className="text-muted-foreground text-xs whitespace-pre-line">{type.description}</p>}
+            </div>
+          )}
+
+          {type && type.fields.length > 0 && (
+            <div className="bg-muted/40 grid gap-3 rounded-lg border p-3">
+              {type.fields.map((f) => {
+                const id = `task-field-${f.id}`;
+                const value = state.details[f.id] ?? "";
+                const label = (
+                  <Label htmlFor={id}>
+                    {f.label}
+                    {!f.required && <span className="text-muted-foreground font-normal"> (optional)</span>}
+                  </Label>
+                );
+                if (f.kind === "file") {
+                  const picked = fieldFiles[f.id];
+                  const existing = task?.files.find((x) => x.id === state.details[f.id]);
+                  return (
+                    <div key={f.id} className="grid gap-2">
+                      {label}
+                      <div className="flex min-w-0 items-center gap-2">
+                        <Button type="button" variant="outline" size="sm" asChild>
+                          <label htmlFor={id} className="cursor-pointer">
+                            <PaperclipIcon /> {picked || existing ? "Replace file" : "Choose file"}
+                          </label>
+                        </Button>
+                        <span className="text-muted-foreground min-w-0 truncate text-sm">
+                          {picked?.name ?? existing?.fileName ?? "No file yet"}
+                        </span>
+                        <input
+                          id={id}
+                          type="file"
+                          className="sr-only"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) setFieldFiles((ff) => ({ ...ff, [f.id]: file }));
+                            e.target.value = "";
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                }
+                if (f.kind === "select") {
+                  return (
+                    <div key={f.id} className="grid gap-2">
+                      {label}
+                      <Select value={value || undefined} onValueChange={(v) => setDetail(f.id, v)}>
+                        <SelectTrigger id={id}>
+                          <SelectValue placeholder={`Choose ${f.label.toLowerCase()}`} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {f.options.map((o) => (
+                            <SelectItem key={o} value={o}>
+                              {o}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  );
+                }
+                return (
+                  <div key={f.id} className="grid gap-2">
+                    {label}
+                    {f.kind === "long" ? (
+                      <Textarea id={id} rows={3} maxLength={2000} value={value} onChange={(e) => setDetail(f.id, e.target.value)} />
+                    ) : (
+                      <Input
+                        id={id}
+                        type={f.kind === "link" ? "url" : f.kind === "date" ? "date" : f.kind === "number" ? "number" : "text"}
+                        inputMode={f.kind === "link" ? "url" : f.kind === "number" ? "decimal" : undefined}
+                        placeholder={f.kind === "link" ? "https://" : undefined}
+                        maxLength={f.kind === "link" ? 2000 : 200}
+                        value={value}
+                        onChange={(e) => setDetail(f.id, e.target.value)}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           <div className="grid gap-2">
             <Label htmlFor="task-title">Task</Label>
             <Input
@@ -139,8 +320,11 @@ export function TaskDialog({
               value={state.title}
               maxLength={150}
               placeholder="e.g. Mark Term Test 2 Paper II (Kandy)"
-              onChange={(e) => set("title", e.target.value)}
-              autoFocus
+              onChange={(e) => {
+                setTitleTouched(true);
+                set("title", e.target.value);
+              }}
+              autoFocus={!type}
             />
           </div>
 

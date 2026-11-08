@@ -511,7 +511,7 @@ export function ScanStation({
       }
       const target = e.target as HTMLElement | null;
       const typing = target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
-      if (!typing && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      if (!typing && e.key?.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
         input.current?.focus();
       }
     };

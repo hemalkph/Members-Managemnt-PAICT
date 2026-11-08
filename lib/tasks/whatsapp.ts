@@ -35,6 +35,11 @@ export function taskWhatsAppText(task: TaskView, siteUrl: string): string {
   if (task.priority === "high") lines.push("Priority: High");
   if (task.quantity) lines.push(`Quantity: ${task.quantity}`);
   if (briefs > 0) lines.push(`Files: ${briefs} attached – download them from the task`);
+  for (const d of task.details) {
+    lines.push(
+      `${d.label}: ${d.kind === "date" ? formatDate(d.value) : d.kind === "file" ? "attached – download it from the task" : d.value}`,
+    );
+  }
   if (task.description) lines.push(`Details: ${task.description}`);
   lines.push(
     "",

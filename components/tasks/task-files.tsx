@@ -16,7 +16,11 @@ import type { TaskFileView, TaskView } from "@/lib/tasks/queries";
 import { MAX_TASK_FILE_BYTES, MAX_TASK_FILES_AT_ONCE, TASKS_BUCKET } from "@/lib/core/validation";
 
 /** Upload files to storage, then save them on the task. All or nothing. */
-export async function uploadTaskFiles(taskId: string, kind: "brief" | "work", files: File[]): Promise<ActionResult> {
+export async function uploadTaskFiles(
+  taskId: string,
+  kind: "brief" | "work",
+  files: File[],
+): Promise<ActionResult<{ ids: string[] }>> {
   if (files.length > MAX_TASK_FILES_AT_ONCE) return { ok: false, error: `Up to ${MAX_TASK_FILES_AT_ONCE} files at a time.` };
   const tooBig = files.find((f) => f.size > MAX_TASK_FILE_BYTES);
   if (tooBig) return { ok: false, error: `${tooBig.name} is over 50 MB. Share a link to it in the details instead.` };

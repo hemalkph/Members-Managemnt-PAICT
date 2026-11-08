@@ -29,7 +29,8 @@ export function CommandMenu({ pages }: { pages: Record<PageKey, AccessLevel> }) 
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() === "k" && (e.metaKey || e.ctrlKey)) {
+      // key can be missing (e.g. Chrome's autofill sends keydown events without one).
+      if (e.key?.toLowerCase() === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setOpen((o) => !o);
       }

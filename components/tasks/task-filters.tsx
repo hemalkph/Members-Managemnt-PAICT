@@ -9,14 +9,18 @@ export function TaskFilters({
   view,
   member,
   exam,
+  type,
   members,
   exams,
+  types,
 }: {
   view: string;
   member: string;
   exam: string;
+  type: string;
   members: { id: string; name: string }[];
   exams: { id: string; label: string }[];
+  types: { id: string; label: string }[];
 }) {
   const { setParams, pending } = useUrlFilters();
   return (
@@ -55,6 +59,21 @@ export function TaskFilters({
             ))}
           </SelectContent>
         </Select>
+        {types.length > 0 && (
+          <Select value={type || "all"} onValueChange={(v) => setParams({ type: v })}>
+            <SelectTrigger className="lg:w-56" aria-label="Task type">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All types</SelectItem>
+              {types.map((t) => (
+                <SelectItem key={t.id} value={t.id}>
+                  {t.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
     </div>
   );
