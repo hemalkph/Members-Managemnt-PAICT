@@ -64,6 +64,22 @@ export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
   return profile ?? null;
 });
 
+/**
+ * Whether this session may set its own password: a new member who arrived by
+ * their invite link, or a main admin who arrived by a recovery link. Everyone
+ * else asks a main admin to reset it (members can't reset their own).
+ */
+export async function ownPasswordAllowed(): Promise<boolean> {
+  const claims = await getVerifiedClaims();
+  if (!claims) return false;
+  // How this session was opened, e.g. [{ method: "invite" }] (Supabase's amr claim).
+  const methods = (claims.amr ?? []).map((a) => (typeof a === "string" ? a : a.method));
+  if (methods.includes("invite")) return true;
+  if (!methods.includes("recovery")) return false;
+  const profile = await getCurrentProfile();
+  return Boolean(profile?.is_main_admin && profile.is_active);
+}
+
 /** True when the user turned on two-step login but hasn't entered the code in this session. */
 async function needsTwoStepCode(): Promise<boolean> {
   const session = await getAuthSession();

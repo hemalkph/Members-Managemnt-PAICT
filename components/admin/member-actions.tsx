@@ -57,6 +57,8 @@ export function MemberActions({
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
+  // Only main admins who entered their two-step code get `access`, and only they reset passwords.
+  const canResetPassword = Boolean(access) && !isSelf;
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const { is_active, ...editable } = member;
@@ -97,9 +99,11 @@ export function MemberActions({
             </DropdownMenuItem>
             {!isSelf && (
               <>
-                <DropdownMenuItem className={ITEM} onSelect={() => setResetOpen(true)}>
-                  <KeyRoundIcon className="text-primary" /> Reset password
-                </DropdownMenuItem>
+                {canResetPassword && (
+                  <DropdownMenuItem className={ITEM} onSelect={() => setResetOpen(true)}>
+                    <KeyRoundIcon className="text-primary" /> Reset password
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem
                   className={cn(
                     ITEM,
@@ -123,9 +127,11 @@ export function MemberActions({
           </Button>
           {!isSelf && (
             <>
-              <Button variant="outline" onClick={() => setResetOpen(true)}>
-                <KeyRoundIcon /> Reset password
-              </Button>
+              {canResetPassword && (
+                <Button variant="outline" onClick={() => setResetOpen(true)}>
+                  <KeyRoundIcon /> Reset password
+                </Button>
+              )}
               <Button
                 variant={is_active ? "outline" : "success"}
                 className={is_active ? "text-amber-600 hover:text-amber-600 dark:text-amber-400" : undefined}

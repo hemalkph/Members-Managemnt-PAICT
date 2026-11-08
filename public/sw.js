@@ -26,7 +26,10 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = new URL((event.notification.data && event.notification.data.url) || "/", self.location.origin).href;
+  let url = new URL((event.notification.data && event.notification.data.url) || "/", self.location.origin);
+  // Notifications only ever open pages of this app.
+  if (url.origin !== self.location.origin) url = new URL("/", self.location.origin);
+  url = url.href;
   event.waitUntil(
     (async () => {
       const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });

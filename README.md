@@ -51,7 +51,7 @@ It works on phones and computers, can be installed like an app, and sends phone 
 | | |
 |---|---|
 | 🔍 **Work review** | Filter by month, section, role, member and status. Approve or reject with a comment, or approve many at once. |
-| 👥 **Members** | Add members by invite or temporary password, assign roles, reset passwords, deactivate. |
+| 👥 **Members** | Add members by invite or temporary password, assign roles, deactivate. Only main admins reset passwords; members can't reset their own. |
 | 🏷️ **Rates and salaries** | Prices per page, design or paper, fixed monthly salaries, and a live budget preview in a phone mock-up. |
 | 📊 **Analytics** | Monthly spending, spending by section and role, budget used and payouts per member. |
 | 💸 **Payments** | Close a month to lock its work and create payslips, download the payroll CSV, mark people as paid. |
@@ -169,10 +169,12 @@ In **Authentication → URL Configuration**:
 
 In **Authentication → Sign In / Providers → Email**, turn **off** "Allow new users to sign up". Admins add members from the app.
 
-**Recommended:** in **Authentication → Emails**, change the links so reset and invite emails also work on another device:
+**Required:** in **Authentication → Emails**, change the links so invite and recovery emails also work on another device:
 
-- Reset password: `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery`
 - Invite user: `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite`
+- Reset password: `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery`
+
+**Passwords:** members can't reset their own password: the login page has no "Forgot password", and a recovery link only works for main admins. A main admin resets anyone else's password from **Members → Reset password**. If a main admin forgets theirs, the other main admin resets it, or send them a recovery email from the Supabase dashboard (**Authentication → Users → Send password recovery**).
 
 > The free Supabase email service only sends a few emails per hour. For a whole team, set up custom SMTP or add members with **Set a password** instead of an invite.
 

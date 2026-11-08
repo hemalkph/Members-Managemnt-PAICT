@@ -4,7 +4,7 @@ import type { Database } from "@/lib/supabase/database.types";
 import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/core/env";
 
 // /api/hooks: called by the database with its own secret (no login cookie).
-const PUBLIC_PATHS = ["/login", "/forgot-password", "/auth", "/api/hooks"];
+const PUBLIC_PATHS = ["/login", "/auth", "/api/hooks"];
 
 function isPublic(pathname: string) {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
@@ -45,7 +45,7 @@ export async function updateSession(request: NextRequest) {
   if (!signedIn && !isPublic(pathname)) {
     return redirectTo("/login");
   }
-  if (signedIn && (pathname === "/login" || pathname === "/forgot-password")) {
+  if (signedIn && pathname === "/login") {
     return redirectTo("/");
   }
 

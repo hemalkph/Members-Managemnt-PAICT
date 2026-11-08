@@ -28,6 +28,8 @@ export type ReviewRow = {
   admin_comment: string | null;
   reviewed_at: string | null;
   created_at: string;
+  /** When the row last changed, as loaded: approving checks it is still the same. */
+  updatedAt: string;
   month: string;
   memberName: string;
   memberEmail: string;
@@ -72,7 +74,11 @@ export function ReviewDialog({
     }
     setBusy(decision);
     startTransition(async () => {
-      const result = await reviewSubmissionsAction({ ids: [row.id], decision, comment: comment.trim() });
+      const result = await reviewSubmissionsAction({
+        items: [{ id: row.id, seen: row.updatedAt }],
+        decision,
+        comment: comment.trim(),
+      });
       setBusy(null);
       if (!result.ok) {
         toast.error(result.error);
