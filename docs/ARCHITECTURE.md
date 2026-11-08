@@ -97,7 +97,7 @@ flowchart TB
 ```
 .
 ├── app/                         Pages and routes (Next.js App Router)
-│   ├── (auth)/                  Login, two-step code, forgot / reset password
+│   ├── (auth)/                  Login, two-step code, set password (invite)
 │   ├── (app)/                   Signed-in area with the sidebar
 │   │   ├── dashboard, work, tasks, papers, library, payslips, performance,
 │   │   │   week, notifications, profile, bank, security       Member pages

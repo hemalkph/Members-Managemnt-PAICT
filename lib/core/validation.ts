@@ -61,11 +61,6 @@ export const loginSchema = z.object({
 });
 export type LoginInput = z.infer<typeof loginSchema>;
 
-export const forgotPasswordSchema = z.object({
-  email: z.email("Enter a valid email").trim().toLowerCase(),
-});
-export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
-
 export const resetPasswordSchema = z
   .object({
     password: z.string().min(8, "Use at least 8 characters").max(72, "Use at most 72 characters"),
@@ -153,7 +148,11 @@ export const paperPagesSchema = z.object({
 // ---------------------------------------------------------------- review
 export const reviewSchema = z
   .object({
-    ids: z.array(uuid).min(1, "Select at least one submission").max(200),
+    /** Each submission with the "last updated" time the reviewer saw: changed ones are skipped. */
+    items: z
+      .array(z.object({ id: uuid, seen: z.string().min(1).max(64) }))
+      .min(1, "Select at least one submission")
+      .max(200),
     decision: z.enum(["approved", "rejected", "pending"]),
     comment: optionalText(1000, "Comment"),
   })

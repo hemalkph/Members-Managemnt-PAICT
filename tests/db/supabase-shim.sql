@@ -29,6 +29,14 @@ create table auth.users (
   created_at         timestamptz not null default now()
 );
 
+-- Authenticator-app factors (only the columns the migrations read).
+create table auth.mfa_factors (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references auth.users (id) on delete cascade,
+  factor_type text not null default 'totp',
+  status      text not null default 'verified'
+);
+
 -- Same lookups as Supabase: the request's JWT claims are in a setting.
 create function auth.jwt() returns jsonb language sql stable as $$
   select coalesce(

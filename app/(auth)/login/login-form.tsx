@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useTransition } from "react";
 import { useForm } from "react-hook-form";
@@ -58,12 +57,7 @@ export function LoginForm({ initialError }: { initialError?: string }) {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <div className="flex items-center justify-between">
-                <FormLabel>Password</FormLabel>
-                <Link href="/forgot-password" className="text-primary text-xs font-medium hover:underline">
-                  Forgot password?
-                </Link>
-              </div>
+              <FormLabel>Password</FormLabel>
               <FormControl>
                 <Input type="password" autoComplete="current-password" {...field} />
               </FormControl>

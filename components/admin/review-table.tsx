@@ -39,7 +39,7 @@ export function ReviewTable({ rows, readOnly = false }: { rows: ReviewRow[]; rea
   const bulkApprove = () =>
     startTransition(async () => {
       const result = await reviewSubmissionsAction({
-        ids: selectedPending.map((r) => r.id),
+        items: selectedPending.map((r) => ({ id: r.id, seen: r.updatedAt })),
         decision: "approved",
         comment: "",
       });

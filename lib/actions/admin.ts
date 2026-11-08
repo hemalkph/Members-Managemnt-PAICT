@@ -32,6 +32,24 @@ async function adminCtx(page: PageKey) {
   return getActionContext({ page, edit: true });
 }
 
+/**
+ * The member an admin is about to change, or an error when not allowed: only a
+ * main admin who entered the two-step code may change a main admin's account
+ * (the database enforces the same for profile changes).
+ */
+async function targetMember(ctx: AdminCtx, id: string): Promise<{ full_name: string } | { error: string }> {
+  const { data: target } = await ctx.supabase
+    .from("profiles")
+    .select("full_name, is_main_admin")
+    .eq("id", id)
+    .maybeSingle();
+  if (!target) return { error: "Member not found." };
+  if (target.is_main_admin && !(await mainAdminUnlocked(ctx.profile))) {
+    return { error: "Only a main admin can change a main admin's account." };
+  }
+  return target;
+}
+
 async function syncRoles(ctx: AdminCtx, userId: string, roleIds: string[]) {
   const wanted = [...new Set(roleIds)];
   const { data: current, error: readError } = await ctx.supabase
@@ -186,9 +204,17 @@ export async function setMemberActiveAction(input: { id: string; active: boolean
   if (!parsed.success) return { ok: false, error: "Invalid member." };
   const { id, active } = parsed.data;
   if (id === ctx.profile.id) return { ok: false, error: "You can't deactivate your own account." };
+  const target = await targetMember(ctx, id);
+  if ("error" in target) return { ok: false, error: target.error };
 
-  const { error } = await ctx.supabase.from("profiles").update({ is_active: active }).eq("id", id);
+  const { data: changed, error } = await ctx.supabase
+    .from("profiles")
+    .update({ is_active: active })
+    .eq("id", id)
+    .select("id");
   if (error) return { ok: false, error: friendlyDbError(error) };
+  // Nothing changed (not allowed or gone): don't touch the Auth account either.
+  if (!changed?.length) return { ok: false, error: NOT_ALLOWED };
 
   // Also block / unblock sign-in at the Auth level when the service key is set.
   if (hasServiceRoleKey()) {
@@ -199,9 +225,10 @@ export async function setMemberActiveAction(input: { id: string; active: boolean
   return { ok: true, message: active ? "Member reactivated" : "Member deactivated" };
 }
 
-/** Admin sets a new password for another member (needs the service role key). */
+/** A main admin sets a new password for another member (needs the service role key). */
 export async function resetMemberPasswordAction(input: AdminResetPasswordInput): Promise<ActionResult> {
-  const ctx = await adminCtx("members");
+  // Only main admins (Owner and Manager) with the two-step code reset passwords.
+  const ctx = await getActionContext({ page: "members", edit: true, mainAdmin: true });
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
 
   const parsed = adminResetPasswordSchema.safeParse(input);
@@ -215,8 +242,10 @@ export async function resetMemberPasswordAction(input: AdminResetPasswordInput):
     return { ok: false, error: "Resetting passwords needs SUPABASE_SERVICE_ROLE_KEY on the server. See the README." };
   }
 
-  const { data: target } = await ctx.supabase.from("profiles").select("id, full_name").eq("id", id).maybeSingle();
-  if (!target) return { ok: false, error: "Member not found." };
+  // A main admin's password can only be reset by a main admin (with the two-step code):
+  // otherwise an ordinary admin could sign in as them and take over main-admin powers.
+  const target = await targetMember(ctx, id);
+  if ("error" in target) return { ok: false, error: target.error };
 
   const { error } = await createAdminClient().auth.admin.updateUserById(id, { password });
   if (error) return { ok: false, error: "Could not reset the password. Please try again." };
@@ -235,22 +264,54 @@ export async function reviewSubmissionsAction(input: ReviewInput): Promise<Actio
 
   const parsed = reviewSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstError(parsed.error), fieldErrors: fieldErrorsOf(parsed.error) };
-  const { ids, decision, comment } = parsed.data;
+  const { items, decision, comment } = parsed.data;
 
-  const { data, error } = await ctx.supabase
+  // Ordinary admins don't review their own work (the database refuses it too).
+  const ownOnly = !(await mainAdminUnlocked(ctx.profile));
+  const { data: rows } = await ctx.supabase
     .from("submissions")
-    .update({ status: decision, admin_comment: comment || null })
-    .in("id", ids)
-    .select("id");
-  if (error) return { ok: false, error: friendlyDbError(error) };
+    .select("id, user_id")
+    .in(
+      "id",
+      items.map((i) => i.id),
+    );
+  const own = new Set((rows ?? []).filter((r) => ownOnly && r.user_id === ctx.profile.id).map((r) => r.id));
 
-  const count = data?.length ?? 0;
+  // Each row is updated only if it is unchanged since the reviewer opened it, so a
+  // member can't change the quantity or type of work between viewing and approving.
+  const results = await Promise.all(
+    items
+      .filter((i) => !own.has(i.id))
+      .map((i) =>
+        ctx.supabase
+          .from("submissions")
+          .update({ status: decision, admin_comment: comment || null })
+          .eq("id", i.id)
+          .eq("updated_at", i.seen)
+          .select("id"),
+      ),
+  );
+  const failed = results.find((r) => r.error);
+  if (failed?.error) return { ok: false, error: friendlyDbError(failed.error) };
+
+  const count = results.reduce((n, r) => n + (r.data?.length ?? 0), 0);
+  const changed = items.length - own.size - count;
   revalidatePath("/admin", "layout");
   revalidatePath("/work");
   revalidatePath("/dashboard");
 
   const verb = decision === "approved" ? "Approved" : decision === "rejected" ? "Rejected" : "Moved back to pending";
-  return { ok: true, message: `${verb} ${count} submission${count === 1 ? "" : "s"}`, data: { count } };
+  const notes = [
+    changed > 0 &&
+      `${changed} changed since you opened the page and ${changed === 1 ? "was" : "were"} skipped. Check ${changed === 1 ? "it" : "them"} again.`,
+    own.size > 0 && `${own.size} of your own skipped: another admin must review your work.`,
+  ].filter(Boolean);
+  if (count === 0 && notes.length > 0) return { ok: false, error: notes.join(" ") };
+  return {
+    ok: true,
+    message: [`${verb} ${count} submission${count === 1 ? "" : "s"}.`, ...notes].join(" "),
+    data: { count },
+  };
 }
 
 // ---------------------------------------------------------------- sections & roles
