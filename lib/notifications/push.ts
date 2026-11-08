@@ -37,10 +37,8 @@ function setup() {
 export async function sendPushToUser(client: Client, userId: string, payload: PushPayload): Promise<number> {
   if (!pushConfigured()) return 0;
   setup();
-  const { data: subs } = await client
-    .from("push_subscriptions")
-    .select("id, endpoint, p256dh, auth")
-    .eq("user_id", userId);
+  // Only phones whose login session is still alive (signed out = no more alerts).
+  const { data: subs } = await client.rpc("live_push_subscriptions", { p_user: userId });
   if (!subs?.length) return 0;
 
   const body = JSON.stringify({

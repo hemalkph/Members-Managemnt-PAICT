@@ -39,8 +39,8 @@ beforeAll(async () => {
   actors.editNoCap = await person({ pageAccess: dispatchEdit }, "aal2");
   actors.capNoTwoStep = await person({ pageAccess: dispatchEdit, grants: ["plan"] }, "aal1");
   actors.planner = await person({ pageAccess: dispatchEdit, grants: ["plan"] }, "aal2");
-  actors.adminNoPage = await person({ admin: true, pageAccess: { dispatch: "none" } }, "aal1");
-  actors.admin = await person({ admin: true }, "aal1");
+  actors.adminNoPage = await person({ admin: true, pageAccess: { dispatch: "none" } }, "aal2");
+  actors.admin = await person({ admin: true }, "aal2");
   actors.mainNoTwoStep = await person({ mainAdmin: true }, "aal1");
   actors.main = await person({ mainAdmin: true }, "aal2");
 
@@ -76,7 +76,8 @@ const ALL = Object.keys({
   anon: 0, inactive: 0, noPage: 0, viewOnly: 0, editNoCap: 0, capNoTwoStep: 0,
   planner: 0, adminNoPage: 0, admin: 0, mainNoTwoStep: 0, main: 0,
 }) as Name[];
-const PLANNERS: Name[] = ["planner", "admin", "mainNoTwoStep", "main"];
+// Admin powers need the two-step code (migration 044): a main admin without it gets nothing.
+const PLANNERS: Name[] = ["planner", "admin", "main"];
 const MAIN_ONLY: Name[] = ["main"];
 
 const OPERATIONS: { name: string; allowed: Name[]; run: (a: Actor) => Promise<string> }[] = [
@@ -191,7 +192,7 @@ describe("capabilities", () => {
       }
     };
     expect(await caps("admin")).toEqual(["courier", "pack", "plan", "verify"]);
-    expect(await caps("mainNoTwoStep")).toEqual(["courier", "pack", "plan", "verify"]);
+    expect(await caps("mainNoTwoStep")).toEqual([]);
     expect(await caps("main")).toEqual(["correct", "courier", "finance", "pack", "plan", "verify"]);
     expect(await caps("planner")).toEqual(["plan"]);
     expect(await caps("capNoTwoStep")).toEqual([]);

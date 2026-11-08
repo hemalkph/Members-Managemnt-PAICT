@@ -29,7 +29,7 @@ beforeAll(async () => {
   actors.planner = await user({ pageAccess: edit, grants: ["plan"] });
   actors.courier = await user({ pageAccess: edit, grants: ["courier"] });
   actors.finance = await user({ pageAccess: edit, grants: ["finance"] });
-  actors.admin = await user({ admin: true }, "aal1");
+  actors.admin = await user({ admin: true });
   actors.main = await user({ mainAdmin: true });
   const verifier = await user({ pageAccess: edit, grants: ["verify"] });
 

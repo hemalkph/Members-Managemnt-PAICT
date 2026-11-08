@@ -27,7 +27,7 @@ beforeAll(async () => {
   actors.packer = await user({ pageAccess: edit, grants: ["pack"] });
   actors.verifier = await user({ pageAccess: edit, grants: ["verify"] });
   actors.planner = await user({ pageAccess: edit, grants: ["plan"] });
-  actors.admin = await user({ admin: true }, "aal1");
+  actors.admin = await user({ admin: true });
   actors.main = await user({ mainAdmin: true });
 
   const batch = await createBatch(db);

@@ -946,6 +946,7 @@ export type Database = {
           device: string | null;
           created_at: string;
           last_used_at: string | null;
+          session_id: string | null;
         };
         Insert: { id?: string; user_id: string; endpoint: string; p256dh: string; auth: string; device?: string | null };
         Update: { last_used_at?: string | null };
@@ -1788,6 +1789,15 @@ export type Database = {
       nic_birth_date: { Args: { nic: string }; Returns: string | null };
       is_main_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
       my_two_step_on: { Args: Record<PropertyKey, never>; Returns: boolean };
+      push_subscription_save: {
+        Args: { p_endpoint: string; p_p256dh: string; p_auth: string; p_device: string };
+        Returns: undefined;
+      };
+      push_subscription_refresh: { Args: { p_endpoint: string }; Returns: boolean };
+      live_push_subscriptions: {
+        Args: { p_user: string };
+        Returns: { id: string; endpoint: string; p256dh: string; auth: string }[];
+      };
       claimed_drive_videos: {
         Args: { p_ids: string[]; p_submission?: string | null };
         Returns: { drive_file_id: string; mine: boolean }[];

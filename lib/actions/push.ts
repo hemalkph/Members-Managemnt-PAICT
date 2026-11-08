@@ -18,17 +18,29 @@ export async function savePushSubscriptionAction(input: {
   if (!parsed.success) return { ok: false, error: "This browser can't receive notifications." };
   const v = parsed.data;
 
-  // The same phone may have been saved before (maybe for someone else who used it).
-  await ctx.supabase.from("push_subscriptions").delete().eq("endpoint", v.endpoint);
-  const { error } = await ctx.supabase.from("push_subscriptions").insert({
-    user_id: ctx.profile.id,
-    endpoint: v.endpoint,
-    p256dh: v.p256dh,
-    auth: v.auth,
-    device: v.device || null,
+  // Saved with this login session; if someone else used this phone before, it moves to you.
+  const { error } = await ctx.supabase.rpc("push_subscription_save", {
+    p_endpoint: v.endpoint,
+    p_p256dh: v.p256dh,
+    p_auth: v.auth,
+    p_device: v.device || "",
   });
   if (error) return { ok: false, error: friendlyDbError(error) };
   return { ok: true, message: "Phone notifications are on" };
+}
+
+/**
+ * Links this phone to the current login session again (after signing in anew).
+ * Returns false when the phone's alerts aren't yours, so the page shows them as off.
+ */
+export async function refreshPushSubscriptionAction(input: { endpoint: string }): Promise<ActionResult<{ mine: boolean }>> {
+  const ctx = await getActionContext();
+  if (!ctx) return { ok: false, error: NOT_ALLOWED };
+  if (typeof input.endpoint !== "string" || !input.endpoint.startsWith("https://") || input.endpoint.length > 1000) {
+    return { ok: true, message: "", data: { mine: false } };
+  }
+  const { data } = await ctx.supabase.rpc("push_subscription_refresh", { p_endpoint: input.endpoint });
+  return { ok: true, message: "", data: { mine: data === true } };
 }
 
 /** Stops notifications to this phone/browser. */
