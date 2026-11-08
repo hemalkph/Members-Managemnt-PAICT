@@ -5,6 +5,7 @@ import { ReviewFilters } from "@/components/admin/review-filters";
 import { ReviewTable } from "@/components/admin/review-table";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
+import { Sticker } from "@/components/sticker";
 import { ReadOnlyNotice } from "@/components/read-only-notice";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { requirePage } from "@/lib/auth";
@@ -85,7 +86,11 @@ export default async function ReviewPage({ searchParams }: PageProps<"/admin/rev
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Work review" description="Open a submission to see details, then approve or reject it." />
+      <PageHeader
+        title="Work review"
+        description="Open a submission to see details, then approve or reject it."
+        leading={<Sticker name="press" size={64} loop />}
+      />
       {!canEdit && <ReadOnlyNotice />}
       <ReviewFilters
         month={month}

@@ -12,6 +12,18 @@ function subscribe(listener: () => void) {
   return () => listeners.delete(listener);
 }
 
+// Link clicks whose page change was stopped on purpose (e.g. an unsaved-changes warning).
+// Next.js's <Link> always calls preventDefault() itself, so that alone can't tell them apart.
+const cancelledClicks = new WeakSet<Event>();
+
+/** Call from a link's onClick to stop its page change; the page-change animation then doesn't start. */
+export function cancelPageChange(event: { preventDefault(): void; nativeEvent: Event }) {
+  event.preventDefault();
+  cancelledClicks.add(event.nativeEvent);
+}
+
+export const isPageChangeCancelled = (event: Event) => cancelledClicks.has(event);
+
 /** True while a page's loading placeholder is showing. */
 export function usePageLoading(): boolean {
   return useSyncExternalStore(

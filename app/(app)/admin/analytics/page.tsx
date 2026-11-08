@@ -8,6 +8,7 @@ import { SpendRadar } from "@/components/analytics/spend-radar";
 import { EmptyState } from "@/components/empty-state";
 import { MonthSelect } from "@/components/month-select";
 import BlurText from "@/components/reactbits/blur-text";
+import { Sticker } from "@/components/sticker";
 import { StatCard } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,9 +35,12 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-1">
-          <BlurText as="h1" text="Analytics" className="text-2xl font-semibold tracking-tight sm:text-3xl" />
-          <p className="text-muted-foreground text-sm">How much the team costs, for main admins only.</p>
+        <div className="flex items-center gap-3">
+          <Sticker name="billion" size={64} loop />
+          <div className="space-y-1">
+            <BlurText as="h1" text="Analytics" className="text-2xl font-semibold tracking-tight sm:text-3xl" />
+            <p className="text-muted-foreground text-sm">How much the team costs, for main admins only.</p>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <MonthSelect value={month} />

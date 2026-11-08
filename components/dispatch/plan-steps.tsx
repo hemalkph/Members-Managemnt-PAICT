@@ -15,6 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { cancelPageChange } from "@/components/route-loading";
 import { cn } from "@/lib/utils";
 import { useT } from "./lang";
 
@@ -67,7 +68,7 @@ export function PlanSteps({ tabs, current, children }: { tabs: PlanTab[]; curren
                   title={tab.hint}
                   onClick={(e) => {
                     if (dirty && !active) {
-                      e.preventDefault();
+                      cancelPageChange(e);
                       setLeaveTo(tab.href);
                     }
                   }}

@@ -23,6 +23,7 @@ import { ReviewContacts, waNumber, type PaperContact } from "@/components/papers
 import { EditStageDialog, StageLinkDialog } from "@/components/papers/stage-controls";
 import SpotlightCard from "@/components/reactbits/spotlight-card";
 import Stepper from "@/components/reactbits/stepper";
+import { Sticker } from "@/components/sticker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -304,9 +305,12 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
               )}
             >
               <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="text-muted-foreground text-xs">Stage {i + 1}</p>
-                  <p className="font-semibold">{meta.label}</p>
+                <div className="flex items-center gap-2">
+                  {s.stage === "convert" && s.status === "in_progress" && <Sticker name="translate" size={44} loop />}
+                  <div>
+                    <p className="text-muted-foreground text-xs">Stage {i + 1}</p>
+                    <p className="font-semibold">{meta.label}</p>
+                  </div>
                 </div>
                 <Badge variant={s.overdue ? "destructive" : status.variant}>
                   {s.overdue ? "Overdue" : status.label}

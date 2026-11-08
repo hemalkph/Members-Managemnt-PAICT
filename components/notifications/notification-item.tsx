@@ -21,6 +21,8 @@ import {
   type LucideIcon,
   TruckIcon,
 } from "lucide-react";
+import { Sticker } from "@/components/sticker";
+import { STAGE_LABEL } from "@/lib/papers";
 import { cn } from "@/lib/utils";
 
 export type NotificationView = {
@@ -76,11 +78,18 @@ export function relativeTime(iso: string, now: number): string {
 export function NotificationItem({ item, compact = false }: { item: NotificationView; compact?: boolean }) {
   const meta = META[item.kind] ?? { icon: BellIcon, tone: "bg-muted text-muted-foreground" };
   const Icon = meta.icon;
+  // shortcut: found by title ("Your turn: Convert to English: …", made by the database);
+  // put the stage in the notification's data if the stage label ever changes.
+  const translating = item.kind === "task.turn" && item.title.startsWith(`Your turn: ${STAGE_LABEL.convert}`);
   return (
     <div className={cn("flex w-full items-start gap-3 text-left", compact ? "py-0.5" : "")}>
-      <div className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg", meta.tone)}>
-        <Icon className="size-4" />
-      </div>
+      {translating ? (
+        <Sticker name="translate" size={32} loop />
+      ) : (
+        <div className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg", meta.tone)}>
+          <Icon className="size-4" />
+        </div>
+      )}
       <div className="min-w-0 flex-1">
         <p className={cn("text-sm leading-snug", item.read ? "text-foreground/80" : "font-semibold")}>{item.title}</p>
         {item.body && (

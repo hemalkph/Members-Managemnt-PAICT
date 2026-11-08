@@ -6,6 +6,7 @@ import { NotificationList } from "@/components/notifications/notification-list";
 import { EmptyState } from "@/components/empty-state";
 import { PhoneAlertsCard } from "@/components/pwa/phone-alerts-card";
 import BlurText from "@/components/reactbits/blur-text";
+import { Sticker } from "@/components/sticker";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -51,9 +52,12 @@ export default async function NotificationsPage({ searchParams }: PageProps<"/no
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-1">
-          <BlurText as="h1" text="Notifications" className="text-2xl font-semibold tracking-tight sm:text-3xl" />
-          <p className="text-muted-foreground text-sm">Reviews, payments, notices and deadline reminders.</p>
+        <div className="flex items-center gap-3">
+          <Sticker name="press" size={64} loop />
+          <div className="space-y-1">
+            <BlurText as="h1" text="Notifications" className="text-2xl font-semibold tracking-tight sm:text-3xl" />
+            <p className="text-muted-foreground text-sm">Reviews, payments, notices and deadline reminders.</p>
+          </div>
         </div>
         <Tabs value={onlyUnread ? "unread" : "all"}>
           <TabsList>

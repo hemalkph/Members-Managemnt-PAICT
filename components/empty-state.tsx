@@ -4,12 +4,15 @@ import { cn } from "@/lib/utils";
 
 export function EmptyState({
   icon: Icon,
+  art,
   title,
   description,
   action,
   className,
 }: {
   icon: LucideIcon;
+  /** A sticker or picture shown instead of the icon. */
+  art?: ReactNode;
   title: string;
   description?: ReactNode;
   action?: ReactNode;
@@ -22,9 +25,11 @@ export function EmptyState({
         className,
       )}
     >
-      <div className="bg-primary/10 text-primary flex size-12 items-center justify-center rounded-full">
-        <Icon className="size-6" />
-      </div>
+      {art ?? (
+        <div className="bg-primary/10 text-primary flex size-12 items-center justify-center rounded-full">
+          <Icon className="size-6" />
+        </div>
+      )}
       <div className="space-y-1">
         <p className="font-medium">{title}</p>
         {description && <p className="text-muted-foreground max-w-sm text-sm">{description}</p>}

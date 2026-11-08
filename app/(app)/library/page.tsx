@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/empty-state";
 import { LibraryWhatsApp, type LibraryContact } from "@/components/library/library-whatsapp";
 import { waNumber } from "@/components/papers/review-contacts";
 import BlurText from "@/components/reactbits/blur-text";
+import { Sticker } from "@/components/sticker";
 import SpotlightCard from "@/components/reactbits/spotlight-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -109,12 +110,15 @@ export default async function LibraryPage({ searchParams }: PageProps<"/library"
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-1">
-          <BlurText as="h1" text="Paper library" className="text-2xl font-semibold tracking-tight sm:text-3xl" />
-          <p className="text-muted-foreground text-sm">
-            Reviewed papers in Sinhala and English, and their marking schemes. Download them any time – for the LMS, the
-            physical centres or marking.
-          </p>
+        <div className="flex items-center gap-3">
+          <Sticker name="translate" size={64} loop />
+          <div className="space-y-1">
+            <BlurText as="h1" text="Paper library" className="text-2xl font-semibold tracking-tight sm:text-3xl" />
+            <p className="text-muted-foreground text-sm">
+              Reviewed papers in Sinhala and English, and their marking schemes. Download them any time – for the LMS,
+              the physical centres or marking.
+            </p>
+          </div>
         </div>
         <form className="flex w-full gap-2 sm:w-72" action="/library">
           {kind && <input type="hidden" name="kind" value={kind} />}
