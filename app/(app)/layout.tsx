@@ -4,6 +4,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { BirthdayCelebration } from "@/components/birthday-celebration";
 import { CommandMenu } from "@/components/command-menu";
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import { PushSessionSync } from "@/components/pwa/push-session-sync";
 import { RouteTransition } from "@/components/route-transition";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Separator } from "@/components/ui/separator";
@@ -64,6 +65,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       <Suspense fallback={null}>
         <RouteTransition />
       </Suspense>
+      <PushSessionSync />
       {birthdayToday && profile.date_of_birth && (
         <BirthdayCelebration
           userId={profile.id}

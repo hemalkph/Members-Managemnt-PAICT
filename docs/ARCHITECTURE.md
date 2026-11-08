@@ -220,7 +220,7 @@ Each request passes several independent checks. If one layer had a bug, the next
 | Pages (`lib/auth`) | `requireUser`, `requireAdmin`, `requirePage`, `requireMainAdmin`: active profile, page access, two-step login |
 | Server Actions | `getActionContext()` also asks Supabase Auth, so a session ended elsewhere is refused at once; every input is checked with Zod |
 | Database | Row Level Security on every table; triggers stop members from editing reviewed work, making themselves admin, or changing closed months |
-| Two-step login | Main-admin powers (payments, rates, analytics, activity log) need an `aal2` session, checked in the database |
+| Two-step login | Every admin power and page grant needs an `aal2` session, checked in the database; users with two-step on also need it for their own bank, salary and payslip rows |
 | Files | Private buckets; `/files/<id>` checks access, then redirects to a link that expires in 60 seconds |
 | Audit | The activity log and payouts are written only by database functions; nobody can edit or delete them |
 | Secrets | Service-role and Google keys live only in server environment variables, never in the browser |

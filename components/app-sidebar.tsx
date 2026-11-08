@@ -147,7 +147,8 @@ export function AppSidebar({ user, pendingReviews }: { user: SidebarUser; pendin
                   </HoverPrefetchLink>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <form action="/auth/signout" method="post">
+                <form action="/auth/signout" method="post" onSubmit={signOutWithAlerts}>
+                  <input type="hidden" name="endpoint" />
                   <DropdownMenuItem asChild variant="destructive">
                     <button type="submit" className="w-full">
                       <LogOutIcon /> Log out
@@ -162,4 +163,27 @@ export function AppSidebar({ user, pendingReviews }: { user: SidebarUser; pendin
       <SidebarRail />
     </Sidebar>
   );
+}
+
+/**
+ * Before logging out, switch this phone's alerts off and tell the server which
+ * phone it was, so the next person on this device doesn't get them.
+ */
+function signOutWithAlerts(event: React.FormEvent<HTMLFormElement>) {
+  const form = event.currentTarget;
+  if (form.dataset.ready) return; // second pass: let the browser submit
+  event.preventDefault();
+  const done = () => {
+    form.dataset.ready = "1";
+    form.requestSubmit();
+  };
+  const cleanUp = async () => {
+    const reg = await navigator.serviceWorker?.getRegistration();
+    const sub = await reg?.pushManager.getSubscription();
+    if (!sub) return;
+    (form.elements.namedItem("endpoint") as HTMLInputElement).value = sub.endpoint;
+    await sub.unsubscribe();
+  };
+  // Never hold up logging out for more than a moment.
+  void Promise.race([cleanUp().catch(() => {}), new Promise((r) => setTimeout(r, 1500))]).then(done);
 }

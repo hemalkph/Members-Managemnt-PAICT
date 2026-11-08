@@ -113,10 +113,17 @@ export async function requireCompleteProfile(): Promise<Profile> {
   return profile;
 }
 
+/** Admin powers need the two-step code: anyone without it sets it up first. */
+async function requireTwoStepForAdminWork() {
+  const session = await getAuthSession();
+  if (!session?.twoStepVerified) redirect("/security?required=1");
+}
+
 /** For admin pages: members are sent back to their dashboard. */
 export async function requireAdmin(): Promise<Profile> {
   const profile = await requireUser();
   if (!profile.is_admin) redirect("/dashboard");
+  await requireTwoStepForAdminWork();
   return profile;
 }
 
@@ -124,13 +131,14 @@ export async function requireAdmin(): Promise<Profile> {
 export async function requireAnyPage(): Promise<Profile> {
   const profile = await requireUser();
   if (!hasAnyPage(profile)) redirect("/dashboard");
+  await requireTwoStepForAdminWork();
   return profile;
 }
 
 /**
- * For one admin page (see lib/auth/page-access). Members who were given the page
- * must finish their profile and enter their two-step login code first (the
- * database checks the same). canEdit is false for read-only access.
+ * For one admin page (see lib/auth/page-access). Everyone must have entered
+ * their two-step login code (the database checks the same); members who were
+ * given the page must also finish their profile. canEdit is false for read-only access.
  */
 export async function requirePage(key: PageKey): Promise<{ profile: Profile; canEdit: boolean }> {
   const profile = await requireUser();
@@ -138,11 +146,8 @@ export async function requirePage(key: PageKey): Promise<{ profile: Profile; can
   if (level === "none") {
     redirect(key !== "overview" && pageAccess(profile, "overview") !== "none" ? "/admin" : "/dashboard");
   }
-  if (!profile.is_admin) {
-    if (!isProfileComplete(profile)) redirect("/profile?complete=1");
-    const session = await getAuthSession();
-    if (!session?.twoStepVerified) redirect("/security?required=1");
-  }
+  if (!profile.is_admin && !isProfileComplete(profile)) redirect("/profile?complete=1");
+  await requireTwoStepForAdminWork();
   return { profile, canEdit: level === "edit" };
 }
 
@@ -168,11 +173,11 @@ export async function mainAdminUnlocked(profile: Profile): Promise<boolean> {
 
 /**
  * Access to an admin page for code outside that page (e.g. the paper page).
- * Members only get it after entering their two-step login code.
+ * Only after the two-step login code was entered, for admins and members alike.
  */
 export async function effectivePageAccess(profile: Profile, key: PageKey): Promise<AccessLevel> {
   const level = pageAccess(profile, key);
-  if (level === "none" || profile.is_admin) return level;
+  if (level === "none") return level;
   return (await getAuthSession())?.twoStepVerified ? level : "none";
 }
 
@@ -198,8 +203,9 @@ export async function getActionContext(
   if (options.page) {
     const level = pageAccess(profile, options.page);
     if (level === "none" || (options.edit && level !== "edit")) return null;
-    if (!profile.is_admin && !(await getAuthSession())?.twoStepVerified) return null;
   }
+  // Admin powers and page access need the two-step code (the database checks the same).
+  if ((options.admin || options.page) && !(await getAuthSession())?.twoStepVerified) return null;
   return { profile, supabase };
 }
 

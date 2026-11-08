@@ -18,7 +18,8 @@ type Ctx = NonNullable<Awaited<ReturnType<typeof getActionContext>>>;
 
 /** Video editors (anyone holding a video role), admins and reviewers can browse the folder. */
 export async function canUseDriveVideos(ctx: Ctx): Promise<boolean> {
-  if (ctx.profile.is_admin || (await effectivePageAccess(ctx.profile, "review")) !== "none") return true;
+  // Admins and reviewers: through Work review access (needs the two-step code).
+  if ((await effectivePageAccess(ctx.profile, "review")) !== "none") return true;
   const { data } = await ctx.supabase.from("member_roles").select("roles(name)").eq("user_id", ctx.profile.id);
   return (data ?? []).some((r) => isVideoRole(r.roles?.name));
 }

@@ -100,12 +100,12 @@ export async function confirmTwoStepSetupAction(input: { factorId: string; code:
   return { ok: true, message: "Two-step login is on" };
 }
 
-/** Turn off two-step login for yourself (not allowed for main admins). */
+/** Turn off two-step login for yourself (not allowed for admins). */
 export async function disableTwoStepAction(): Promise<ActionResult> {
   const ctx = await getActionContext();
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
-  if (ctx.profile.is_main_admin) {
-    return { ok: false, error: "Main admins must keep two-step login on." };
+  if (ctx.profile.is_admin) {
+    return { ok: false, error: "Admins must keep two-step login on." };
   }
 
   const { data: factors } = await ctx.supabase.auth.mfa.listFactors();

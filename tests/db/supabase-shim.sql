@@ -37,6 +37,13 @@ create table auth.mfa_factors (
   status      text not null default 'verified'
 );
 
+-- Login sessions (the JWT's session_id); signing out deletes the row.
+create table auth.sessions (
+  id        uuid primary key default gen_random_uuid(),
+  user_id   uuid not null references auth.users (id) on delete cascade,
+  not_after timestamptz
+);
+
 -- Same lookups as Supabase: the request's JWT claims are in a setting.
 create function auth.jwt() returns jsonb language sql stable as $$
   select coalesce(

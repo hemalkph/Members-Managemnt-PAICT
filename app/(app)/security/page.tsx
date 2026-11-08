@@ -72,13 +72,14 @@ export default async function SecurityPage({ searchParams }: PageProps<"/securit
         </p>
       </div>
 
-      {profile.is_main_admin && !on && (
+      {(profile.is_admin || required) && !on && (
         <Alert variant="warning">
           <ShieldAlertIcon />
-          <AlertTitle>{required ? "Turn on two-step login to continue" : "Required for main admins"}</AlertTitle>
+          <AlertTitle>{required ? "Turn on two-step login to continue" : "Required for admins"}</AlertTitle>
           <AlertDescription>
-            Main admins can see full bank account numbers and record payments, so Analytics, Payments, Rates &amp;
-            budget and the Activity log only open after two-step login is on.
+            {profile.is_admin
+              ? "Admins can see members' details and approve pay, so admin pages only open after two-step login is on. It takes a minute: set it up below."
+              : "The admin pages you were given only open after two-step login is on. Set it up below."}
           </AlertDescription>
         </Alert>
       )}
@@ -107,7 +108,7 @@ export default async function SecurityPage({ searchParams }: PageProps<"/securit
               </p>
             </div>
           </div>
-          {on && !profile.is_main_admin && <DisableTwoStepButton />}
+          {on && !profile.is_admin && <DisableTwoStepButton />}
         </div>
 
         {!on && (
@@ -115,10 +116,10 @@ export default async function SecurityPage({ searchParams }: PageProps<"/securit
             <TwoStepSetup />
           </div>
         )}
-        {on && profile.is_main_admin && (
+        {on && profile.is_admin && (
           <p className="text-muted-foreground mt-4 border-t pt-4 text-xs">
-            Main admins can&apos;t turn this off. If you lose your phone, ask the other main admin to reset it from this
-            page, then set it up again.
+            Admins can&apos;t turn this off. If you lose your phone, ask a main admin to reset it from this page, then
+            set it up again.
           </p>
         )}
       </SpotlightCard>

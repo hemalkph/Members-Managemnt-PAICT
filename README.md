@@ -88,7 +88,7 @@ It works on phones and computers, can be installed like an app, and sends phone 
 | Forms | react-hook-form and Zod (the same rules run in the browser and on the server) |
 | Server | Server Components, Server Actions and route handlers on Vercel (Singapore) |
 | Database | PostgreSQL on Supabase: Row Level Security, SQL functions, triggers, pg_cron |
-| Login | Supabase Auth with optional authenticator-app two-step login |
+| Login | Supabase Auth with authenticator-app two-step login (required for every admin) |
 | Files | Private Supabase Storage; videos stay in Google Drive |
 | Alerts | Web Push through a service worker |
 | Tests | Vitest: unit tests and database security / concurrency tests |
@@ -120,10 +120,11 @@ proxy.ts        runs before every page: refreshes the session, guards private pa
 
 - **Row Level Security on every table.** Members read and change only their own data; the anonymous role has no access at all.
 - **The database enforces the rules.** Triggers stop members from making themselves admin, editing reviewed work or changing a closed month, even through the API.
-- **Two-step login for main admins.** Payments, rates, analytics and the activity log need an authenticator code, checked inside the database.
+- **Two-step login for every admin.** Admin powers and admin pages need the authenticator code, checked inside the database, so a stolen password alone opens nothing. Anyone who turned two-step on also needs the code for their own bank details, salary and payslips.
 - **Checked twice.** Every Server Action validates its input with Zod and checks the session again with Supabase Auth.
 - **Private files.** Files open through `/files/<id>`, which checks access and redirects to a link that expires in 60 seconds.
-- **Bank details** live in their own table; pages only load the last 4 digits.
+- **Bank details** live in their own table; pages only load the last 4 digits. Admins can read them; only the member or a main admin can change them.
+- **Phone alerts follow the login:** they stop when you log out, and go only to phones whose login is still active.
 - **Audit trail.** The activity log and payslips are written only by database functions; nobody can edit or delete them.
 - **Secrets stay on the server.** The service-role, push and Google keys are never sent to the browser.
 
@@ -232,10 +233,10 @@ npm run dev          # http://localhost:3000
    ```
 
    `is_main_admin` makes you an owner: only main admins see Analytics, Payments and Rates.
-3. Log in. Main admins are asked to turn on two-step login first (Google or Microsoft Authenticator).
+3. Log in. Admins are asked to turn on two-step login first (Google or Microsoft Authenticator).
 4. Add the rest of the team from **Members → Add member**.
 
-**A main admin lost their phone:** another main admin presses **Reset** next to their name in **Two-step login**. If nobody can log in, run this in the SQL Editor, then set it up again:
+**An admin lost their phone:** a main admin presses **Reset** next to their name in **Two-step login**. If nobody can log in, run this in the SQL Editor, then set it up again:
 
 ```sql
 delete from auth.mfa_factors where user_id = (select id from auth.users where email = 'you@example.com');

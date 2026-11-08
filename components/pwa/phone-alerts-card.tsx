@@ -16,7 +16,12 @@ import ShinyText from "@/components/reactbits/shiny-text";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { removePushSubscriptionAction, savePushSubscriptionAction, sendTestPushAction } from "@/lib/actions/push";
+import {
+  refreshPushSubscriptionAction,
+  removePushSubscriptionAction,
+  savePushSubscriptionAction,
+  sendTestPushAction,
+} from "@/lib/actions/push";
 
 type InstallPrompt = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
 type State = "loading" | "unsupported" | "ios-install" | "blocked" | "off" | "on";
@@ -88,7 +93,13 @@ export function PhoneAlertsCard({ vapidKey, devices }: { vapidKey: string | null
       }
       const reg = await registration();
       const sub = await reg.pushManager.getSubscription();
-      setState(sub ? "on" : "off");
+      if (!sub) {
+        setState("off");
+        return;
+      }
+      // This phone's alerts may belong to someone who used it before: then they're off for you.
+      const result = await refreshPushSubscriptionAction({ endpoint: sub.endpoint });
+      setState(result.ok && result.data?.mine ? "on" : "off");
     };
     void check();
     return () => window.removeEventListener("beforeinstallprompt", onPrompt);
