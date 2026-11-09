@@ -19,7 +19,6 @@ import {
   WalletIcon,
   LibraryIcon,
   type LucideIcon,
-  TruckIcon,
 } from "lucide-react";
 import { Sticker } from "@/components/sticker";
 import { STAGE_LABEL } from "@/lib/papers";
@@ -56,7 +55,6 @@ const META: Record<string, { icon: LucideIcon; tone: string }> = {
   "task.escalated": { icon: SirenIcon, tone: "bg-destructive/15 text-destructive" },
   "stage.tomorrow": { icon: CalendarClockIcon, tone: "bg-primary/10 text-primary" },
   "task.done": { icon: CircleCheckIcon, tone: "bg-success/15 text-success" },
-  "dispatch.turn": { icon: TruckIcon, tone: "bg-primary/10 text-primary" },
   "task.files": { icon: PaperclipIcon, tone: "bg-primary/10 text-primary" },
   "paper.note": { icon: MessageSquareTextIcon, tone: "bg-warning/20 text-amber-700 dark:text-warning" },
   "library.new": { icon: LibraryIcon, tone: "bg-success/15 text-success" },
