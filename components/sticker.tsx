@@ -70,6 +70,27 @@ export function Sticker({
     let cancelled = false;
     const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+    // Pause while scrolled out of view so it stops redrawing every frame.
+    // Only resume what we paused, so a finished play-once sticker isn't restarted.
+    let visible = true;
+    let pausedOffscreen = false;
+    const sync = () => {
+      const a = animation.current;
+      if (!a) return;
+      if (!visible && !a.isPaused) {
+        a.pause();
+        pausedOffscreen = true;
+      } else if (visible && pausedOffscreen) {
+        pausedOffscreen = false;
+        a.play();
+      }
+    };
+    const observer = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      sync();
+    });
+    if (box.current) observer.observe(box.current);
+
     Promise.all([loadPlayer(), loadFile(name)])
       .then(([lottie, data]) => {
         if (cancelled || !box.current) return;
@@ -84,11 +105,13 @@ export function Sticker({
         if (still) a.goToAndStop(0, true);
         a.addEventListener("complete", () => completeRef.current?.());
         animation.current = a;
+        sync();
       })
       .catch(() => {});
 
     return () => {
       cancelled = true;
+      observer.disconnect();
       animation.current?.destroy();
       animation.current = null;
     };
