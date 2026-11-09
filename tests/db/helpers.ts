@@ -37,7 +37,6 @@ export type PersonOptions = {
   mainAdmin?: boolean;
   active?: boolean;
   pageAccess?: Record<string, "edit" | "view" | "none"> | null;
-  grants?: string[];
   name?: string;
 };
 
@@ -55,9 +54,6 @@ export async function createPerson(client: pg.Client, opts: PersonOptions = {}):
     "update public.profiles set is_admin = $2, is_main_admin = $3, is_active = $4, page_access = $5 where id = $1",
     [id, Boolean(opts.admin || opts.mainAdmin), Boolean(opts.mainAdmin), opts.active ?? true, opts.pageAccess ? JSON.stringify(opts.pageAccess) : null],
   );
-  for (const cap of opts.grants ?? []) {
-    await client.query("insert into public.dispatch_grants (user_id, capability) values ($1, $2)", [id, cap]);
-  }
   return id;
 }
 

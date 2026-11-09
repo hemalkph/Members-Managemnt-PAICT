@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/banner.svg" alt="Team Work Tracker: work logs, reviews, payslips, papers and tute dispatch for the PAICT A/L ICT class team" width="100%">
+  <img src="docs/images/banner.svg" alt="Team Work Tracker: work logs, reviews, payslips and papers for the PAICT A/L ICT class team" width="100%">
 </p>
 
 <p align="center">
@@ -22,7 +22,7 @@
 
 ---
 
-**Team Work Tracker** is the internal system of the PAICT A/L ICT class team. Members log the work they do (typesetting, paper creating, marking, design, video editing and more), admins review it, and the system turns approved work and fixed salaries into monthly payslips. It also runs the paper production line, tasks, the paper library and tute dispatch to students.
+**Team Work Tracker** is the internal system of the PAICT A/L ICT class team. Members log the work they do (typesetting, paper creating, marking, design, video editing and more), admins review it, and the system turns approved work and fixed salaries into monthly payslips. It also runs the paper production line, tasks and the paper library.
 
 It works on phones and computers, can be installed like an app, and sends phone alerts when something needs you. Sign-up is closed: admins add members.
 
@@ -70,16 +70,6 @@ It works on phones and computers, can be installed like an app, and sends phone 
 | 📌 **Tasks** | Assign work with a quantity, due date and priority; reminders the day before, on the day and when overdue. |
 | 🏆 **Performance** | On-time rate and speed per member and stage. |
 
-### Tute dispatch
-
-| | |
-|---|---|
-| 📦 **Rounds** | Plan which tutes go to which students, import student lists from Excel, copy an earlier round. |
-| 📷 **Packing station** | Scan tutes with the phone camera or a barcode scanner, step-by-step guidance, team view and counts. Sinhala and English. |
-| 🚚 **Courier** | Read waybill PDFs, track parcels, record hand-overs to the courier. |
-| 💵 **Cash on delivery** | Settlements, money reports and round closing. |
-| 🧹 **Privacy** | Student details and courier files are deleted after the keep time set by admins. |
-
 ## How it's built
 
 | Part | Technology |
@@ -110,7 +100,7 @@ The full write-up, with layers, request flows, the data model and where new code
 app/            pages and routes: (auth) login, (app) member and admin pages, api, files
 components/     React components: ui/ base components, one folder per feature
 lib/            actions/ (every write) and one folder per feature: auth, core, members,
-                organisation, work, payments, papers, tasks, notifications, dispatch
+                organisation, work, payments, papers, tasks, notifications
 supabase/       migrations/ (tables, security rules, functions, triggers) and seed.sql
 tests/          unit/ pure logic · db/ security rules and concurrency
 proxy.ts        runs before every page: refreshes the session, guards private pages

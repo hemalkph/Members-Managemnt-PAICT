@@ -40,7 +40,7 @@ function pgBinDir(): string {
 
 function startCluster(): { url: string; stop: () => void } {
   const bin = pgBinDir();
-  const dir = mkdtempSync(path.join(tmpdir(), "dispatch-testdb-"));
+  const dir = mkdtempSync(path.join(tmpdir(), "testdb-"));
   const data = path.join(dir, "data");
   const asRoot = process.getuid?.() === 0;
   if (asRoot) {

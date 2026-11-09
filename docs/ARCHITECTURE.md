@@ -1,6 +1,6 @@
 # Architecture
 
-Team Work Tracker is the internal system of the PAICT A/L ICT class team. Members log the work they do (typesetting, paper creating, marking, design, video editing…), admins review it, and the system turns approved work and fixed salaries into monthly payslips. It also runs the paper production line, tasks, the paper library and tute dispatch to students.
+Team Work Tracker is the internal system of the PAICT A/L ICT class team. Members log the work they do (typesetting, paper creating, marking, design, video editing…), admins review it, and the system turns approved work and fixed salaries into monthly payslips. It also runs the paper production line, tasks and the paper library.
 
 This document explains how the code is organised and how a request travels through it.
 
@@ -102,7 +102,7 @@ flowchart TB
 │   │   ├── dashboard, work, tasks, papers, library, payslips, performance,
 │   │   │   week, notifications, profile, bank, security       Member pages
 │   │   └── admin/               Admin area: review, members, payments, analytics,
-│   │                            rates, reports, papers, tasks, dispatch, activity…
+│   │                            rates, reports, papers, tasks, activity…
 │   ├── api/
 │   │   ├── drive/               Video list and thumbnails from Google Drive
 │   │   └── hooks/               Called by the database: push alerts, daily clean-up
@@ -112,7 +112,7 @@ flowchart TB
 ├── components/                  React components
 │   ├── ui/                      Base components (shadcn/ui on Radix)
 │   ├── reactbits/, animate-ui/  Animated components
-│   ├── admin/, member/, payments/, papers/, tasks/, dispatch/, library/,
+│   ├── admin/, member/, payments/, papers/, tasks/, library/,
 │   │   notifications/, analytics/, …                 One folder per feature
 │   └── *.tsx                    App shell: sidebar, page header, theme, skeletons
 │
@@ -128,11 +128,10 @@ flowchart TB
 │   ├── papers/                  Paper production tracker, drafts, file clean-up
 │   ├── tasks/                   Tasks, WhatsApp messages, performance
 │   ├── notifications/           Notifications, notices, phone push, activity log
-│   ├── dispatch/                Tute dispatch: rounds, packing, courier, money, reports
 │   └── utils.ts                 Class-name helper used by the UI components
 │
 ├── supabase/
-│   ├── migrations/              37 ordered SQL migrations (46 tables)
+│   ├── migrations/              45 ordered SQL migrations (28 tables)
 │   └── seed.sql                 Starter sections, roles and rates
 │
 ├── tests/
@@ -239,7 +238,6 @@ Each request passes several independent checks. If one layer had a bug, the next
 | Pay | `pay_months`, `payouts`, `app_settings` |
 | Papers | `papers`, `paper_stages`, `paper_files`, `paper_notes` |
 | Communication | `notifications`, `announcements`, `activity_log` |
-| Tute dispatch | `students`, `dispatch_rounds`, `round_students`, `round_tutes`, `parcels`, `parcel_items`, `parcel_scans`, `parcel_events`, `handovers`, `cod_settlements`, … |
 
 Key rules kept in the database:
 
@@ -255,8 +253,8 @@ Key rules kept in the database:
 | --- | --- | --- |
 | Type check | `npm run typecheck` | Whole project, including route and database types |
 | Lint | `npm run lint` | ESLint (Next.js rules) |
-| Unit tests | `npm test` | Dates and pay periods, money, NIC parsing, access rules, dispatch logic, Drive folder names, PDF pages |
-| Database tests | `npm run test:db` | Row Level Security per role, and concurrent packing / money / hand-over operations |
+| Unit tests | `npm test` | Dates and pay periods, money, NIC parsing, access rules, Drive folder names, PDF pages |
+| Database tests | `npm run test:db` | Row Level Security per role and security rules |
 | Build | `npm run build` | Production build |
 
 ---
