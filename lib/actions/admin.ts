@@ -5,6 +5,7 @@ import { friendlyDbError, type ActionResult } from "@/lib/core/action-result";
 import { getActionContext, mainAdminUnlocked, NOT_ALLOWED } from "@/lib/auth";
 import { sameStoredAccess, toStoredAccess, type PageAccessMap, type PageKey } from "@/lib/auth/page-access";
 import { getSiteUrl } from "@/lib/core/env";
+import { currentMonthKey, dateToMonthKey } from "@/lib/core/month";
 import { createAdminClient, hasServiceRoleKey } from "@/lib/supabase/admin";
 import {
   adminResetPasswordSchema,
@@ -135,6 +136,11 @@ export async function createMemberAction(input: MemberCreateInput): Promise<Acti
   const rolesError = await syncRoles(ctx, userId, v.role_ids);
   if (rolesError) return { ok: false, error: "Member created, but roles could not be saved." };
 
+  if (v.pay_start === "next") {
+    const { error } = await ctx.supabase.rpc("set_member_pay_start", { p_user: userId, p_next: true });
+    if (error) return { ok: false, error: "Member created, but “Paid from next month” could not be saved." };
+  }
+
   await ctx.supabase.rpc("log_event", { p_action: "member.created", p_target: userId });
   revalidateMembers();
   return {
@@ -191,6 +197,19 @@ export async function updateMemberAction(input: MemberUpdateInput): Promise<Acti
 
   const rolesError = await syncRoles(ctx, v.id, v.role_ids);
   if (rolesError) return { ok: false, error: friendlyDbError(rolesError) };
+
+  if (v.pay_start) {
+    const { data: start } = await ctx.supabase
+      .from("member_pay_starts")
+      .select("from_month")
+      .eq("user_id", v.id)
+      .maybeSingle();
+    const startsNext = Boolean(start && dateToMonthKey(start.from_month) > currentMonthKey());
+    if (startsNext !== (v.pay_start === "next")) {
+      const { error } = await ctx.supabase.rpc("set_member_pay_start", { p_user: v.id, p_next: v.pay_start === "next" });
+      if (error) return { ok: false, error: friendlyDbError(error) };
+    }
+  }
 
   revalidateMembers(v.id);
   return { ok: true, message: "Member saved" };

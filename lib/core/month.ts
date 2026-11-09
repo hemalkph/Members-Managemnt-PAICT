@@ -44,6 +44,14 @@ export function periodDays(key: string): { first: string; last: string } {
   return { first: `${key}-${PERIOD_END_DAY + 1}`, last: `${next}-${String(PERIOD_END_DAY).padStart(2, "0")}` };
 }
 
+/** Today's day in a month's period (11th = day 1; 0 before it starts) and the period's length. */
+export function periodProgress(key: string): { day: number; days: number } {
+  const { first, last } = periodDays(key);
+  const dayNo = (iso: string) => Date.parse(`${iso}T00:00:00Z`) / 86_400_000;
+  const days = dayNo(last) - dayNo(first) + 1;
+  return { day: Math.min(Math.max(dayNo(todayISO()) - dayNo(first) + 1, 0), days), days };
+}
+
 /** "11 Oct – 10 Nov 2026" */
 export function periodRangeLabel(key: string): string {
   const { first, last } = periodDays(key);

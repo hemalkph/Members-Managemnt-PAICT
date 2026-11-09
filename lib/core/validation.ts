@@ -170,6 +170,8 @@ const memberBase = z.object({
   nic,
   role_ids: z.array(uuid).max(50),
   is_admin: z.boolean(),
+  /** Paid from this month, or from next month (salary and work wait until then). */
+  pay_start: z.enum(["this", "next"]).optional(),
 });
 
 export const memberCreateSchema = memberBase
@@ -254,6 +256,8 @@ export const roleRatesSchema = z
             .min(0, "Salary can't be negative")
             .max(MAX_RATE, "That salary is too large")
             .refine((v) => Math.round(v * 100) === v * 100, "Use at most 2 decimal places"),
+          /** The pay month the amount starts from. */
+          from: z.enum(["this", "next"]).default("this"),
         }),
       )
       .max(200)

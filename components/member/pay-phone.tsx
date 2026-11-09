@@ -33,7 +33,7 @@ type Props = {
   avatarUrl: string | null;
   month: string;
   monthName: string;
-  /** Day of the month today (1–31) and how many days the month has. */
+  /** Today's day in the pay period (11th = day 1; 0 before it starts) and how many days it has. */
   day: number;
   daysInMonth: number;
   /** Full fixed monthly salary, and how much of it is earned so far. */
@@ -212,7 +212,7 @@ export function PayPhone(props: Props) {
             )}
           </AnimatePresence>
           <p className="mt-1.5 text-[11px] text-white/80">
-            Day {day} of {daysInMonth}
+            {day > 0 ? `Day ${day} of ${daysInMonth}` : "Pay starts on the 11th"}
             {workPending > 0 && <> · +{formatLKR(workPending)} in review</>}
           </p>
 

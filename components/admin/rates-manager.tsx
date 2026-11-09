@@ -20,9 +20,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { saveRoleRatesAction } from "@/lib/actions/rates";
 import { formatLKR } from "@/lib/core/format";
+import { monthLabel, shiftMonth } from "@/lib/core/month";
 import { cn } from "@/lib/utils";
 import { MAX_RATE } from "@/lib/core/validation";
 
@@ -32,12 +34,20 @@ export type RatesRole = {
   sectionName: string;
   is_salaried: boolean;
   items: { id: string; name: string; unit: string; price: number }[];
-  /** Active members who hold this role, with their monthly salary (salaried roles). */
-  members: { id: string; name: string; salary: number }[];
+  /** Active members who hold this role, with their salary this month and any change set for next month. */
+  members: { id: string; name: string; salary: number; next: { amount: number; month: string } | null }[];
 };
 
+type SalaryFrom = "this" | "next";
+
 type DraftItem = { key: string; id?: string; name: string; unit: string; price: string };
-type DraftRole = Omit<RatesRole, "items"> & { items: DraftItem[]; salaries: Record<string, string>; dirty: boolean };
+type DraftRole = Omit<RatesRole, "items"> & {
+  items: DraftItem[];
+  salaries: Record<string, string>;
+  /** Which month each edited salary starts from. */
+  salaryFrom: Record<string, SalaryFrom>;
+  dirty: boolean;
+};
 
 const UNIT_SUGGESTIONS = ["page", "design", "paper", "scheme", "item"];
 
@@ -47,6 +57,7 @@ function toDraft(role: RatesRole): DraftRole {
     dirty: false,
     items: role.items.map((i) => ({ key: i.id, id: i.id, name: i.name, unit: i.unit, price: String(i.price) })),
     salaries: Object.fromEntries(role.members.map((m) => [m.id, String(m.salary)])),
+    salaryFrom: {},
   };
 }
 
@@ -60,7 +71,9 @@ function quantityOf(value: string | undefined): number {
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
 }
 
-export function RatesManager({ roles: initialRoles }: { roles: RatesRole[] }) {
+export function RatesManager({ roles: initialRoles, thisMonth }: { roles: RatesRole[]; thisMonth: string }) {
+  const nextMonth = shiftMonth(thisMonth, 1);
+  const monthShort = (key: string) => monthLabel(key, "short").split(" ")[0];
   const [roles, setRoles] = useState<DraftRole[]>(() => initialRoles.map(toDraft));
   const [qty, setQty] = useState<Record<string, string>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -110,6 +123,7 @@ export function RatesManager({ roles: initialRoles }: { roles: RatesRole[] }) {
           ? role.members.map((m) => ({
               user_id: m.id,
               amount: Math.round(Number(role.salaries[m.id] || 0) * 100) / 100,
+              from: role.salaryFrom[m.id] ?? "this",
             }))
           : [],
       });
@@ -142,6 +156,11 @@ export function RatesManager({ roles: initialRoles }: { roles: RatesRole[] }) {
                   ...r.salaries,
                   ...Object.fromEntries((result.data?.salaries ?? []).map((x) => [x.user_id, String(x.amount)])),
                 },
+                salaryFrom: {},
+                members: r.members.map((m) => {
+                  const savedSalary = result.data?.salaries.find((x) => x.user_id === m.id);
+                  return savedSalary ? { ...m, salary: savedSalary.amount, next: savedSalary.next } : m;
+                }),
               }
             : r,
         ),
@@ -233,7 +252,7 @@ export function RatesManager({ roles: initialRoles }: { roles: RatesRole[] }) {
                     <div className="space-y-3">
                       <p className="text-muted-foreground flex items-center gap-2 text-sm">
                         <BriefcaseIcon className="size-4" /> Paid a fixed monthly salary. Enter each member&apos;s
-                        amount.
+                        amount and the month it starts – earlier months keep the old amount.
                       </p>
                       {role.members.length === 0 ? (
                         <p className="text-muted-foreground text-sm">
@@ -265,7 +284,29 @@ export function RatesManager({ roles: initialRoles }: { roles: RatesRole[] }) {
                                   }
                                 />
                               </div>
-                              <span className="text-muted-foreground text-xs">/ month</span>
+                              <span className="text-muted-foreground text-xs">/ month from</span>
+                              <Select
+                                value={role.salaryFrom[m.id] ?? "this"}
+                                onValueChange={(v) =>
+                                  updateRole(role.id, (r) => ({
+                                    ...r,
+                                    salaryFrom: { ...r.salaryFrom, [m.id]: v as SalaryFrom },
+                                  }))
+                                }
+                              >
+                                <SelectTrigger size="sm" className="w-40" aria-label={`Salary for ${m.name} starts`}>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="this">This month ({monthShort(thisMonth)})</SelectItem>
+                                  <SelectItem value="next">Next month ({monthShort(nextMonth)})</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              {m.next && (
+                                <p className="text-muted-foreground w-full pl-7 text-xs">
+                                  Changes to {formatLKR(m.next.amount)} from {monthLabel(m.next.month)}.
+                                </p>
+                              )}
                             </li>
                           ))}
                         </ul>

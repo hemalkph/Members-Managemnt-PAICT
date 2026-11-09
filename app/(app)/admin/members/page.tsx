@@ -18,7 +18,7 @@ import { accessMap, PAGES } from "@/lib/auth/page-access";
 import { ReadOnlyNotice } from "@/components/read-only-notice";
 import { isBirthdayToday } from "@/lib/members/birthday";
 import { initials } from "@/lib/core/format";
-import { todayISO } from "@/lib/core/month";
+import { currentMonthKey, dateToMonthKey, todayISO } from "@/lib/core/month";
 import { flattenRoles, getStructure } from "@/lib/organisation/structure";
 import { signedAvatarUrls } from "@/lib/core/storage";
 import { hasServiceRoleKey } from "@/lib/supabase/admin";
@@ -39,11 +39,16 @@ export default async function MembersPage({ searchParams }: PageProps<"/admin/me
   const status = param(sp.status);
 
   const supabase = await createClient();
-  const [{ data: profiles }, structure, rolesByUser] = await Promise.all([
+  const [{ data: profiles }, structure, rolesByUser, { data: payStarts }] = await Promise.all([
     supabase.from("profiles").select("*").order("full_name"),
     getStructure(supabase),
     getAllMemberRoles(supabase),
+    supabase.from("member_pay_starts").select("user_id, from_month"),
   ]);
+  // Members set to be paid from a later month.
+  const startsNext = new Set(
+    (payStarts ?? []).filter((p) => dateToMonthKey(p.from_month) > currentMonthKey()).map((p) => p.user_id),
+  );
 
   const everyoneRows = profiles ?? [];
   const allRoles = flattenRoles(structure);
@@ -250,6 +255,7 @@ export default async function MembersPage({ searchParams }: PageProps<"/admin/me
                             nic: m.nic ?? "",
                             role_ids: roleIds,
                             is_admin: m.is_admin,
+                            pay_start: startsNext.has(m.id) ? "next" : "this",
                             is_active: m.is_active,
                           }}
                         />

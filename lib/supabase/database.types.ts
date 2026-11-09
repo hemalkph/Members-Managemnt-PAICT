@@ -183,11 +183,33 @@ export type Database = {
           },
         ];
       };
+      member_pay_starts: {
+        Row: {
+          user_id: string;
+          from_month: string;
+          set_by: string | null;
+          set_at: string;
+        };
+        Insert: {
+          user_id: string;
+          from_month: string;
+          set_by?: string | null;
+          set_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          from_month?: string;
+          set_by?: string | null;
+          set_at?: string;
+        };
+        Relationships: [];
+      };
       member_salaries: {
         Row: {
           user_id: string;
           role_id: string;
           monthly_amount: number;
+          from_month: string;
           created_at: string;
           updated_at: string;
         };
@@ -195,6 +217,7 @@ export type Database = {
           user_id: string;
           role_id: string;
           monthly_amount?: number;
+          from_month?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -202,6 +225,7 @@ export type Database = {
           user_id?: string;
           role_id?: string;
           monthly_amount?: number;
+          from_month?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -1125,6 +1149,7 @@ export type Database = {
       is_active_member: { Args: Record<PropertyKey, never>; Returns: boolean };
       nic_birth_date: { Args: { nic: string }; Returns: string | null };
       is_main_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
+      set_member_pay_start: { Args: { p_user: string; p_next: boolean }; Returns: string | null };
       my_two_step_on: { Args: Record<PropertyKey, never>; Returns: boolean };
       push_subscription_save: {
         Args: { p_endpoint: string; p_p256dh: string; p_auth: string; p_device: string };

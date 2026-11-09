@@ -23,7 +23,7 @@ export default async function MyWorkPage({ searchParams }: PageProps<"/work">) {
   const supabase = await createClient();
   const [submissions, salary, drafts] = await Promise.all([
     getSubmissionsForMonth(supabase, profile.id, month),
-    SHOW_MEMBERS_THEIR_EARNINGS ? getMySalary(supabase, profile.id) : Promise.resolve(0),
+    SHOW_MEMBERS_THEIR_EARNINGS ? getMySalary(supabase, profile.id, month) : Promise.resolve(0),
     getPaperDrafts(supabase, profile.id),
   ]);
   const summary = summarise(submissions);
