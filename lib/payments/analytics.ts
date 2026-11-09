@@ -2,7 +2,8 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
-import { dateInColombo, monthKeyToDate, monthLabel, periodOfDay, shiftMonth } from "@/lib/core/month";
+import { monthKeyToDate, monthLabel, shiftMonth } from "@/lib/core/month";
+import { paidFrom, salariesInEffect } from "@/lib/core/salary";
 import { salaryLinesOf } from "@/lib/payments";
 import { getStructure } from "@/lib/organisation/structure";
 
@@ -82,6 +83,7 @@ export async function getAnalytics(
     { data: holderRows },
     { data: closedRows },
     { data: closedMonthRows },
+    { data: payStarts },
   ] = await Promise.all([
     supabase
       .from("submissions")
@@ -93,11 +95,12 @@ export async function getAnalytics(
     supabase.from("profiles").select("id, full_name, email, phone, is_active"),
     supabase.from("bank_details").select("user_id, bank_name, account_last4"),
     supabase.from("roles").select("id, name, is_salaried"),
-    supabase.from("member_salaries").select("user_id, role_id, monthly_amount, created_at"),
+    supabase.from("member_salaries").select("user_id, role_id, monthly_amount, from_month"),
     supabase.from("member_roles").select("user_id, role_id"),
     // Closed months keep the salaries saved when they were closed.
     supabase.from("payouts").select("month, user_id, salary_lines").gte("month", first).lte("month", last),
     supabase.from("pay_months").select("month").gte("month", first).lte("month", last),
+    supabase.from("member_pay_starts").select("user_id, from_month"),
   ]);
 
   const submissions = rows ?? [];
@@ -121,7 +124,6 @@ export async function getAnalytics(
   const holds = new Set((holderRows ?? []).map((h) => `${h.user_id}:${h.role_id}`));
   const salaries = (salaryRows ?? []).filter(
     (s) =>
-      num(s.monthly_amount) > 0 &&
       salariedRoleIds.has(s.role_id) &&
       holds.has(`${s.user_id}:${s.role_id}`) &&
       profileById.get(s.user_id)?.is_active,
@@ -140,12 +142,13 @@ export async function getAnalytics(
     }
     closedSalaries.set(key, list);
   }
-  // Open months: a salary counts from the pay period it was first set in (current amounts).
-  // Same rule as public.close_pay_month.
+  // Open months: the latest amount set from that month or before, from the member's
+  // pay start month. Same rule as public.close_pay_month.
+  const startOf = new Map((payStarts ?? []).map((p) => [p.user_id, p.from_month]));
   const salariesFor = (key: string): SalaryEntry[] =>
     closedSalaries.get(key) ??
-    salaries
-      .filter((s) => periodOfDay(dateInColombo(s.created_at)) <= key)
+    salariesInEffect(salaries, key)
+      .filter((s) => num(s.monthly_amount) > 0 && paidFrom(startOf.get(s.user_id), key))
       .map((s) => ({ user_id: s.user_id, role_id: s.role_id, amount: num(s.monthly_amount) }));
 
   for (const m of months) {

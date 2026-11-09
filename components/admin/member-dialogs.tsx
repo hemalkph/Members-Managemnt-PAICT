@@ -22,9 +22,11 @@ import {
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { MultiSelect, type MultiSelectOption } from "@/components/ui/multi-select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { createMemberAction, updateMemberAction } from "@/lib/actions/admin";
+import { currentMonthKey, monthLabel, shiftMonth } from "@/lib/core/month";
 import { accessMap, editablePages, type AccessLevel, type PageAccessMap } from "@/lib/auth/page-access";
 import {
   memberCreateSchema,
@@ -40,6 +42,7 @@ type CommonFields = {
   nic: string;
   role_ids: string[];
   is_admin: boolean;
+  pay_start?: "this" | "next";
 };
 
 /** Fields shared by the add and edit forms. */
@@ -51,6 +54,8 @@ function MemberFields<T extends FieldValues & CommonFields>({
   roleOptions: MultiSelectOption[];
 }) {
   const name = (n: keyof CommonFields) => n as Path<T>;
+  const thisMonth = currentMonthKey();
+  const nextMonth = shiftMonth(thisMonth, 1);
   return (
     <>
       <FormField
@@ -119,6 +124,30 @@ function MemberFields<T extends FieldValues & CommonFields>({
               aria-invalid={Boolean(fieldState.error)}
             />
             <FormDescription>A member can have several roles across sections.</FormDescription>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={control}
+        name={name("pay_start")}
+        render={({ field }) => (
+          <FormItem className="sm:col-span-2">
+            <FormLabel>Paid from</FormLabel>
+            <Select value={field.value ?? "this"} onValueChange={field.onChange}>
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                <SelectItem value="this">This month ({monthLabel(thisMonth)})</SelectItem>
+                <SelectItem value="next">Next month ({monthLabel(nextMonth)})</SelectItem>
+              </SelectContent>
+            </Select>
+            <FormDescription>
+              Next month: their salary starts then, and work they log before it counts for {monthLabel(nextMonth)}.
+            </FormDescription>
             <FormMessage />
           </FormItem>
         )}
@@ -280,6 +309,7 @@ export function AddMemberDialog({
     nic: "",
     role_ids: [],
     is_admin: false,
+    pay_start: "this",
     mode: "invite",
     password: "",
   };

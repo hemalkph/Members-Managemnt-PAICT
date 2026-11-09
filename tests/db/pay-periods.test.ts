@@ -101,8 +101,7 @@ describe("closing a month", () => {
 });
 
 describe("fixed salaries follow the pay period", () => {
-  test("a salary set before the period's 10th ends is paid for that month; one set after is not", async () => {
-    // March's period: 11 Mar – 10 Apr 2026 (Sri Lanka time).
+  test("a salary from March is paid for March; one from April is not", async () => {
     const inside = await createPerson(db);
     const after = await createPerson(db);
     await asOwner(db);
@@ -110,15 +109,15 @@ describe("fixed salaries follow the pay period", () => {
     const salaried = (
       await q("insert into public.roles (section_id, name, is_salaried) values ($1, 'LMS Admin', true) returning id", [section])
     )[0].id;
-    for (const [user, setAt] of [
-      [inside, "2026-04-10 23:30+05:30"],
-      [after, "2026-04-11 00:30+05:30"],
+    for (const [user, from] of [
+      [inside, "2026-03-01"],
+      [after, "2026-04-01"],
     ]) {
       await q("insert into public.member_roles (user_id, role_id) values ($1, $2)", [user, salaried]);
-      await q("insert into public.member_salaries (user_id, role_id, monthly_amount, created_at) values ($1, $2, 25000, $3)", [
+      await q("insert into public.member_salaries (user_id, role_id, monthly_amount, from_month) values ($1, $2, 25000, $3)", [
         user,
         salaried,
-        setAt,
+        from,
       ]);
     }
 

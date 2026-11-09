@@ -8,11 +8,12 @@ import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { requireCompleteProfile } from "@/lib/auth";
-import { currentMonthKey, dateToMonthKey, todayISO } from "@/lib/core/month";
+import { dateToMonthKey, todayISO } from "@/lib/core/month";
 import { SHOW_MEMBERS_THEIR_EARNINGS } from "@/lib/core/config";
 import { activeOptions, getClassOptions } from "@/lib/organisation/classes";
 import { getMemberRoles, getRatesForRoles } from "@/lib/organisation/structure";
 import { createClient } from "@/lib/supabase/server";
+import { getMyPayMonth } from "@/lib/members/queries";
 import { uuid } from "@/lib/core/validation";
 
 export const metadata: Metadata = { title: "Edit submission" };
@@ -59,7 +60,7 @@ export default async function EditWorkPage({ params }: PageProps<"/work/[id]/edi
     centreId: submission.centre_id,
   });
   // Saving pending work moves it to the month open now (the database decides).
-  const workMonth = currentMonthKey();
+  const workMonth = await getMyPayMonth(supabase, profile.id);
   const rates = await getRatesForRoles(
     supabase,
     roles.map((r) => r.id),

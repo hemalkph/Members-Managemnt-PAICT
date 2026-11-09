@@ -14,8 +14,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { requireUser } from "@/lib/auth";
 import { MEMBERS_CAN_SEE_PAYSLIPS } from "@/lib/core/config";
 import { formatDate, formatLKR } from "@/lib/core/format";
-import { getMySalary, getSubmissionsForMonth, summarise } from "@/lib/members/queries";
-import { currentMonthKey, dateToMonthKey, monthLabel, todayISO } from "@/lib/core/month";
+import { getMyPayMonth, getMySalary, getSubmissionsForMonth, summarise } from "@/lib/members/queries";
+import { dateToMonthKey, monthLabel, periodProgress } from "@/lib/core/month";
 import { normalisePayout } from "@/lib/payments";
 import { createClient } from "@/lib/supabase/server";
 
@@ -42,10 +42,11 @@ export default async function MyEarningsPage({ searchParams }: PageProps<"/paysl
   }
 
   const supabase = await createClient();
-  const thisMonth = currentMonthKey();
+  // This month, or the member's later pay start month.
+  const thisMonth = await getMyPayMonth(supabase, profile.id);
   const [{ data }, salary, monthWork] = await Promise.all([
     supabase.from("payouts").select("*").eq("user_id", profile.id).order("month", { ascending: false }).limit(120),
-    getMySalary(supabase, profile.id),
+    getMySalary(supabase, profile.id, thisMonth),
     getSubmissionsForMonth(supabase, profile.id, thisMonth),
   ]);
   const payslips = (data ?? []).map(normalisePayout);
@@ -54,12 +55,8 @@ export default async function MyEarningsPage({ searchParams }: PageProps<"/paysl
 
   // This month so far (not closed yet): approved work + salary earned day by day.
   const closedThisMonth = payslips.some((p) => dateToMonthKey(p.month) === thisMonth);
-  const today = todayISO();
-  const [y, m] = thisMonth.split("-").map(Number);
-  const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
-  const soFar = closedThisMonth
-    ? 0
-    : summarise(monthWork).earnedApproved + (salary * Number(today.slice(8, 10))) / daysInMonth;
+  const { day, days } = periodProgress(thisMonth);
+  const soFar = closedThisMonth ? 0 : summarise(monthWork).earnedApproved + (salary * day) / days;
 
   const years = [...new Set([thisMonth.slice(0, 4), ...payslips.map((p) => p.month.slice(0, 4))])].sort().reverse();
   const asked = String((await searchParams).year ?? "");

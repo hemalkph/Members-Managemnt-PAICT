@@ -18,7 +18,7 @@ import { mainAdminUnlocked, requirePage } from "@/lib/auth";
 import { ADMINS_CAN_REVEAL_ACCOUNT_NUMBER } from "@/lib/core/config";
 import { ageOn, formatBirthday, isBirthdayToday } from "@/lib/members/birthday";
 import { formatDate, formatLKR, initials } from "@/lib/core/format";
-import { dateToMonthKey, monthLabel, todayISO } from "@/lib/core/month";
+import { currentMonthKey, dateToMonthKey, monthLabel, todayISO } from "@/lib/core/month";
 import { getMemberRoles, getStructure } from "@/lib/organisation/structure";
 import { signedAvatarUrl } from "@/lib/core/storage";
 import { hasServiceRoleKey } from "@/lib/supabase/admin";
@@ -36,7 +36,7 @@ export default async function MemberDetailPage({ params }: PageProps<"/admin/mem
   const { data: member } = await supabase.from("profiles").select("*").eq("id", id).maybeSingle();
   if (!member) notFound();
 
-  const [roles, structure, avatarUrl, { data: bank }, { data: submissions }] = await Promise.all([
+  const [roles, structure, avatarUrl, { data: bank }, { data: submissions }, { data: payStart }] = await Promise.all([
     getMemberRoles(supabase, id),
     getStructure(supabase),
     signedAvatarUrl(supabase, member.avatar_path),
@@ -53,6 +53,7 @@ export default async function MemberDetailPage({ params }: PageProps<"/admin/mem
       .eq("user_id", id)
       .order("work_month", { ascending: false })
       .order("date_done", { ascending: false }),
+    supabase.from("member_pay_starts").select("from_month").eq("user_id", id).maybeSingle(),
   ]);
 
   const months = new Map<string, NonNullable<typeof submissions>>();
@@ -107,6 +108,7 @@ export default async function MemberDetailPage({ params }: PageProps<"/admin/mem
             nic: member.nic ?? "",
             role_ids: roles.map((r) => r.id),
             is_admin: member.is_admin,
+            pay_start: payStart && dateToMonthKey(payStart.from_month) > currentMonthKey() ? "next" : "this",
             is_active: member.is_active,
           }}
         />

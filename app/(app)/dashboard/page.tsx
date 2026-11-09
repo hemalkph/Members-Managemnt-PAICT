@@ -17,9 +17,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireCompleteProfile } from "@/lib/auth";
 import { SHOW_MEMBERS_THEIR_EARNINGS } from "@/lib/core/config";
-import { getMySalary, getSubmissionsForMonth, summarise } from "@/lib/members/queries";
+import { getMyPayMonth, getMySalary, getSubmissionsForMonth, summarise } from "@/lib/members/queries";
 import { getDeadlines, sendDueRemindersLater } from "@/lib/work/deadlines";
-import { currentMonthKey, monthLabel, periodDays, shiftMonth, todayISO } from "@/lib/core/month";
+import { currentMonthKey, monthLabel, periodDays, periodProgress, shiftMonth } from "@/lib/core/month";
 import { getClosedMonthKeys } from "@/lib/payments";
 import { getTasks } from "@/lib/tasks/queries";
 import { getCurrentNotices } from "@/lib/notifications/notices";
@@ -41,9 +41,10 @@ function progressTo(start: string, end: string): number {
 export default async function DashboardPage() {
   const profile = await requireCompleteProfile();
   const supabase = await createClient();
-  const month = currentMonthKey();
-
-  const previous = shiftMonth(month, -1);
+  const now = currentMonthKey();
+  const previous = shiftMonth(now, -1);
+  // The member's work month: this month, or their later pay start month.
+  const month = await getMyPayMonth(supabase, profile.id);
   // Reminders: also sent by a daily job; this catches up after the page is sent.
   await sendDueRemindersLater(supabase);
   const [
@@ -62,8 +63,8 @@ export default async function DashboardPage() {
     getMemberRoles(supabase, profile.id),
     supabase.from("bank_details").select("user_id").eq("user_id", profile.id).maybeSingle(),
     getCurrentNotices(supabase, 5),
-    SHOW_MEMBERS_THEIR_EARNINGS ? getMySalary(supabase, profile.id) : Promise.resolve(0),
-    getDeadlines(supabase, [previous, month]),
+    SHOW_MEMBERS_THEIR_EARNINGS ? getMySalary(supabase, profile.id, month) : Promise.resolve(0),
+    getDeadlines(supabase, [...new Set([previous, now, month])]),
     getClosedMonthKeys(supabase),
     getTasks(supabase, { assigneeId: profile.id, statuses: ["open"], limit: 20 }),
     SHOW_MEMBERS_THEIR_EARNINGS ? signedAvatarUrl(supabase, profile.avatar_path) : Promise.resolve(null),
@@ -96,7 +97,7 @@ export default async function DashboardPage() {
   // The next deadline: last month's if it is still open, otherwise this month's.
   const prevDeadline = deadlines.get(previous);
   const nextDeadline =
-    prevDeadline?.deadline && !prevDeadline.passed && !closedMonths.includes(previous)
+    month === now && prevDeadline?.deadline && !prevDeadline.passed && !closedMonths.includes(previous)
       ? prevDeadline
       : deadlines.get(month);
   const deadlineProgress = nextDeadline?.deadline
@@ -105,11 +106,9 @@ export default async function DashboardPage() {
   const summary = summarise(submissions);
   const firstName = (profile.full_name || "there").split(" ")[0];
 
-  // Pay phone: fixed salary grows day by day (day 1 → 1/30th … last day → all of it).
-  const day = Number(todayISO().slice(8, 10));
-  const [year, monthNo] = month.split("-").map(Number);
-  const daysInMonth = new Date(Date.UTC(year, monthNo, 0)).getUTCDate();
-  const salaryEarned = Math.round(((salary * Math.min(day, daysInMonth)) / daysInMonth) * 100) / 100;
+  // Pay phone: fixed salary grows day by day through the pay period (11th → 10th).
+  const { day, days: daysInMonth } = periodProgress(month);
+  const salaryEarned = Math.round(((salary * day) / daysInMonth) * 100) / 100;
   const dueTasks = [...myTasks].sort(
     (a, b) => Number(b.overdue) - Number(a.overdue) || (a.dueDate ?? "9999").localeCompare(b.dueDate ?? "9999"),
   );

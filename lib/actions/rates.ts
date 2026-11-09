@@ -3,10 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { friendlyDbError, type ActionResult } from "@/lib/core/action-result";
 import { getActionContext, NOT_ALLOWED } from "@/lib/auth";
+import { currentMonthKey, monthKeyToDate, shiftMonth } from "@/lib/core/month";
+import { salariesInEffect, salaryNowAndNext } from "@/lib/core/salary";
 import { fieldErrorsOf, firstError, roleRatesSchema, type RoleRatesInput } from "@/lib/core/validation";
 
 export type SavedRateItem = { id: string; name: string; unit: string; price: number };
-export type SavedSalary = { user_id: string; amount: number };
+/** A member's salary this month, and a change already set for next month. */
+export type SavedSalary = { user_id: string; amount: number; next: { amount: number; month: string } | null };
 
 /**
  * Save one role's pay settings: salaried or not, and its rate items
@@ -55,23 +58,38 @@ export async function saveRoleRatesAction(
     }
   }
 
-  // Salaries: only for members who actually hold this role.
+  // Salaries: only for members who actually hold this role. Each amount starts this
+  // month or next month (earlier months keep the old amount); unchanged ones are skipped.
+  const thisMonth = currentMonthKey();
   if (salaries.length > 0) {
-    const { data: holders } = await ctx.supabase.from("member_roles").select("user_id").eq("role_id", role_id);
+    const [{ data: holders }, { data: current, error: salaryReadError }] = await Promise.all([
+      ctx.supabase.from("member_roles").select("user_id").eq("role_id", role_id),
+      ctx.supabase.from("member_salaries").select("user_id, role_id, from_month, monthly_amount").eq("role_id", role_id),
+    ]);
+    if (salaryReadError) return { ok: false, error: friendlyDbError(salaryReadError) };
     const holderIds = new Set((holders ?? []).map((h) => h.user_id));
-    const rows = salaries
-      .filter((s) => holderIds.has(s.user_id))
-      .map((s) => ({ user_id: s.user_id, role_id, monthly_amount: s.amount }));
+    const rows = salaries.flatMap((s) => {
+      if (!holderIds.has(s.user_id)) return [];
+      const month = s.from === "next" ? shiftMonth(thisMonth, 1) : thisMonth;
+      const mine = (current ?? []).filter((r) => r.user_id === s.user_id);
+      const before = Number(salariesInEffect(mine, month)[0]?.monthly_amount ?? 0);
+      return before === s.amount
+        ? []
+        : [{ user_id: s.user_id, role_id, from_month: monthKeyToDate(month), monthly_amount: s.amount }];
+    });
     if (rows.length > 0) {
-      const { error } = await ctx.supabase.from("member_salaries").upsert(rows, { onConflict: "user_id,role_id" });
+      const { error } = await ctx.supabase
+        .from("member_salaries")
+        .upsert(rows, { onConflict: "user_id,role_id,from_month" });
       if (error) return { ok: false, error: friendlyDbError(error) };
     }
   }
 
   const [{ data: saved }, { data: savedSalaries }] = await Promise.all([
     ctx.supabase.from("rate_items").select("id, name, unit, price").eq("role_id", role_id).order("sort_order"),
-    ctx.supabase.from("member_salaries").select("user_id, monthly_amount").eq("role_id", role_id),
+    ctx.supabase.from("member_salaries").select("user_id, role_id, from_month, monthly_amount").eq("role_id", role_id),
   ]);
+  const byMember = Map.groupBy(savedSalaries ?? [], (r) => r.user_id);
 
   revalidatePath("/admin/rates");
   revalidatePath("/admin/analytics");
@@ -80,7 +98,7 @@ export async function saveRoleRatesAction(
     message: "Saved",
     data: {
       items: (saved ?? []).map((r) => ({ ...r, price: Number(r.price) })),
-      salaries: (savedSalaries ?? []).map((r) => ({ user_id: r.user_id, amount: Number(r.monthly_amount) })),
+      salaries: [...byMember].map(([user_id, rows]) => ({ user_id, ...salaryNowAndNext(rows, thisMonth) })),
     },
   };
 }

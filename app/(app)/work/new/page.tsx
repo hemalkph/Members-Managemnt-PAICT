@@ -9,12 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { requireCompleteProfile } from "@/lib/auth";
 import { SHOW_MEMBERS_THEIR_EARNINGS } from "@/lib/core/config";
-import { currentMonthKey, todayISO } from "@/lib/core/month";
+import { todayISO } from "@/lib/core/month";
 import { activeOptions, getClassOptions } from "@/lib/organisation/classes";
 import { getMarkingRates } from "@/lib/work/marking";
 import { getPaperDrafts, toDraftItems } from "@/lib/papers/drafts";
 import { getMemberRoles, getRatesForRoles } from "@/lib/organisation/structure";
 import { createClient } from "@/lib/supabase/server";
+import { getMyPayMonth } from "@/lib/members/queries";
 import { uuid } from "@/lib/core/validation";
 
 export const metadata: Metadata = { title: "Submit work" };
@@ -57,7 +58,7 @@ export default async function NewWorkPage({ searchParams }: PageProps<"/work/new
   const tags = activeOptions(classOptions, { examId: task?.exam_id });
 
   // The database decides the month (the month open when the work is approved).
-  const workMonth = currentMonthKey();
+  const workMonth = await getMyPayMonth(supabase, profile.id);
   const roleOptions = roles.map((r) => ({ ...r, rates: rates.get(r.id) ?? [] }));
   const taskRole =
     task?.role_id && roles.some((r) => r.id === task.role_id) ? task.role_id : (taskDraft?.rate?.roleId ?? null);
