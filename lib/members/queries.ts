@@ -3,7 +3,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { MemberSubmission } from "@/components/member/submission-card";
 import type { Database } from "@/lib/supabase/database.types";
-import { currentMonthKey, dateToMonthKey, monthKeyToDate } from "@/lib/core/month";
+import { currentMonthKey, dateToMonthKey, monthKeyToDate, todayISO } from "@/lib/core/month";
 import { paidFrom, salariesInEffect } from "@/lib/core/salary";
 
 export const MEMBER_SUBMISSION_SELECT =
@@ -61,8 +61,12 @@ export async function getMySalary(
 
 /** The pay month the member's new work goes to: this month, or their later pay start month. */
 export async function getMyPayMonth(supabase: SupabaseClient<Database>, userId: string): Promise<string> {
-  const now = currentMonthKey();
-  const { data } = await supabase.from("member_pay_starts").select("from_month").eq("user_id", userId).maybeSingle();
+  // The database's open month: last month until it is closed.
+  const [{ data: open }, { data }] = await Promise.all([
+    supabase.rpc("open_pay_period", { p_day: todayISO() }),
+    supabase.from("member_pay_starts").select("from_month").eq("user_id", userId).maybeSingle(),
+  ]);
+  const now = open ? dateToMonthKey(open) : currentMonthKey();
   const start = data ? dateToMonthKey(data.from_month) : now;
   return start > now ? start : now;
 }
