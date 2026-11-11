@@ -1167,6 +1167,7 @@ export type Database = {
       log_event: { Args: { p_action: string; p_target?: string | null; p_details?: Json }; Returns: undefined };
       close_pay_month: { Args: { p_month: string; p_note?: string | null }; Returns: number };
       reopen_pay_month: { Args: { p_month: string }; Returns: undefined };
+      open_pay_period: { Args: { p_day: string }; Returns: string };
       work_deadline: { Args: { p_month: string }; Returns: string | null };
       work_deadlines: { Args: { p_months: string[] }; Returns: { month: string; deadline: string | null }[] };
       set_month_deadline: { Args: { p_month: string; p_last_day: string | null }; Returns: undefined };

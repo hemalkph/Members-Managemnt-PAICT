@@ -125,7 +125,8 @@ export default async function PaymentsPage({ searchParams }: PageProps<"/admin/p
             <p className="flex items-start gap-2">
               <CalendarClockIcon className="mt-0.5 size-4 shrink-0" />
               <span>
-                Work approved after {fmtDay(lastDay)} counts for {nextLabel}, even if {label} isn&apos;t closed yet.
+                Work approved after {fmtDay(lastDay)} still counts for {label} until you close it. After that it counts
+                for {nextLabel}.
               </span>
             </p>
             <div className="mt-2 flex flex-wrap gap-2">

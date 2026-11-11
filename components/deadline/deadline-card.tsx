@@ -38,8 +38,8 @@ export function DeadlineCard({ deadline, progress }: { deadline: MonthDeadline; 
             </div>
             <p className="text-muted-foreground text-sm">
               {monthLabel(deadline.month)} ends on{" "}
-              <span className="text-foreground font-medium">{deadline.lastDayLabel}</span>. Work approved after that counts
-              for {monthLabel(shiftMonth(deadline.month, 1))}.
+              <span className="text-foreground font-medium">{deadline.lastDayLabel}</span>. Work approved after that still counts
+              for it until it is closed, then for {monthLabel(shiftMonth(deadline.month, 1))}.
             </p>
             <Progress
               value={progress}

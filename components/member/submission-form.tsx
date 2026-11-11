@@ -224,7 +224,7 @@ export function SubmissionForm({
                 <div className="bg-muted/50 flex min-h-9 flex-col justify-center rounded-md border px-3 py-1.5">
                   <span className="text-sm font-medium">{monthLabel(field.value)}</span>
                   <span className="text-muted-foreground text-xs">
-                    {periodRangeLabel(field.value)} · work approved after the 10th counts for next month
+                    {periodRangeLabel(field.value)} · counts for this month until it is closed
                   </span>
                 </div>
               </FormItem>

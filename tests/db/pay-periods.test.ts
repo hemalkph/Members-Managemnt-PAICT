@@ -73,6 +73,25 @@ describe("the database decides the month", () => {
   });
 });
 
+describe("last month stays open until it is closed", () => {
+  // 2024 months, so it never touches a month another test closes.
+  test("work goes to last month until it is closed, never before pay periods started", async () => {
+    await asOwner(db);
+    const [{ from }] = await q("select pay_periods_from::text as from from public.app_settings limit 1");
+    const open = async (day: string) => (await q("select public.open_pay_period($1::date)::text as m", [day]))[0].m;
+    try {
+      await q("update public.app_settings set pay_periods_from = '2024-01-01' where true");
+      expect(await open("2024-03-15")).toBe("2024-02-01"); // February not closed yet
+      expect(await open("2024-01-15")).toBe("2024-01-01"); // December 2023 is before pay periods
+      await q("insert into public.pay_months (month) values ('2024-02-01')");
+      expect(await open("2024-03-15")).toBe("2024-03-01"); // February closed
+    } finally {
+      await q("delete from public.pay_months where month = '2024-02-01'");
+      await q("update public.app_settings set pay_periods_from = $1 where true", [from]);
+    }
+  });
+});
+
 describe("closing a month", () => {
   test("can't close a month whose period hasn't ended", async () => {
     await actAs(db, main);
