@@ -171,7 +171,7 @@ export function TaskFilesButton({
                               href={`/tasks/files/${f.id}`}
                               target="_blank"
                               rel="noreferrer"
-                              className="truncate text-sm font-medium hover:underline"
+                              className="min-w-0 truncate text-sm font-medium hover:underline"
                               onClick={() => setOpened((o) => new Set(o).add(f.id))}
                             >
                               {f.fileName}
