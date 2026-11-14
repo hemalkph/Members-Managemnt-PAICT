@@ -14,7 +14,7 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
       <header className="flex items-center justify-between px-4 py-4 sm:px-6">
         <div className="flex items-center gap-2.5 font-semibold">
           <BrandLogo className="h-7" priority />
-          Team Work Tracker
+          Team WorkSpace PAICT
         </div>
         <ThemeToggle />
       </header>

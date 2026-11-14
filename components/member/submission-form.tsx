@@ -67,6 +67,7 @@ export function SubmissionForm({
   exams = [],
   centres = [],
   taskTitle,
+  resend = false,
 }: {
   userId: string;
   roles: RoleOption[];
@@ -83,6 +84,8 @@ export function SubmissionForm({
   centres?: { id: string; name: string }[];
   /** Shown when the work is logged for a task. */
   taskTitle?: string | null;
+  /** Fixing rejected work: saving sends it back for review. */
+  resend?: boolean;
 }) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -603,7 +606,7 @@ export function SubmissionForm({
             Cancel
           </Button>
           <SubmitButton pending={pending} disabled={uploading.length > 0}>
-            {submissionId ? "Save changes" : "Submit work"}
+            {resend ? "Send again for review" : submissionId ? "Save changes" : "Submit work"}
           </SubmitButton>
         </div>
       </form>

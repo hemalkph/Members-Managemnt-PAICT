@@ -120,6 +120,8 @@ function previewTask(p: {
     workCount: 0,
     createdByName: null,
     completedAt: null,
+    fixNote: null,
+    sentBackAt: null,
     // Example files for "File upload" fields.
     files: p.fields
       .filter((f) => f.kind === "file")

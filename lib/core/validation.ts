@@ -414,6 +414,11 @@ export const taskFieldFilesSchema = z.object({
 });
 export type TaskFieldFilesInput = z.input<typeof taskFieldFilesSchema>;
 
+export const taskSendBackSchema = z.object({
+  id: uuid,
+  note: z.string().trim().min(1, "Say what needs fixing.").max(1000, "Keep it under 1000 characters."),
+});
+
 export const taskStatusSchema = z.object({
   id: uuid,
   status: z.enum(["open", "done", "cancelled"]),

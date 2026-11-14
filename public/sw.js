@@ -1,4 +1,4 @@
-// Team Work Tracker service worker: shows phone notifications and opens the
+// Team WorkSpace PAICT service worker: shows phone notifications and opens the
 // right page when one is tapped. It doesn't cache pages (always fresh data).
 
 self.addEventListener("install", () => self.skipWaiting());
@@ -9,9 +9,9 @@ self.addEventListener("push", (event) => {
   try {
     data = event.data ? event.data.json() : {};
   } catch {
-    data = { title: event.data ? event.data.text() : "Team Work Tracker" };
+    data = { title: event.data ? event.data.text() : "Team WorkSpace PAICT" };
   }
-  const title = data.title || "Team Work Tracker";
+  const title = data.title || "Team WorkSpace PAICT";
   event.waitUntil(
     self.registration.showNotification(title, {
       body: data.body || "",

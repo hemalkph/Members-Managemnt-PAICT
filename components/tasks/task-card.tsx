@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import {
   CalendarClockIcon,
   CheckIcon,
@@ -12,13 +12,16 @@ import {
   GraduationCapIcon,
   HashIcon,
   HourglassIcon,
+  ListTodoIcon,
   Loader2Icon,
   MapPinIcon,
+  MessageSquareWarningIcon,
   MessageCircleIcon,
   MoreHorizontalIcon,
   PencilIcon,
   RotateCcwIcon,
   Trash2Icon,
+  Undo2Icon,
   UserIcon,
   XCircleIcon,
 } from "lucide-react";
@@ -27,13 +30,23 @@ import SpotlightCard from "@/components/reactbits/spotlight-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { deleteTaskAction, setTaskStatusAction } from "@/lib/actions/tasks";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { deleteTaskAction, sendTaskBackAction, setTaskStatusAction } from "@/lib/actions/tasks";
 import type { TaskView } from "@/lib/tasks/queries";
 import { getSiteUrl } from "@/lib/core/env";
 import { taskWhatsAppText, whatsAppLink } from "@/lib/tasks/whatsapp";
@@ -90,22 +103,74 @@ export function TaskCard({
       router.refresh();
     });
 
+  const [sendBack, setSendBack] = useState(false);
+  const [note, setNote] = useState("");
+
+  const submitSendBack = () =>
+    startTransition(async () => {
+      const result = await sendTaskBackAction({ id: task.id, note });
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(result.message);
+      setSendBack(false);
+      setNote("");
+      router.refresh();
+    });
+
   const badge = STATUS_BADGE[task.status];
   const finished = task.status === "done" || task.status === "cancelled";
+  const paper = Boolean(task.paperId);
+  // Paper stage titles are "Stage: Paper name"; show the stage as the label.
+  const cut = paper ? task.title.indexOf(": ") : -1;
+  const kindLabel = paper ? `Paper stage${cut > 0 ? ` · ${task.title.slice(0, cut)}` : ""}` : (task.typeName ?? "Task");
+  const heading = cut > 0 ? task.title.slice(cut + 2) : task.title;
+  const sentBack = task.status === "open" && Boolean(task.fixNote);
+  const fixedAgain = task.status === "done" && Boolean(task.sentBackAt);
 
   return (
     <SpotlightCard
       className={cn(
         "flex flex-col gap-3 p-4",
+        paper && "bg-chart-2/[0.04]",
         task.overdue && "border-destructive/40 bg-destructive/5",
         finished && "opacity-80",
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 space-y-1">
-          <p className={cn("leading-snug font-semibold", task.status === "done" && "line-through decoration-1")}>
-            {task.title}
-          </p>
+        <div className="min-w-0 space-y-2">
+          <div className="flex items-start gap-2.5">
+            {paper ? (
+              <span className="bg-chart-2/15 text-chart-2 flex size-9 shrink-0 items-center justify-center rounded-lg">
+                <FileStackIcon className="size-4" />
+              </span>
+            ) : task.typeName ? (
+              <TaskTypeIcon icon={task.typeIcon} color={task.typeColor} size={16} className="size-9 shrink-0 rounded-lg" />
+            ) : (
+              <span className="bg-primary/10 text-primary flex size-9 shrink-0 items-center justify-center rounded-lg">
+                <ListTodoIcon className="size-4" />
+              </span>
+            )}
+            <div className="min-w-0">
+              <p
+                className={cn(
+                  "truncate text-[11px] font-semibold tracking-wide uppercase",
+                  paper ? "text-chart-2" : "text-muted-foreground",
+                )}
+              >
+                {kindLabel}
+              </p>
+              <p
+                className={cn(
+                  "leading-snug font-semibold break-words",
+                  task.status === "done" && "line-through decoration-1",
+                )}
+              >
+                {heading}
+              </p>
+            </div>
+          </div>
           <div className="flex flex-wrap items-center gap-1.5">
             <Badge variant={badge.variant}>
               {task.status === "waiting" && <HourglassIcon />}
@@ -117,15 +182,14 @@ export function TaskCard({
                 <FlameIcon /> High priority
               </Badge>
             )}
-            {task.paperId && (
-              <Badge variant="outline">
-                <FileStackIcon /> Paper stage
+            {sentBack && (
+              <Badge variant="destructive">
+                <Undo2Icon /> Sent back to fix
               </Badge>
             )}
-            {task.typeName && (
-              <Badge variant="outline" className="gap-1.5 pl-0.5">
-                <TaskTypeIcon icon={task.typeIcon} color={task.typeColor} size={12} className="size-5 rounded-md" />
-                {task.typeName}
+            {fixedAgain && (
+              <Badge variant="warning">
+                <RotateCcwIcon /> Fixed – check again
               </Badge>
             )}
           </div>
@@ -161,6 +225,11 @@ export function TaskCard({
                       <CheckIcon /> Mark done
                     </DropdownMenuItem>
                   )}
+                  {task.status === "done" && (
+                    <DropdownMenuItem onSelect={() => setSendBack(true)}>
+                      <Undo2Icon /> Send back to fix
+                    </DropdownMenuItem>
+                  )}
                   {finished ? (
                     <DropdownMenuItem onSelect={() => setStatus("open")}>
                       <RotateCcwIcon /> Reopen
@@ -180,6 +249,21 @@ export function TaskCard({
           </DropdownMenu>
         )}
       </div>
+
+      {sentBack && (
+        <div className="border-destructive/40 bg-destructive/5 flex gap-2 rounded-lg border p-3 text-sm">
+          <MessageSquareWarningIcon className="text-destructive mt-0.5 size-4 shrink-0" />
+          <div className="min-w-0">
+            <p className="font-medium">{mode === "member" ? "Please fix this and send it again" : "Waiting for the fix"}</p>
+            <p className="text-muted-foreground break-words whitespace-pre-line">{task.fixNote}</p>
+            {mode === "member" && !paper && (
+              <p className="text-muted-foreground mt-1.5 text-xs">
+                Remove the wrong file in Files, upload the right one, then press Mark done.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {task.typeInstructions && !finished && (
         <p className="text-muted-foreground text-xs whitespace-pre-line">{task.typeInstructions}</p>
@@ -277,6 +361,38 @@ export function TaskCard({
       )}
       {mode === "member" && task.status === "waiting" && (
         <p className="text-muted-foreground mt-auto text-xs">Starts when the previous stage of the paper is done.</p>
+      )}
+      {mode === "admin" && (
+        <Dialog open={sendBack} onOpenChange={setSendBack}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Send back to fix</DialogTitle>
+              <DialogDescription>
+                {task.assigneeName.split(" ")[0]} gets a notification with your note. The task opens again until they fix
+                it and mark it done.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-2">
+              <Label htmlFor={`fix-${task.id}`}>What needs fixing?</Label>
+              <Textarea
+                id={`fix-${task.id}`}
+                rows={4}
+                maxLength={1000}
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="e.g. Wrong image size. Please upload a 1080 × 1080 version."
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setSendBack(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" disabled={pending || !note.trim()} onClick={submitSendBack}>
+                {pending ? <Loader2Icon className="animate-spin" /> : <Undo2Icon />} Send back
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </SpotlightCard>
   );

@@ -7,7 +7,9 @@ import {
   Link2Icon,
   MessageSquareIcon,
   PencilIcon,
+  RotateCcwIcon,
   TagIcon,
+  WrenchIcon,
   GraduationCapIcon,
   MapPinIcon,
   WalletIcon,
@@ -18,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { SubmissionStatus } from "@/lib/supabase/database.types";
 import { formatBytes, formatDate, formatLKR } from "@/lib/core/format";
+import { cn } from "@/lib/utils";
 import { DeleteSubmissionButton } from "./delete-submission-button";
 import { DriveVideoList, type SavedVideo } from "./drive-video-list";
 
@@ -30,6 +33,7 @@ export type MemberSubmission = {
   links: string[];
   status: SubmissionStatus;
   admin_comment: string | null;
+  resubmitted_at?: string | null;
   unit_price: number | null;
   amount: number | null;
   rate_items: { name: string; unit: string } | null;
@@ -52,6 +56,8 @@ export function SubmissionCard({
 }) {
   const s = submission;
   const canEdit = editable && s.status === "pending";
+  const rejected = s.status === "rejected";
+  const resent = s.status === "pending" && Boolean(s.resubmitted_at);
 
   return (
     <SpotlightCard className="grid gap-3 p-4 sm:p-5">
@@ -67,7 +73,14 @@ export function SubmissionCard({
             )}
           </div>
         </div>
-        <StatusBadge status={s.status} />
+        <div className="flex flex-wrap items-center gap-1.5">
+          {resent && (
+            <Badge variant="outline">
+              <RotateCcwIcon /> Sent again
+            </Badge>
+          )}
+          <StatusBadge status={s.status} />
+        </div>
       </div>
 
       <div className="text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 text-sm">
@@ -134,12 +147,26 @@ export function SubmissionCard({
         </div>
       )}
 
-      {s.admin_comment && (
-        <div className="bg-muted/60 flex gap-2 rounded-lg p-3 text-sm">
-          <MessageSquareIcon className="text-muted-foreground mt-0.5 size-4 shrink-0" />
-          <div>
-            <p className="text-muted-foreground text-xs font-medium">Admin comment</p>
-            <p className="whitespace-pre-line">{s.admin_comment}</p>
+      {(s.admin_comment || rejected) && (
+        <div
+          className={cn(
+            "flex gap-2 rounded-lg p-3 text-sm",
+            rejected ? "border-destructive/40 bg-destructive/5 border" : "bg-muted/60",
+          )}
+        >
+          <MessageSquareIcon className={cn("mt-0.5 size-4 shrink-0", rejected ? "text-destructive" : "text-muted-foreground")} />
+          <div className="min-w-0 flex-1">
+            <p className="text-muted-foreground text-xs font-medium">
+              {rejected ? "Why it was not approved" : resent ? "Earlier reason it was not approved" : "Admin comment"}
+            </p>
+            <p className="break-words whitespace-pre-line">{s.admin_comment || "No reason given."}</p>
+            {rejected && editable && (
+              <Button asChild size="sm" className="mt-3 w-full sm:w-auto">
+                <Link href={`/work/${s.id}/edit`}>
+                  <WrenchIcon /> Fix and send again
+                </Link>
+              </Button>
+            )}
           </div>
         </div>
       )}

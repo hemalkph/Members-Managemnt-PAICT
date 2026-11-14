@@ -92,7 +92,7 @@ export function AppSidebar({ user, pendingReviews }: { user: SidebarUser; pendin
                   <BrandLogo className="h-auto w-8" priority />
                 </div>
                 <div className="grid flex-1 text-left leading-tight">
-                  <ShinyText text="Team Work Tracker" className="truncate font-semibold" />
+                  <ShinyText text="Team WorkSpace PAICT" className="truncate font-semibold" />
                   <span className="text-muted-foreground truncate text-xs">A/L ICT class team</span>
                 </div>
               </HoverPrefetchLink>

@@ -42,7 +42,7 @@ export default async function ReviewPage({ searchParams }: PageProps<"/admin/rev
   let query = supabase
     .from("submissions")
     .select(
-      "id, title, description, quantity, date_done, links, status, admin_comment, reviewed_at, created_at, updated_at, work_month, member:profiles!submissions_user_id_fkey(full_name, email), reviewer:profiles!submissions_reviewed_by_fkey(full_name), roles(name, sections(name)), rate_items(name, unit), exam:exams(name, batch:batches(name)), centre:centres(name), unit_price, amount, task_id, submission_attachments(id, file_name, size_bytes), submission_videos(drive_file_id, name, source, folder_name, duration_ms)",
+      "id, title, description, quantity, date_done, links, status, admin_comment, resubmitted_at, reviewed_at, created_at, updated_at, work_month, member:profiles!submissions_user_id_fkey(full_name, email), reviewer:profiles!submissions_reviewed_by_fkey(full_name), roles(name, sections(name)), rate_items(name, unit), exam:exams(name, batch:batches(name)), centre:centres(name), unit_price, amount, task_id, submission_attachments(id, file_name, size_bytes), submission_videos(drive_file_id, name, source, folder_name, duration_ms)",
     )
     .eq("work_month", monthKeyToDate(month))
     .order("created_at", { ascending: false });
@@ -65,6 +65,7 @@ export default async function ReviewPage({ searchParams }: PageProps<"/admin/rev
     links: s.links,
     status: s.status,
     admin_comment: s.admin_comment,
+    resubmittedAt: s.resubmitted_at,
     reviewed_at: s.reviewed_at,
     created_at: s.created_at,
     updatedAt: s.updated_at,

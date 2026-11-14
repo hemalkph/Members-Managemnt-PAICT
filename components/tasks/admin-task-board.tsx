@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 import type { TaskView } from "@/lib/tasks/queries";
 import { TaskCard } from "./task-card";
+import { TaskGroups } from "./task-groups";
 import { TaskDialog, type TaskFormOptions } from "./task-dialog";
 
 /** Admin task list with the create / edit dialog. */
@@ -40,8 +41,9 @@ export function AdminTaskBoard({
       {tasks.length === 0 ? (
         <EmptyState icon={ListTodoIcon} title={emptyTitle} description="Assign work with a due date to a member." />
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {tasks.map((t) => (
+        <TaskGroups
+          tasks={tasks}
+          render={(t) => (
             <TaskCard
               key={t.id}
               task={t}
@@ -50,8 +52,8 @@ export function AdminTaskBoard({
               whatsapp={phones[t.assigneeId]}
               onEdit={(task) => setDialog({ task, key: Date.now() })}
             />
-          ))}
-        </div>
+          )}
+        />
       )}
       {dialog && (
         <TaskDialog

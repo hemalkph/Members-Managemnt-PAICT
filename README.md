@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/banner.svg" alt="Team Work Tracker: work logs, reviews, payslips and papers for the PAICT A/L ICT class team" width="100%">
+  <img src="docs/images/banner.svg" alt="Team WorkSpace PAICT: work logs, reviews, payslips and papers for the PAICT A/L ICT class team" width="100%">
 </p>
 
 <p align="center">
@@ -22,7 +22,7 @@
 
 ---
 
-**Team Work Tracker** is the internal system of the PAICT A/L ICT class team. Members log the work they do (typesetting, paper creating, marking, design, video editing and more), admins review it, and the system turns approved work and fixed salaries into monthly payslips. It also runs the paper production line, tasks and the paper library.
+**Team WorkSpace PAICT** is the internal system of the PAICT A/L ICT class team. Members log the work they do (typesetting, paper creating, marking, design, video editing and more), admins review it, and the system turns approved work and fixed salaries into monthly payslips. It also runs the paper production line, tasks and the paper library.
 
 It works on phones and computers, can be installed like an app, and sends phone alerts when something needs you. Sign-up is closed: admins add members.
 

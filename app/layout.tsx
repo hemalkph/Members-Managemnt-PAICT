@@ -19,8 +19,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Team Work Tracker",
-    template: "%s · Team Work Tracker",
+    default: "Team WorkSpace PAICT",
+    template: "%s · Team WorkSpace PAICT",
   },
   description: "Log and review monthly work for the A/L ICT class team.",
   applicationName: "PAICT Team",

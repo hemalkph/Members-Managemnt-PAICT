@@ -41,6 +41,9 @@ export type TaskView = {
   workCount: number;
   createdByName: string | null;
   completedAt: string | null;
+  /** Why an admin sent the finished task back (kept after it is fixed). */
+  fixNote: string | null;
+  sentBackAt: string | null;
   /** Oldest first. */
   files: TaskFileView[];
   typeId: string | null;
@@ -54,7 +57,7 @@ export type TaskView = {
 };
 
 const SELECT =
-  "id, title, description, assignee_id, role_id, exam_id, centre_id, quantity, due_date, priority, status, completed_at, paper_stage_id, created_by, assignee:profiles!tasks_assignee_id_fkey(full_name, email), creator:profiles!tasks_created_by_fkey(full_name, email), roles(name), exam:exams(name, batch:batches(name)), centre:centres(name), stage:paper_stages(paper_id), submissions(count), task_files(id, kind, file_name, size_bytes, seen_at, created_at), type_id, details, task_types(name, icon, color, description)";
+  "id, title, description, assignee_id, role_id, exam_id, centre_id, quantity, due_date, priority, status, completed_at, fix_note, sent_back_at, paper_stage_id, created_by, assignee:profiles!tasks_assignee_id_fkey(full_name, email), creator:profiles!tasks_created_by_fkey(full_name, email), roles(name), exam:exams(name, batch:batches(name)), centre:centres(name), stage:paper_stages(paper_id), submissions(count), task_files(id, kind, file_name, size_bytes, seen_at, created_at), type_id, details, task_types(name, icon, color, description)";
 
 const DAY = 86_400_000;
 
@@ -85,6 +88,8 @@ type Row = {
   priority: "normal" | "high";
   status: TaskStatus;
   completed_at: string | null;
+  fix_note: string | null;
+  sent_back_at: string | null;
   paper_stage_id: string | null;
   created_by: string | null;
   assignee: { full_name: string; email: string } | null;
@@ -138,6 +143,8 @@ export async function getTasks(
     workCount: t.submissions?.[0]?.count ?? 0,
     createdByName: t.creator ? t.creator.full_name || t.creator.email : ((t.created_by && names?.get(t.created_by)) ?? null),
     completedAt: t.completed_at,
+    fixNote: t.fix_note,
+    sentBackAt: t.sent_back_at,
     files: [...(t.task_files ?? [])]
       .sort((a, b) => a.created_at.localeCompare(b.created_at))
       .map((f) => ({

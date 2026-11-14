@@ -12,12 +12,14 @@ const SKIP = /^\/(files|auth|papers\/files)\/|\/(pdf|payouts|export)(\/|$)/;
 /** Path + query of a URL, so "/work?month=2026-10" and "/work" count as different pages. */
 const keyOf = (url: URL) => `${url.pathname}?${url.searchParams.toString()}`;
 
+const MIN_SHOWN_MS = 1200;
+
 /**
  * Page-change animation: when an in-app link is clicked, the page blurs step by
  * step and the waving duck plays in the middle until the next page is ready
- * (including while its loading placeholder shows). Once the duck is on screen it
- * finishes its wave before the overlay goes, so it never stops half-way.
- * It only appears after ~150 ms, so fast page changes don't flash.
+ * (including while its loading placeholder shows), then goes as soon as the page
+ * is ready. It only appears after ~150 ms and then stays at least ~1.2 s, so
+ * fast page changes don't flash.
  */
 export function RouteTransition() {
   const pathname = usePathname();
@@ -28,8 +30,8 @@ export function RouteTransition() {
   // A page's loading placeholder is on screen (its data is still coming).
   const placeholder = usePageLoading();
   const busy = loading || placeholder;
-  // The overlay is on screen; when the page is ready it stays until the duck's wave ends.
   const [shown, setShown] = useState(false);
+  const shownAt = useRef(0);
   const finishing = shown && !busy;
   const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -44,15 +46,18 @@ export function RouteTransition() {
   // Show the overlay ~150 ms after a page change starts.
   useEffect(() => {
     if (!busy || shown) return;
-    const show = setTimeout(() => setShown(true), 150);
+    const show = setTimeout(() => {
+      shownAt.current = Date.now();
+      setShown(true);
+    }, 150);
     return () => clearTimeout(show);
   }, [busy, shown]);
 
-  // Page ready: hide straight away without motion, otherwise after the wave
-  // (with a fallback in case the animation never reports its end).
+  // Page ready: hide now, but not before the duck has been up ~1.2 s (no flash).
   useEffect(() => {
     if (!finishing) return;
-    const hide = setTimeout(() => setShown(false), reduce ? 0 : 3500);
+    const wait = reduce ? 0 : Math.max(0, MIN_SHOWN_MS - (Date.now() - shownAt.current));
+    const hide = setTimeout(() => setShown(false), wait);
     return () => clearTimeout(hide);
   }, [finishing, reduce]);
 
@@ -111,7 +116,7 @@ export function RouteTransition() {
           exit={{
             backdropFilter: "blur(0px)",
             backgroundColor: "color-mix(in oklch, var(--background) 0%, transparent)",
-            transition: { duration: 0.25, ease: "easeIn" },
+            transition: { duration: 0.4, ease: "easeIn" },
           }}
         >
           <motion.div
@@ -119,7 +124,7 @@ export function RouteTransition() {
             animate={{ opacity: 1, scale: 1, transition: { duration: 0.3, delay: 0.1 } }}
             exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
           >
-            <Sticker name="hey" size={150} loop={!finishing} onComplete={() => setShown(false)} />
+            <Sticker name="hey" size={150} loop />
           </motion.div>
         </motion.div>
       )}
