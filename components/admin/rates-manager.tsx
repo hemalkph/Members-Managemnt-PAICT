@@ -424,7 +424,7 @@ export function RatesManager({ roles: initialRoles, thisMonth }: { roles: RatesR
               <BrandLogo className="h-6" />
               <div className="leading-tight">
                 <p className="text-sm font-semibold">Budget estimate</p>
-                <p className="text-muted-foreground text-[11px]">Team Work Tracker</p>
+                <p className="text-muted-foreground text-[11px]">Team WorkSpace PAICT</p>
               </div>
             </div>
 

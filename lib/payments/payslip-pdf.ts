@@ -61,7 +61,7 @@ export async function buildPayslipPdf(slip: Payslip, logo?: Uint8Array | null): 
   doc.setTitle(`Payslip ${p.payslip_no} - ${safe(p.member_name)}`);
   doc.setSubject(`Payslip for ${monthLabel(slip.monthKey)}`);
   doc.setAuthor(safe(PAYSLIP_ORGANISATION));
-  doc.setCreator("Team Work Tracker");
+  doc.setCreator("Team WorkSpace PAICT");
 
   const fonts: Fonts = {
     regular: await doc.embedFont(StandardFonts.Helvetica),
@@ -198,7 +198,7 @@ export async function buildPayslipPdf(slip: Payslip, logo?: Uint8Array | null): 
     slip.closedAt ? ` on ${formatDateTime(slip.closedAt)}` : ""
   }. Prices of approved work are locked at approval.`;
   text(page, note, MARGIN, y, { font: fonts.regular, size: 8, color: MUTED, width: CONTENT_W });
-  text(page, `Generated ${formatDateTime(new Date().toISOString())} - Team Work Tracker`, MARGIN, MARGIN - 10, {
+  text(page, `Generated ${formatDateTime(new Date().toISOString())} - Team WorkSpace PAICT`, MARGIN, MARGIN - 10, {
     font: fonts.regular,
     size: 7,
     color: MUTED,

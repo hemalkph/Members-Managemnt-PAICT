@@ -68,7 +68,7 @@ export async function startTwoStepSetupAction(): Promise<
   const { data, error } = await ctx.supabase.auth.mfa.enroll({
     factorType: "totp",
     friendlyName: "Authenticator app",
-    issuer: "Team Work Tracker",
+    issuer: "Team WorkSpace PAICT",
   });
   if (error || !data) {
     return {

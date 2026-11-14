@@ -1,6 +1,6 @@
 # Architecture
 
-Team Work Tracker is the internal system of the PAICT A/L ICT class team. Members log the work they do (typesetting, paper creating, marking, design, video editing…), admins review it, and the system turns approved work and fixed salaries into monthly payslips. It also runs the paper production line, tasks and the paper library.
+Team WorkSpace PAICT is the internal system of the PAICT A/L ICT class team. Members log the work they do (typesetting, paper creating, marking, design, video editing…), admins review it, and the system turns approved work and fixed salaries into monthly payslips. It also runs the paper production line, tasks and the paper library.
 
 This document explains how the code is organised and how a request travels through it.
 

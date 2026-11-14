@@ -25,7 +25,7 @@ export default async function TwoStepLoginPage() {
           className="justify-center text-2xl font-semibold tracking-tight [&>span]:justify-center"
         />
         <CardDescription>
-          Open your authenticator app and enter the 6-digit code for Team Work Tracker ({session.email}).
+          Open your authenticator app and enter the 6-digit code for Team WorkSpace PAICT ({session.email}).
         </CardDescription>
       </CardHeader>
       <CardContent>
