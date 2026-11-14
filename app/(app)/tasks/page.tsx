@@ -6,6 +6,7 @@ import BlurText from "@/components/reactbits/blur-text";
 import { Sticker } from "@/components/sticker";
 import { StatCard } from "@/components/stat-card";
 import { TaskCard } from "@/components/tasks/task-card";
+import { TaskGroups } from "@/components/tasks/task-groups";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -66,11 +67,7 @@ export default async function MyTasksPage({ searchParams }: PageProps<"/tasks">)
           description={showDone ? undefined : "When an admin gives you a task, it appears here and you get a notification."}
         />
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {list.map((t) => (
-            <TaskCard key={t.id} task={t} mode="member" />
-          ))}
-        </div>
+        <TaskGroups tasks={list} render={(t) => <TaskCard key={t.id} task={t} mode="member" />} />
       )}
     </div>
   );

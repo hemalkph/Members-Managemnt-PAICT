@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { reviewSubmissionsAction } from "@/lib/actions/admin";
 import { formatDate, formatLKR } from "@/lib/core/format";
-import { ReviewDialog, type ReviewRow } from "./review-dialog";
+import { ReviewDialog, SentAgainBadge, type ReviewRow } from "./review-dialog";
 
 export function ReviewTable({ rows, readOnly = false }: { rows: ReviewRow[]; readOnly?: boolean }) {
   const router = useRouter();
@@ -154,7 +154,10 @@ export function ReviewTable({ rows, readOnly = false }: { rows: ReviewRow[]; rea
                 </TableCell>
                 <TableCell className="hidden sm:table-cell">{formatDate(r.date_done)}</TableCell>
                 <TableCell className="pr-4">
-                  <StatusBadge status={r.status} />
+                  <div className="flex flex-wrap items-center gap-1">
+                    <StatusBadge status={r.status} />
+                    {r.status === "pending" && r.resubmittedAt && <SentAgainBadge />}
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

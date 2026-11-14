@@ -664,6 +664,8 @@ export type Database = {
           assignee_id: string;
           role_id: string | null;
           exam_id: string | null;
+          fix_note: string | null;
+          sent_back_at: string | null;
           centre_id: string | null;
           quantity: number | null;
           due_date: string | null;
@@ -684,6 +686,8 @@ export type Database = {
           assignee_id: string;
           role_id?: string | null;
           exam_id?: string | null;
+          fix_note?: string | null;
+          sent_back_at?: string | null;
           centre_id?: string | null;
           quantity?: number | null;
           due_date?: string | null;
@@ -699,6 +703,8 @@ export type Database = {
           assignee_id?: string;
           role_id?: string | null;
           exam_id?: string | null;
+          fix_note?: string | null;
+          sent_back_at?: string | null;
           centre_id?: string | null;
           quantity?: number | null;
           due_date?: string | null;
@@ -922,6 +928,7 @@ export type Database = {
           status: SubmissionStatus;
           admin_comment: string | null;
           reviewed_by: string | null;
+          resubmitted_at: string | null;
           reviewed_at: string | null;
           rate_item_id: string | null;
           exam_id: string | null;
@@ -945,6 +952,7 @@ export type Database = {
           status?: SubmissionStatus;
           admin_comment?: string | null;
           reviewed_by?: string | null;
+          resubmitted_at?: string | null;
           reviewed_at?: string | null;
           rate_item_id?: string | null;
           exam_id?: string | null;
@@ -966,6 +974,7 @@ export type Database = {
           status?: SubmissionStatus;
           admin_comment?: string | null;
           reviewed_by?: string | null;
+          resubmitted_at?: string | null;
           reviewed_at?: string | null;
           rate_item_id?: string | null;
           exam_id?: string | null;

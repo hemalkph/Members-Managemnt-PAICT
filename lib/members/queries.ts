@@ -7,7 +7,7 @@ import { currentMonthKey, dateToMonthKey, monthKeyToDate, todayISO } from "@/lib
 import { paidFrom, salariesInEffect } from "@/lib/core/salary";
 
 export const MEMBER_SUBMISSION_SELECT =
-  "id, title, description, quantity, date_done, links, status, admin_comment, work_month, created_at, unit_price, amount, rate_items(name, unit), exam:exams(name), centre:centres(name), roles(name, sections(name)), submission_attachments(id, file_name, size_bytes), submission_videos(drive_file_id, name, source, folder_name, duration_ms)" as const;
+  "id, title, description, quantity, date_done, links, status, admin_comment, resubmitted_at, work_month, created_at, unit_price, amount, rate_items(name, unit), exam:exams(name), centre:centres(name), roles(name, sections(name)), submission_attachments(id, file_name, size_bytes), submission_videos(drive_file_id, name, source, folder_name, duration_ms)" as const;
 
 /** One member's submissions for a month (RLS limits members to their own). */
 export async function getSubmissionsForMonth(

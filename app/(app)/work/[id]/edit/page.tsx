@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { LockIcon } from "lucide-react";
+import { LockIcon, MessageSquareWarningIcon } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { SubmissionForm } from "@/components/member/submission-form";
 import { PageHeader } from "@/components/page-header";
@@ -27,7 +27,7 @@ export default async function EditWorkPage({ params }: PageProps<"/work/[id]/edi
   const [{ data: submission }, roles] = await Promise.all([
     supabase
       .from("submissions")
-      .select("id, role_id, rate_item_id, work_month, title, description, quantity, date_done, links, status, exam_id, centre_id, task_id, task:tasks(title), submission_attachments(id, file_name, size_bytes), submission_videos(drive_file_id, name)")
+      .select("id, role_id, rate_item_id, work_month, title, description, quantity, date_done, links, status, admin_comment, exam_id, centre_id, task_id, task:tasks(title), submission_attachments(id, file_name, size_bytes), submission_videos(drive_file_id, name)")
       .eq("id", id)
       .eq("user_id", profile.id)
       .maybeSingle(),
@@ -37,18 +37,35 @@ export default async function EditWorkPage({ params }: PageProps<"/work/[id]/edi
   if (!submission) notFound();
   const month = dateToMonthKey(submission.work_month);
 
-  if (submission.status !== "pending") {
+  const rejected = submission.status === "rejected";
+  // Rejected work in a closed month can't change any more: log it again instead.
+  const { data: closed } = rejected
+    ? await supabase.from("pay_months").select("month").eq("month", submission.work_month).maybeSingle()
+    : { data: null };
+
+  if (submission.status === "approved" || closed) {
     return (
       <div className="mx-auto max-w-2xl space-y-6">
         <PageHeader title="Edit submission" />
         <EmptyState
           icon={LockIcon}
-          title="This submission was already reviewed"
-          description="Only pending submissions can be edited."
+          title={closed ? "This month is closed" : "This submission was already approved"}
+          description={
+            closed
+              ? "Its payments are done, so this work can't be sent again. Log it again as new work."
+              : "Approved work can't be edited."
+          }
           action={
-            <Button asChild variant="outline">
-              <Link href={`/work?month=${month}`}>Back to my work</Link>
-            </Button>
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button asChild variant="outline">
+                <Link href={`/work?month=${month}`}>Back to my work</Link>
+              </Button>
+              {closed && (
+                <Button asChild>
+                  <Link href={`/work/new?from=${submission.id}`}>Log it again</Link>
+                </Button>
+              )}
+            </div>
           }
         />
       </div>
@@ -69,7 +86,25 @@ export default async function EditWorkPage({ params }: PageProps<"/work/[id]/edi
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <PageHeader title="Edit submission" description="You can edit work until an admin reviews it." />
+      <PageHeader
+        title={rejected ? "Fix and send again" : "Edit submission"}
+        description={
+          rejected
+            ? "Fix what the admin asked for, then save. Your work goes back for review."
+            : "You can edit work until an admin reviews it."
+        }
+      />
+      {rejected && (
+        <div className="border-destructive/40 bg-destructive/5 flex gap-3 rounded-xl border p-4 text-sm">
+          <MessageSquareWarningIcon className="text-destructive mt-0.5 size-4 shrink-0" />
+          <div className="min-w-0">
+            <p className="font-medium">Why it was not approved</p>
+            <p className="text-muted-foreground whitespace-pre-line break-words">
+              {submission.admin_comment || "No reason was given. Ask an admin if you're not sure what to fix."}
+            </p>
+          </div>
+        </div>
+      )}
       <Card>
         <CardContent>
           <SubmissionForm
@@ -83,6 +118,7 @@ export default async function EditWorkPage({ params }: PageProps<"/work/[id]/edi
             exams={tags.exams.map((e) => ({ id: e.id, label: e.label }))}
             centres={tags.centres.map((c) => ({ id: c.id, name: c.name }))}
             taskTitle={submission.task?.title ?? null}
+            resend={rejected}
             defaultValues={{
               work_month: workMonth,
               role_id: roles.some((r) => r.id === submission.role_id) ? submission.role_id : "",

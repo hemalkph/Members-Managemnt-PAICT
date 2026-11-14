@@ -9,6 +9,7 @@ import {
   idSchema,
   taskFilesSchema,
   taskSchema,
+  taskSendBackSchema,
   taskStatusSchema,
   taskFieldFilesSchema,
   taskTypeSchema,
@@ -116,6 +117,27 @@ export async function setTaskStatusAction(input: { id: string; status: "open" | 
   const message =
     parsed.data.status === "done" ? "Task done – nice work!" : parsed.data.status === "cancelled" ? "Task cancelled" : "Task reopened";
   return { ok: true, message };
+}
+
+/** Admins: send a finished task back to the member with what to fix. */
+export async function sendTaskBackAction(input: { id: string; note: string }): Promise<ActionResult> {
+  const ctx = await getActionContext({ page: "tasks", edit: true });
+  if (!ctx) return { ok: false, error: NOT_ALLOWED };
+  const parsed = taskSendBackSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
+
+  const { data, error } = await ctx.supabase
+    .from("tasks")
+    .update({ status: "open", fix_note: parsed.data.note, sent_back_at: new Date().toISOString() })
+    .eq("id", parsed.data.id)
+    .eq("status", "done")
+    .is("paper_stage_id", null)
+    .select("id");
+  if (error) return { ok: false, error: friendlyDbError(error) };
+  if (!data || data.length === 0) return { ok: false, error: "Only finished tasks can be sent back." };
+
+  revalidateTasks();
+  return { ok: true, message: "Sent back to fix" };
 }
 
 /** Admins: delete a task (paper stage tasks are managed on the paper page). */

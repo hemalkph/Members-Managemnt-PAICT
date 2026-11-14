@@ -185,7 +185,8 @@ export async function updateSubmissionAction(
     .maybeSingle();
 
   if (!existing) return { ok: false, error: "Submission not found." };
-  if (existing.status !== "pending") return { ok: false, error: "Only pending submissions can be edited." };
+  if (existing.status === "approved") return { ok: false, error: "Approved work can't be edited." };
+  const resending = existing.status === "rejected";
   if (!(await hasRole(ctx, v.role_id))) return { ok: false, error: "You can only log work for your own roles." };
   if (!ownAttachments(ctx, v.attachments)) return { ok: false, error: "Invalid attachment." };
   const typeError = await checkWorkType(ctx, v.role_id, v.rate_item_id);
@@ -213,9 +214,11 @@ export async function updateSubmissionAction(
       exam_id: v.exam_id || null,
       centre_id: v.centre_id || null,
       task_id: v.task_id || null,
+      // Fixed rejected work goes back to review.
+      ...(resending && { status: "pending" as const }),
     })
     .eq("id", id)
-    .eq("status", "pending");
+    .eq("status", existing.status);
   if (error) return { ok: false, error: friendlyDbError(error) };
 
   // Remove files the member deleted in the form.
@@ -248,7 +251,7 @@ export async function updateSubmissionAction(
   if (videoError) return { ok: false, error: `Saved, but the videos weren't: ${videoError}` };
 
   revalidateWork();
-  return { ok: true, message: "Submission updated", data: { id } };
+  return { ok: true, message: resending ? "Sent again for review" : "Submission updated", data: { id } };
 }
 
 export async function deleteSubmissionAction(input: { id: string }): Promise<ActionResult> {
