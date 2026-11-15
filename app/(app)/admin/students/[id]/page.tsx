@@ -7,14 +7,20 @@ import { CardDialog } from "@/components/students/card-dialog";
 import { CertificateFiles } from "@/components/students/certificate-files";
 import { DeleteStudentButton } from "@/components/students/delete-student-button";
 import { Guardians } from "@/components/students/guardians";
+import { ManualFlagBadge, ManualFlags } from "@/components/students/manual-flags";
+import { Payments } from "@/components/students/payments";
+import { ExamResultsList, MonthTimeline } from "@/components/students/timeline";
 import { StudentDialog } from "@/components/students/student-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requirePage } from "@/lib/auth";
 import { formatDate, formatDateTime, formatLKR } from "@/lib/core/format";
+import { todayISO } from "@/lib/core/month";
 import { uuid } from "@/lib/core/validation";
 import { getClassOptions } from "@/lib/organisation/classes";
+import { getStudentTimeline } from "@/lib/students/analysis";
+import { FLAG_BADGE } from "@/lib/students/flags";
 import { getConcessionStudent } from "@/lib/students/queries";
 import { CARD_LABEL, STATUS_BADGE, STATUS_LABEL } from "@/lib/students/rules";
 import { createClient } from "@/lib/supabase/server";
@@ -38,6 +44,8 @@ export default async function StudentPage({ params }: PageProps<"/admin/students
   const supabase = await createClient();
   const [student, options] = await Promise.all([getConcessionStudent(supabase, id), getClassOptions(supabase)]);
   if (!student) notFound();
+  const timeline = await getStudentTimeline(supabase, student);
+  const openFlags = student.flags.filter((f) => !f.resolvedAt);
 
   const batch = options.batches.find((b) => b.id === student.batchId);
   const centre = options.centres.find((c) => c.id === student.centreId);
@@ -83,7 +91,19 @@ export default async function StudentPage({ params }: PageProps<"/admin/students
           <div className="flex flex-wrap gap-1.5">
             <Badge variant="outline">{CARD_LABEL[student.card]}</Badge>
             <Badge variant={STATUS_BADGE[student.status]}>{STATUS_LABEL[student.status]}</Badge>
+            {openFlags.map((f) => (
+              <ManualFlagBadge key={f.id} kind={f.kind} />
+            ))}
           </div>
+          {timeline.flags.length > 0 && (
+            <ul className="flex flex-wrap gap-1.5" aria-label="Automatic flags">
+              {timeline.flags.map((f) => (
+                <li key={f.key}>
+                  <Badge variant={FLAG_BADGE[f.level]}>{f.label}</Badge>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
         {canEdit && (
           <div className="flex flex-wrap items-center gap-2">
@@ -162,6 +182,49 @@ export default async function StudentPage({ params }: PageProps<"/admin/students
 
           <Card>
             <CardHeader>
+              <CardTitle>Last 12 months</CardTitle>
+              <CardDescription>
+                Exams of the batch they sat, absences and the average mark{student.card !== "free" && ", and payments"}.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <MonthTimeline months={timeline.months} showPayments={student.card !== "free"} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Exam results</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ExamResultsList exams={timeline.exams} />
+            </CardContent>
+          </Card>
+
+          {student.card !== "free" && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Payments</CardTitle>
+                <CardDescription>
+                  {student.monthlyAmount !== null ? `${formatLKR(student.monthlyAmount)} a month. ` : ""}
+                  Expected from the month they were verified.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Payments
+                  studentId={student.id}
+                  months={timeline.months.slice(0, 6)}
+                  verifiedMonth={timeline.verifiedMonth}
+                  monthlyAmount={student.monthlyAmount}
+                  today={todayISO()}
+                  canEdit={canEdit}
+                />
+              </CardContent>
+            </Card>
+          )}
+
+          <Card>
+            <CardHeader>
               <CardTitle>GN certificate</CardTitle>
               <CardDescription>The Grama Niladhari certificate of the student&apos;s area.</CardDescription>
             </CardHeader>
@@ -182,6 +245,16 @@ export default async function StudentPage({ params }: PageProps<"/admin/students
         </div>
 
         <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Flags</CardTitle>
+              <CardDescription>Raised by admins, with the reason.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ManualFlags studentId={student.id} flags={student.flags} canEdit={canEdit} />
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

@@ -693,3 +693,29 @@ export const resultsSaveSchema = z.object({
     .max(1000),
 });
 export type ResultsSaveInput = z.input<typeof resultsSaveSchema>;
+
+// ---------------------------------------------------------------- concession payments and flags (admins)
+export const concessionPaymentSchema = z
+  .object({
+    student_id: uuid,
+    month: monthKey,
+    status: z.enum(["paid", "unpaid"]).nullable(),
+    amount: z
+      .string()
+      .trim()
+      .refine((v) => v === "" || (/^\d{1,7}(\.\d{1,2})?$/.test(v) && Number(v) <= 1_000_000), "Enter an amount in rupees"),
+    paid_on: z.union([isoDate, z.literal("")]),
+    note: optionalText(300, "Note"),
+  })
+  .refine((v) => v.status !== "paid" || v.amount !== "", { message: "Enter the amount paid", path: ["amount"] });
+export type ConcessionPaymentInput = z.input<typeof concessionPaymentSchema>;
+
+export const concessionFlagSchema = z.object({
+  student_id: uuid,
+  kind: z.enum(["needs_review", "warning", "top"], "Choose the kind of flag"),
+  reason: trimmed(3, 500, "Reason"),
+});
+export type ConcessionFlagInput = z.input<typeof concessionFlagSchema>;
+
+export const concessionFlagResolveSchema = z.object({ id: uuid, student_id: uuid, note: optionalText(300, "Note") });
+export type ConcessionFlagResolveInput = z.input<typeof concessionFlagResolveSchema>;
