@@ -589,3 +589,76 @@ export const markingLogSchema = z.object({
     .min(1)
     .max(50),
 });
+
+// ---------------------------------------------------------------- concession students (admins)
+export const CONCESSION_BUCKET = "concession";
+export const MAX_CONCESSION_FILE_BYTES = 10 * 1024 * 1024; // 10 MB, same as the "concession" bucket
+export const MAX_CONCESSION_FILES_AT_ONCE = 5;
+export const CONCESSION_FILE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif", "application/pdf"];
+
+/** "077 123 4567", "+94771234567" → "0771234567". */
+export function slPhone(value: string): string {
+  const digits = value.replace(/[\s-]/g, "");
+  return digits.replace(/^\+?94(?=\d{9}$)/, "0");
+}
+
+export const concessionStudentSchema = z.object({
+  id: uuid.optional(),
+  expected_updated_at: z.string().max(40).optional(),
+  student_no: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[0-9A-Z][0-9A-Z/-]{0,29}$/, "Student ID: letters, numbers, - or /, up to 30"),
+  full_name: trimmed(2, 120, "Name"),
+  batch_id: z.uuid("Choose a batch"),
+  centre_id: optionalUuid,
+  card_type: z.enum(["free", "half", "paid"], "Choose the card type"),
+  gn_division: optionalText(100, "GN division"),
+  certificate_issued_on: optionalDate,
+  reason: optionalText(1000, "Reason"),
+  monthly_amount: z
+    .string()
+    .trim()
+    .refine((v) => v === "" || (/^\d{1,7}(\.\d{1,2})?$/.test(v) && Number(v) <= 1_000_000), "Enter an amount in rupees"),
+  consent_on: optionalDate,
+});
+export type ConcessionStudentInput = z.input<typeof concessionStudentSchema>;
+
+export const concessionCardSchema = z.object({
+  id: uuid,
+  expected_updated_at: z.string().max(40).optional(),
+  card_type: z.enum(["free", "half", "paid"]),
+  status: z.enum(["applied", "verified", "under_review", "ended"]),
+  note: optionalText(500, "Reason"),
+});
+export type ConcessionCardInput = z.input<typeof concessionCardSchema>;
+
+export const concessionGuardianSchema = z.object({
+  id: uuid.optional(),
+  student_id: uuid,
+  relationship: z.enum(["mother", "father", "guardian"], "Choose who this is"),
+  full_name: trimmed(2, 120, "Name"),
+  occupation: trimmed(2, 100, "Occupation"),
+  phone: z
+    .string()
+    .transform(slPhone)
+    .refine((v) => v === "" || /^0\d{9}$/.test(v), "Enter a 10-digit phone number, e.g. 0771234567"),
+});
+export type ConcessionGuardianInput = z.input<typeof concessionGuardianSchema>;
+
+export const concessionFilesSchema = z.object({
+  student_id: uuid,
+  files: z
+    .array(
+      z.object({
+        storage_path: z.string().min(3).max(400),
+        file_name: z.string().trim().min(1).max(200),
+        mime_type: z.string().max(150).nullable(),
+        size_bytes: z.number().int().min(1).max(MAX_CONCESSION_FILE_BYTES, "Each file must be 10 MB or smaller"),
+      }),
+    )
+    .min(1, "Choose a file")
+    .max(MAX_CONCESSION_FILES_AT_ONCE, `Up to ${MAX_CONCESSION_FILES_AT_ONCE} files at a time`),
+});
+export type ConcessionFilesInput = z.input<typeof concessionFilesSchema>;

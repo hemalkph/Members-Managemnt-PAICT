@@ -6,6 +6,9 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type SubmissionStatus = "pending" | "approved" | "rejected";
+export type ConcessionCard = "free" | "half" | "paid";
+export type ConcessionStatus = "applied" | "verified" | "under_review" | "ended";
+export type ConcessionRelationship = "mother" | "father" | "guardian";
 export type PayoutStatus = "unpaid" | "paid";
 export type TaskStatus = "waiting" | "open" | "done" | "cancelled";
 export type PaperStageName =
@@ -411,6 +414,146 @@ export type Database = {
         Insert: { id?: string; name: string; is_active?: boolean; sort_order?: number };
         Update: { name?: string; is_active?: boolean; sort_order?: number };
         Relationships: [];
+      };
+      concession_students: {
+        Row: {
+          id: string;
+          student_no: string;
+          full_name: string;
+          batch_id: string;
+          centre_id: string | null;
+          card_type: ConcessionCard;
+          status: ConcessionStatus;
+          status_changed_at: string;
+          created_by: string | null;
+          created_at: string;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: { [_ in never]: never };
+        Update: { [_ in never]: never };
+        Relationships: [
+          {
+            foreignKeyName: "concession_students_batch_id_fkey";
+            columns: ["batch_id"];
+            isOneToOne: false;
+            referencedRelation: "batches";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "concession_students_centre_id_fkey";
+            columns: ["centre_id"];
+            isOneToOne: false;
+            referencedRelation: "centres";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      concession_student_private: {
+        Row: {
+          student_id: string;
+          gn_division: string;
+          certificate_issued_on: string | null;
+          reason: string;
+          monthly_amount: number | null;
+          consent_on: string | null;
+          verified_by: string | null;
+          verified_at: string | null;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: { [_ in never]: never };
+        Update: { [_ in never]: never };
+        Relationships: [
+          {
+            foreignKeyName: "concession_student_private_student_id_fkey";
+            columns: ["student_id"];
+            isOneToOne: true;
+            referencedRelation: "concession_students";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      concession_guardians: {
+        Row: {
+          id: string;
+          student_id: string;
+          relationship: ConcessionRelationship;
+          full_name: string;
+          occupation: string;
+          phone: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          student_id: string;
+          relationship: ConcessionRelationship;
+          full_name: string;
+          occupation: string;
+          phone?: string | null;
+        };
+        Update: { relationship?: ConcessionRelationship; full_name?: string; occupation?: string; phone?: string | null };
+        Relationships: [
+          {
+            foreignKeyName: "concession_guardians_student_id_fkey";
+            columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "concession_students";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      concession_documents: {
+        Row: {
+          id: string;
+          student_id: string;
+          storage_path: string;
+          file_name: string;
+          mime_type: string | null;
+          size_bytes: number;
+          uploaded_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          student_id: string;
+          storage_path: string;
+          file_name: string;
+          mime_type?: string | null;
+          size_bytes: number;
+          uploaded_by: string;
+        };
+        Update: { [_ in never]: never };
+        Relationships: [
+          {
+            foreignKeyName: "concession_documents_student_id_fkey";
+            columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "concession_students";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      concession_card_history: {
+        Row: {
+          id: number;
+          student_id: string;
+          card_type: ConcessionCard;
+          status: ConcessionStatus;
+          note: string;
+          changed_by: string | null;
+          changed_at: string;
+        };
+        Insert: { [_ in never]: never };
+        Update: { [_ in never]: never };
+        Relationships: [
+          {
+            foreignKeyName: "concession_card_history_student_id_fkey";
+            columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "concession_students";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       papers: {
         Row: {
@@ -1258,6 +1401,14 @@ export type Database = {
         Returns: { stage: string; user_id: string; full_name: string; whatsapp: string | null }[];
       };
       set_paper_status: { Args: { p_paper: string; p_status: string }; Returns: undefined };
+      concession_missing: { Args: { p_id: string; p_card?: string | null }; Returns: string[] };
+      concession_student_save: { Args: { p: Json; p_expected_updated_at?: string | null }; Returns: string };
+      concession_student_set_card: {
+        Args: { p_id: string; p_card: string; p_status: string; p_note?: string; p_expected_updated_at?: string | null };
+        Returns: undefined;
+      };
+      concession_student_delete: { Args: { p_id: string }; Returns: string[] };
+      concession_document_opened: { Args: { p_doc: string }; Returns: undefined };
       set_payouts_paid: {
         Args: { p_ids: string[]; p_paid: boolean; p_paid_on?: string | null; p_reference?: string | null };
         Returns: number;
