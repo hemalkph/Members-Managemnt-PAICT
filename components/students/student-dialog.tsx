@@ -200,7 +200,7 @@ export function StudentDialog({
             )}
 
             <div className="text-muted-foreground flex items-center gap-2 border-t pt-3 text-xs sm:col-span-2">
-              <LockIcon className="size-3.5" /> Private: only admins with this page can see the fields below.
+              <LockIcon className="size-3.5" /> Private: only people with this page can see the fields below.
             </div>
             <FormField
               control={form.control}

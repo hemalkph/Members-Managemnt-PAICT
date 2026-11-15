@@ -2,7 +2,8 @@
 
 import { HoverPrefetchLink } from "@/components/hover-prefetch-link";
 import { usePathname } from "next/navigation";
-import { ChevronsUpDownIcon, LandmarkIcon, LogOutIcon, UserIcon } from "lucide-react";
+import { useState } from "react";
+import { ChevronRightIcon, ChevronsUpDownIcon, LandmarkIcon, LogOutIcon, UserIcon } from "lucide-react";
 
 import { BrandLogo } from "@/components/brand-logo";
 import ShinyText from "@/components/reactbits/shiny-text";
@@ -31,10 +32,41 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { initials } from "@/lib/core/format";
-import { adminNav as getAdminNav, MEMBER_NAV, type NavItem as BaseNavItem } from "@/lib/auth/navigation";
+import { cn } from "@/lib/utils";
+import {
+  adminNav as getAdminNav,
+  MEMBER_NAV,
+  NAV_FOLDERS,
+  type NavFolder,
+  type NavItem as BaseNavItem,
+} from "@/lib/auth/navigation";
 import type { AccessLevel, PageKey } from "@/lib/auth/page-access";
 
 type NavItem = BaseNavItem & { badge?: number };
+type Entry = { kind: "item"; item: NavItem } | { kind: "folder"; name: NavFolder; items: NavItem[] };
+
+const SECTION_ORDER = ["Overview", "Work", "Team", "Manage", "My space"];
+
+/** Items → sections (in SECTION_ORDER), related items gathered into their fold-out. */
+function toSections(items: NavItem[]) {
+  const sections = new Map<string, Entry[]>();
+  for (const item of items) {
+    const section = item.section ?? "Menu";
+    const entries = sections.get(section) ?? [];
+    sections.set(section, entries);
+    const folder = item.folder && entries.find((e) => e.kind === "folder" && e.name === item.folder);
+    if (folder && folder.kind === "folder") folder.items.push(item);
+    else if (item.folder) entries.push({ kind: "folder", name: item.folder, items: [item] });
+    else entries.push({ kind: "item", item });
+  }
+  // A fold-out with one page left (page access) is just that page.
+  const flat = (entries: Entry[]): Entry[] =>
+    entries.map((e) => (e.kind === "folder" && e.items.length === 1 ? { kind: "item", item: e.items[0] } : e));
+  const rank = (s: string) => (SECTION_ORDER.includes(s) ? SECTION_ORDER.indexOf(s) : SECTION_ORDER.length);
+  return [...sections]
+    .sort(([a], [b]) => rank(a) - rank(b))
+    .map(([label, entries]) => ({ label, entries: flat(entries) }));
+}
 
 export type SidebarUser = {
   name: string;
@@ -60,26 +92,19 @@ export function AppSidebar({ user, pendingReviews }: { user: SidebarUser; pendin
     return pathname === item.href || pathname.startsWith(`${item.href}/`);
   };
 
-  const renderGroup = (label: string, items: NavItem[]) => (
-    <SidebarGroup>
-      <SidebarGroupLabel>{label}</SidebarGroupLabel>
-      <SidebarGroupContent>
-        <SidebarMenu>
-          {items.map((item) => (
-            <SidebarMenuItem key={item.href}>
-              <SidebarMenuButton asChild isActive={isActive(item)} tooltip={item.title}>
-                <HoverPrefetchLink href={item.href} onClick={() => setOpenMobile(false)}>
-                  <item.icon />
-                  <span>{item.title}</span>
-                </HoverPrefetchLink>
-              </SidebarMenuButton>
-              {item.badge ? <SidebarMenuBadge>{item.badge > 99 ? "99+" : item.badge}</SidebarMenuBadge> : null}
-            </SidebarMenuItem>
-          ))}
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
+  const link = (item: NavItem, sub = false) => (
+    <SidebarMenuItem key={item.href}>
+      <SidebarMenuButton asChild isActive={isActive(item)} tooltip={sub ? undefined : item.title}>
+        <HoverPrefetchLink href={item.href} onClick={() => setOpenMobile(false)}>
+          {!sub && <item.icon />}
+          <span>{item.title}</span>
+        </HoverPrefetchLink>
+      </SidebarMenuButton>
+      {item.badge ? <SidebarMenuBadge>{item.badge > 99 ? "99+" : item.badge}</SidebarMenuBadge> : null}
+    </SidebarMenuItem>
   );
+
+  const sections = toSections([...adminNav, ...MEMBER_NAV]);
 
   return (
     <Sidebar collapsible="icon" className="print:hidden">
@@ -87,7 +112,10 @@ export function AppSidebar({ user, pendingReviews }: { user: SidebarUser; pendin
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <HoverPrefetchLink href={user.pages.overview !== "none" ? "/admin" : "/dashboard"} onClick={() => setOpenMobile(false)}>
+              <HoverPrefetchLink
+                href={user.pages.overview !== "none" ? "/admin" : "/dashboard"}
+                onClick={() => setOpenMobile(false)}
+              >
                 <div className="flex aspect-square size-8 shrink-0 items-center justify-center">
                   <BrandLogo className="h-auto w-8" priority />
                 </div>
@@ -102,8 +130,29 @@ export function AppSidebar({ user, pendingReviews }: { user: SidebarUser; pendin
       </SidebarHeader>
 
       <SidebarContent>
-        {adminNav.length > 0 && renderGroup("Admin", adminNav)}
-        {renderGroup(adminNav.length > 0 ? "My space" : "Menu", MEMBER_NAV)}
+        {sections.map(({ label, entries }) => (
+          <SidebarGroup key={label}>
+            <SidebarGroupLabel>{label}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {entries.map((e) =>
+                  e.kind === "item" ? (
+                    link(e.item)
+                  ) : (
+                    <NavFolderItem
+                      key={e.name}
+                      name={e.name}
+                      active={e.items.some(isActive)}
+                      badge={e.items.reduce((n, i) => n + (i.badge ?? 0), 0)}
+                    >
+                      {e.items.map((i) => link(i, true))}
+                    </NavFolderItem>
+                  ),
+                )}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
 
       <SidebarFooter>
@@ -162,6 +211,57 @@ export function AppSidebar({ user, pendingReviews }: { user: SidebarUser; pendin
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
+  );
+}
+
+/** A fold-out of related pages. Opens by itself when one of its pages is open. */
+function NavFolderItem({
+  name,
+  active,
+  badge,
+  children,
+}: {
+  name: NavFolder;
+  active: boolean;
+  badge: number;
+  children: React.ReactNode;
+}) {
+  const { state, setOpen: setSidebarOpen } = useSidebar();
+  const [open, setOpen] = useState(active);
+  // Opening one of its pages from elsewhere (search, a link) opens the fold-out too.
+  const [wasActive, setWasActive] = useState(active);
+  if (active !== wasActive) {
+    setWasActive(active);
+    if (active) setOpen(true);
+  }
+  const Icon = NAV_FOLDERS[name];
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        tooltip={name}
+        aria-expanded={open}
+        isActive={active && state === "collapsed"}
+        onClick={() => {
+          // Icon-only sidebar: widen it and show the pages.
+          if (state === "collapsed") {
+            setSidebarOpen(true);
+            setOpen(true);
+          } else setOpen(!open);
+        }}
+      >
+        <Icon />
+        <span>{name}</span>
+        <ChevronRightIcon className={cn("ml-auto transition-transform duration-200", open && "rotate-90")} />
+      </SidebarMenuButton>
+      {!open && badge > 0 ? (
+        <SidebarMenuBadge className="right-7">{badge > 99 ? "99+" : badge}</SidebarMenuBadge>
+      ) : null}
+      {open && (
+        <ul className="border-sidebar-border mx-3.5 mt-1 flex min-w-0 translate-x-px flex-col gap-1 border-l px-2.5 py-0.5 group-data-[collapsible=icon]:hidden">
+          {children}
+        </ul>
+      )}
+    </SidebarMenuItem>
   );
 }
 

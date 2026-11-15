@@ -12,14 +12,15 @@ const SKIP = /^\/(files|auth|papers\/files)\/|\/(pdf|payouts|export)(\/|$)/;
 /** Path + query of a URL, so "/work?month=2026-10" and "/work" count as different pages. */
 const keyOf = (url: URL) => `${url.pathname}?${url.searchParams.toString()}`;
 
-const MIN_SHOWN_MS = 1200;
+/** The duck shows for this long, once per page change (the sticker is 3 s, so it never repeats). */
+const SHOWN_MS = 2000;
 
 /**
  * Page-change animation: when an in-app link is clicked, the page blurs step by
  * step and the waving duck plays in the middle until the next page is ready
- * (including while its loading placeholder shows), then goes as soon as the page
- * is ready. It only appears after ~150 ms and then stays at least ~1.2 s, so
- * fast page changes don't flash.
+ * It appears after ~150 ms (fast page changes show nothing) and stays exactly
+ * 2 s, then goes even if the page is still loading: its loading placeholder
+ * shows the rest of the wait.
  */
 export function RouteTransition() {
   const pathname = usePathname();
@@ -31,8 +32,9 @@ export function RouteTransition() {
   const placeholder = usePageLoading();
   const busy = loading || placeholder;
   const [shown, setShown] = useState(false);
-  const shownAt = useRef(0);
-  const finishing = shown && !busy;
+  // This page change already had its 2 s: don't show the duck again until it ends.
+  const [done, setDone] = useState(false);
+  if (done && !busy) setDone(false);
   const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // The new page has arrived: stop waiting for it (state update during render,
@@ -45,21 +47,23 @@ export function RouteTransition() {
 
   // Show the overlay ~150 ms after a page change starts.
   useEffect(() => {
-    if (!busy || shown) return;
-    const show = setTimeout(() => {
-      shownAt.current = Date.now();
-      setShown(true);
-    }, 150);
+    if (!busy || shown || done) return;
+    const show = setTimeout(() => setShown(true), 150);
     return () => clearTimeout(show);
-  }, [busy, shown]);
+  }, [busy, shown, done]);
 
-  // Page ready: hide now, but not before the duck has been up ~1.2 s (no flash).
+  // Hide after 2 s, whether or not the page is ready (with Reduce motion, at once).
   useEffect(() => {
-    if (!finishing) return;
-    const wait = reduce ? 0 : Math.max(0, MIN_SHOWN_MS - (Date.now() - shownAt.current));
-    const hide = setTimeout(() => setShown(false), wait);
+    if (!shown) return;
+    const hide = setTimeout(
+      () => {
+        setShown(false);
+        setDone(true);
+      },
+      reduce ? 0 : SHOWN_MS,
+    );
     return () => clearTimeout(hide);
-  }, [finishing, reduce]);
+  }, [shown, reduce]);
 
   // Fetch the duck in the background so the first page change shows it at once.
   useEffect(() => {
@@ -107,7 +111,10 @@ export function RouteTransition() {
           aria-label="Loading page"
           className="fixed inset-0 z-[60] flex items-center justify-center"
           // Progressive blur: the page fades and blurs a little more each moment.
-          initial={{ backdropFilter: "blur(0px)", backgroundColor: "color-mix(in oklch, var(--background) 0%, transparent)" }}
+          initial={{
+            backdropFilter: "blur(0px)",
+            backgroundColor: "color-mix(in oklch, var(--background) 0%, transparent)",
+          }}
           animate={{
             backdropFilter: "blur(6px)",
             backgroundColor: "color-mix(in oklch, var(--background) 35%, transparent)",
@@ -124,7 +131,7 @@ export function RouteTransition() {
             animate={{ opacity: 1, scale: 1, transition: { duration: 0.3, delay: 0.1 } }}
             exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
           >
-            <Sticker name="hey" size={150} loop />
+            <Sticker name="hey" size={150} />
           </motion.div>
         </motion.div>
       )}
