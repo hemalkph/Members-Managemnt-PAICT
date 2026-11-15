@@ -325,7 +325,7 @@ function FileRow({ label, file, icon }: { label: string; file: FileItem; icon: "
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-medium">{label}</span>
         <span className="text-muted-foreground block truncate text-xs">
-          v{file.version} · {formatBytes(file.size)} · {formatDate(file.when)}
+          {formatBytes(file.size)} · {formatDate(file.when)}
         </span>
       </span>
       <Button asChild size="icon" variant="ghost" aria-label={`Open ${label}`}>

@@ -543,9 +543,19 @@ export const paperFileSchema = z.object({
   file_name: z.string().trim().min(1).max(200),
   mime_type: z.string().max(150).nullable(),
   size_bytes: z.number().int().min(1).max(MAX_PAPER_FILE_BYTES, "Each file must be 25 MB or smaller"),
-  note: optionalText(300, "Note"),
+  tag: z.enum(["paper", "corrected", "images", "answers", "marked", "source", "final", "other"], "Choose what this file is"),
+  note: optionalText(300, "Remark"),
 });
 export type PaperFileInput = z.input<typeof paperFileSchema>;
+
+export const paperFileEditSchema = z.object({
+  id: uuid,
+  paper_id: uuid,
+  file_name: z.string().trim().min(1, "Give the file a name").max(200, "Keep the name under 200 letters"),
+  tag: paperFileSchema.shape.tag,
+  note: optionalText(300, "Remark"),
+});
+export type PaperFileEditInput = z.input<typeof paperFileEditSchema>;
 
 export const TASKS_BUCKET = "tasks";
 export const MAX_TASK_FILE_BYTES = 50 * 1024 * 1024; // 50 MB, same as the "tasks" bucket

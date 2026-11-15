@@ -11,9 +11,9 @@ const DAY = 86_400_000;
 export type CleanupResult = { papers: number; files: number; bytes: number; days: number };
 
 /**
- * Keeps each paper's final outputs (the latest hand-over PDF and marking
- * schemes) and deletes everything else – drafts, marked PDFs and older
- * versions – once the paper was handed over (or finished / cancelled) more
+ * Keeps each paper's final outputs (the hand-over PDF and marking schemes
+ * marked as the correct paper, else the newest) and deletes everything else –
+ * drafts, marked PDFs and other files – once the paper was handed over (or finished / cancelled) more
  * than `paper_file_days` days ago. A file is only deleted when it is itself
  * older than that, so a late upload still gets its keep time. Needs the
  * service-role client: it removes storage objects and stamps the paper.
@@ -26,7 +26,7 @@ export async function cleanupPaperFiles(admin: Client, now = Date.now()): Promis
   const { data: papers } = await admin
     .from("papers")
     .select(
-      "id, status, handed_over_at, completed_at, updated_at, files_cleared_count, paper_files(id, stage, version, storage_path, size_bytes, created_at)",
+      "id, status, handed_over_at, completed_at, updated_at, files_cleared_count, paper_files(id, stage, version, is_main, storage_path, size_bytes, created_at)",
     )
     .neq("status", "in_progress")
     .limit(1000);
@@ -34,7 +34,7 @@ export async function cleanupPaperFiles(admin: Client, now = Date.now()): Promis
   const { data: handedOver } = await admin
     .from("papers")
     .select(
-      "id, status, handed_over_at, completed_at, updated_at, files_cleared_count, paper_files(id, stage, version, storage_path, size_bytes, created_at)",
+      "id, status, handed_over_at, completed_at, updated_at, files_cleared_count, paper_files(id, stage, version, is_main, storage_path, size_bytes, created_at)",
     )
     .eq("status", "in_progress")
     .not("handed_over_at", "is", null)
@@ -83,16 +83,22 @@ type CleanupFile = {
   id: string;
   stage: string;
   version: number;
+  is_main: boolean;
   storage_path: string;
   size_bytes: number;
   created_at: string;
 };
 
-/** Everything except the latest version of each library stage (reviewed papers, hand-over PDF, marking schemes). */
-export function removableFiles<T extends { stage: string; version: number }>(files: T[]): T[] {
-  const latest = new Map<string, number>();
-  for (const f of files) latest.set(f.stage, Math.max(latest.get(f.stage) ?? 0, f.version));
-  return files.filter((f) => !(LIBRARY_STAGES as string[]).includes(f.stage) || f.version !== latest.get(f.stage));
+/** Everything except the one kept file of each library stage: its correct paper, else its newest file. */
+export function removableFiles<T extends { stage: string; version: number; is_main?: boolean }>(files: T[]): T[] {
+  const keep = new Map<string, T>();
+  for (const f of files) {
+    const k = keep.get(f.stage);
+    if (!k || (f.is_main && !k.is_main) || (Boolean(f.is_main) === Boolean(k.is_main) && f.version > k.version)) {
+      keep.set(f.stage, f);
+    }
+  }
+  return files.filter((f) => !(LIBRARY_STAGES as string[]).includes(f.stage) || keep.get(f.stage) !== f);
 }
 
 export type StorageUse = { bucket: string; files: number; bytes: number };

@@ -16,7 +16,7 @@ export async function GET(request: NextRequest, { params }: RouteContext<"/paper
 
   const { data: file } = await ctx.supabase
     .from("paper_files")
-    .select("storage_path, file_name, version")
+    .select("storage_path, file_name")
     .eq("id", id)
     .maybeSingle();
   if (!file) return new NextResponse("Not found", { status: 404 });
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest, { params }: RouteContext<"/paper
   const download = request.nextUrl.searchParams.get("download") === "1";
   const { data, error } = await ctx.supabase.storage
     .from(PAPERS_BUCKET)
-    .createSignedUrl(file.storage_path, 60, download ? { download: `v${file.version}-${file.file_name}` } : undefined);
+    .createSignedUrl(file.storage_path, 60, download ? { download: file.file_name } : undefined);
   if (error || !data) return new NextResponse("File not available", { status: 404 });
 
   const response = NextResponse.redirect(data.signedUrl);

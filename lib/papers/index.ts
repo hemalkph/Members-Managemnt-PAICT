@@ -1,4 +1,4 @@
-import type { PaperStageName } from "@/lib/supabase/database.types";
+import type { PaperFileTag, PaperStageName } from "@/lib/supabase/database.types";
 
 // Shared by server and client code (no secrets here).
 
@@ -26,7 +26,8 @@ export const STAGES: StageMeta[] = [
     stage: "create_si",
     label: "Create (Sinhala)",
     description: "Paper creating team writes the paper",
-    howTo: "Write the Sinhala paper and add the link to your draft.",
+    howTo:
+      "Write the Sinhala paper and upload it here with its images. Mark the file the type setters should use as the correct paper.",
     startOffset: -9,
     dueOffset: -5,
   },
@@ -138,6 +139,49 @@ export const STAGE_INPUTS: Record<PaperStageName, PaperStageName[]> = {
   scheme_en: ["scheme"],
   mark: [],
 };
+
+/** The stages that use a stage's work (STAGE_INPUTS reversed; mirrored by public.next_paper_stages). */
+export function nextStages(stage: PaperStageName): PaperStageName[] {
+  return (Object.keys(STAGE_INPUTS) as PaperStageName[]).filter((s) => STAGE_INPUTS[s].includes(stage));
+}
+
+/** What a shared file is. Kept in step with paper_files_tag_check. */
+export const FILE_TAGS: { tag: PaperFileTag; label: string }[] = [
+  { tag: "paper", label: "Question paper" },
+  { tag: "corrected", label: "Corrected paper" },
+  { tag: "images", label: "Images" },
+  { tag: "answers", label: "Answers" },
+  { tag: "marked", label: "Marked PDF" },
+  { tag: "source", label: "Source file" },
+  { tag: "final", label: "Final PDF" },
+  { tag: "other", label: "Other" },
+];
+export const FILE_TAG_LABEL = Object.fromEntries(FILE_TAGS.map((t) => [t.tag, t.label])) as Record<
+  PaperFileTag,
+  string
+>;
+
+/** Files the browser can show as a picture. */
+export const IMAGE_FILE = /\.(png|jpe?g|gif|webp|svg|heic|tiff?)$/i;
+
+/** A file name typed by a person, with the original file's extension kept (".pdf", ".jpg"…). */
+export function withExtension(name: string, original: string): string {
+  const clean = name.trim() || original;
+  const ext = /\.[a-z0-9]{1,8}$/i.exec(original)?.[0] ?? "";
+  return (ext && !clean.toLowerCase().endsWith(ext.toLowerCase()) ? `${clean}${ext}` : clean).slice(-200);
+}
+
+/** Tags that can be "the correct paper" by default when uploaded. */
+export const PAPER_TAGS: PaperFileTag[] = ["paper", "corrected", "final", "answers", "marked"];
+
+/** A sensible first tag for a new file: images by extension, otherwise by stage. */
+export function defaultFileTag(stage: PaperStageName, fileName: string): PaperFileTag {
+  if (IMAGE_FILE.test(fileName)) return "images";
+  if (stage === "review_si" || stage === "review_en") return "marked";
+  if (stage === "handover") return "final";
+  if (stage === "scheme" || stage === "scheme_rewrite" || stage === "scheme_en") return "answers";
+  return "paper";
+}
 
 /** Stages whose files are the paper's final outputs: kept by the clean-up and open to every member. */
 export const FINAL_STAGES: PaperStageName[] = ["handover", "scheme", "scheme_rewrite", "scheme_en"];
