@@ -9,6 +9,7 @@ import {
   CalculatorIcon,
   ClipboardCheckIcon,
   HistoryIcon,
+  IdCardIcon,
   LandmarkIcon,
   ShieldCheckIcon,
   UserCogIcon,
@@ -48,6 +49,7 @@ const ICONS: Record<string, LucideIcon> = {
   deadline: CalendarClockIcon,
   task: ListTodoIcon,
   paper: FileStackIcon,
+  student: IdCardIcon,
 };
 
 const TONES = {

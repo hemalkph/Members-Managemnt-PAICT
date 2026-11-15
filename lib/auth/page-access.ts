@@ -15,6 +15,7 @@ export type PageKey =
   | "notices"
   | "rates"
   | "classes"
+  | "students"
   | "structure"
   | "activity";
 
@@ -46,6 +47,8 @@ export const PAGES: PageInfo[] = [
   { key: "notices", title: "Notice board", href: "/admin/notices", forMembers: true },
   { key: "rates", title: "Rates & budget", href: "/admin/rates", mainOnly: true },
   { key: "classes", title: "Batches & exams", href: "/admin/classes", forMembers: true },
+  // GN certificates and family details: admins only, never given to a member.
+  { key: "students", title: "Concession students", href: "/admin/students" },
   { key: "structure", title: "Sections & roles", href: "/admin/structure" },
   { key: "activity", title: "Activity log", href: "/admin/activity", mainOnly: true },
 ];

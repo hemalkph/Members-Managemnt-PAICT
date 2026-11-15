@@ -7,6 +7,7 @@ export const ACTIVITY_CATEGORIES = {
   members: { label: "Members & roles", prefixes: ["member.", "role.assigned", "role.removed"] },
   bank: { label: "Bank details", prefixes: ["bank."] },
   tasks: { label: "Tasks & papers", prefixes: ["task.", "paper."] },
+  students: { label: "Concession students", prefixes: ["student."] },
   security: { label: "Security", prefixes: ["two_step.", "member.password_reset", "payroll.exported"] },
 } as const;
 
@@ -18,10 +19,10 @@ export function isActivityCategory(value: unknown): value is ActivityCategory {
 
 /** Visual tone for an action: important money/security events stand out. */
 export function activityTone(action: string): "success" | "danger" | "warning" | "info" | "neutral" {
-  if (/\.(approved|paid|activated|enabled|closed|done)$/.test(action)) return "success";
-  if (/\.(rejected|deleted|deactivated|removed|disabled|reset|admin_removed|main_admin_removed|cancelled)$/.test(action))
+  if (/\.(approved|paid|activated|enabled|closed|done|verified)$/.test(action)) return "success";
+  if (/\.(rejected|deleted|deactivated|removed|disabled|reset|admin_removed|main_admin_removed|cancelled|ended)$/.test(action))
     return "danger";
-  if (/^(salary|rate|budget|bank|payroll|member\.password_reset|member\.(main_)?admin_granted|month\.reopened|payout\.unpaid|deadline\.)/.test(action))
+  if (/^(salary|rate|budget|bank|payroll|member\.password_reset|member\.(main_)?admin_granted|month\.reopened|payout\.unpaid|deadline\.|student\.(document_opened|card_changed))/.test(action))
     return "warning";
   if (action.startsWith("submission.")) return "info";
   return "neutral";
@@ -57,6 +58,8 @@ export function activityGroupLabel(action: string): string {
       return "Bank";
     case "two_step":
       return "Security";
+    case "student":
+      return "Student";
     default:
       return "Other";
   }

@@ -238,11 +238,13 @@ Each request passes several independent checks. If one layer had a bug, the next
 | Pay | `pay_months`, `payouts`, `app_settings` |
 | Papers | `papers`, `paper_stages`, `paper_files`, `paper_notes` |
 | Communication | `notifications`, `announcements`, `activity_log` |
+| Concession students | `concession_students`, `concession_student_private`, `concession_guardians`, `concession_documents`, `concession_card_history` (admins with the Students page only) |
 
 Key rules kept in the database:
 
 - **Price lock:** when work is approved, the unit price and amount are copied onto the submission, so later rate changes don't rewrite history.
 - **Pay months:** a month's work period runs from the 11th to the 10th. Closing a month locks its work and creates one payslip (payout) per member.
+- **Concession students:** a student can only be verified with a GN certificate (last 12 months), a parent occupation, the parents' consent and, for Half / Paid cards, the monthly amount (`concession_missing()`). Opening a certificate is logged.
 - **One claim per video:** a Drive video can be logged by only one work entry that wasn't rejected.
 
 ---
