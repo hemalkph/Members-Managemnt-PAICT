@@ -1,5 +1,5 @@
-// Concession students: only people with the Students page see anything; members
-// can never be given it; verifying needs the GN certificate, parent occupation,
+// Concession students: only people with the Students page see anything (admins
+// by default, members only when given it); verifying needs the GN certificate, parent occupation,
 // consent and (Half / Paid card) the monthly amount; every change is logged.
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import type pg from "pg";
@@ -11,6 +11,7 @@ let admin: Actor;
 let viewer: Actor;
 let hidden: Actor;
 let member: Actor;
+let staff: Actor;
 let batch = "";
 
 const id = (a: Actor) => (a as { id: string }).id;
@@ -43,8 +44,8 @@ beforeAll(async () => {
   admin = { kind: "user", id: await createPerson(db, { admin: true }), aal: "aal2" };
   viewer = { kind: "user", id: await createPerson(db, { admin: true, pageAccess: { students: "view" } }), aal: "aal2" };
   hidden = { kind: "user", id: await createPerson(db, { admin: true, pageAccess: { students: "none" } }), aal: "aal2" };
-  // Even if the page were somehow stored on a member, has_page() refuses it.
-  member = { kind: "user", id: await createPerson(db, { pageAccess: { students: "edit" } }), aal: "aal2" };
+  member = { kind: "user", id: await createPerson(db), aal: "aal2" };
+  staff = { kind: "user", id: await createPerson(db, { pageAccess: { students: "edit" } }), aal: "aal2" };
   batch = await createBatch(db);
 });
 afterAll(() => db.end());
@@ -60,6 +61,15 @@ describe("who can see and change students", () => {
         ]),
       ).toBe("42501");
     }
+  });
+
+  test("a member given the page works like an admin, private details included", async () => {
+    const sid = await addStudent(staff);
+    expect(sid).toBeTruthy();
+    await actAs(db, staff);
+    expect(await q("select 1 from public.concession_student_private where student_id = $1", [sid])).toHaveLength(1);
+    await actAs(db, { kind: "user", id: id(staff), aal: "aal1" });
+    expect(await q("select 1 from public.concession_students where id = $1", [sid])).toHaveLength(0);
   });
 
   test("main admins see every student", async () => {

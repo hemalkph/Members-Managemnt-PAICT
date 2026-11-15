@@ -7,11 +7,13 @@ import {
   batchSchema,
   centreSchema,
   examSchema,
+  examSeriesSchema,
   firstError,
   idSchema,
   type BatchInput,
   type CentreInput,
   type ExamInput,
+  type ExamSeriesInput,
 } from "@/lib/core/validation";
 
 function revalidateClasses() {
@@ -20,6 +22,7 @@ function revalidateClasses() {
   revalidatePath("/admin/papers");
   revalidatePath("/admin/reports");
   revalidatePath("/work/new");
+  revalidatePath("/admin/student-results");
 }
 
 function nameError(error: { code?: string } | null, what: string) {
@@ -58,6 +61,35 @@ export async function saveExamAction(input: ExamInput): Promise<ActionResult> {
   return { ok: true, message: id ? "Exam saved" : "Exam added" };
 }
 
+export async function saveSeriesAction(input: ExamSeriesInput): Promise<ActionResult> {
+  const ctx = await getActionContext({ page: "classes", edit: true });
+  if (!ctx) return { ok: false, error: NOT_ALLOWED };
+  const parsed = examSeriesSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
+  const { id, ...row } = parsed.data;
+
+  const { error } = id
+    ? await ctx.supabase.from("exam_series").update(row).eq("id", id)
+    : await ctx.supabase.from("exam_series").insert(row);
+  if (error) return { ok: false, error: nameError(error, "series with that name or code in this batch") };
+  revalidateClasses();
+  return { ok: true, message: id ? "Series saved" : "Series added" };
+}
+
+/** Add the next exam of a series ("RFP 06"), with the series' parts. */
+export async function nextSeriesExamAction(input: { series_id: string; exam_date: string }): Promise<ActionResult> {
+  const ctx = await getActionContext({ page: "classes", edit: true });
+  if (!ctx) return { ok: false, error: NOT_ALLOWED };
+  const parsed = idSchema.safeParse({ id: input.series_id });
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(input.exam_date) ? input.exam_date : null;
+  if (!parsed.success) return { ok: false, error: "Not found." };
+
+  const { error } = await ctx.supabase.rpc("exam_series_next", { p_series: parsed.data.id, p_exam_date: date });
+  if (error) return { ok: false, error: friendlyDbError(error) };
+  revalidateClasses();
+  return { ok: true, message: "Exam added with its parts" };
+}
+
 export async function saveCentreAction(input: CentreInput): Promise<ActionResult> {
   const ctx = await getActionContext({ page: "classes", edit: true });
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
@@ -73,19 +105,23 @@ export async function saveCentreAction(input: CentreInput): Promise<ActionResult
   return { ok: true, message: id ? "Centre saved" : "Centre added" };
 }
 
-/** Delete a batch (with its exams), an exam or a centre. Tagged work keeps existing without the tag. */
+/** Delete a batch (with its exams), a series (once its exams are gone), an exam or a centre. Tagged work keeps existing without the tag. */
 export async function deleteClassItemAction(input: {
-  kind: "batch" | "exam" | "centre";
+  kind: "batch" | "series" | "exam" | "centre";
   id: string;
 }): Promise<ActionResult> {
   const ctx = await getActionContext({ page: "classes", edit: true });
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
   const parsed = idSchema.safeParse({ id: input.id });
-  if (!parsed.success || !["batch", "exam", "centre"].includes(input.kind)) return { ok: false, error: "Not found." };
+  const TABLE = { batch: "batches", series: "exam_series", exam: "exams", centre: "centres" } as const;
+  const LABEL = { batch: "Batch", series: "Series", exam: "Exam", centre: "Centre" } as const;
+  if (!parsed.success || !(input.kind in TABLE)) return { ok: false, error: "Not found." };
 
-  const table = input.kind === "batch" ? "batches" : input.kind === "exam" ? "exams" : "centres";
-  const { error } = await ctx.supabase.from(table).delete().eq("id", parsed.data.id);
+  const { error } = await ctx.supabase.from(TABLE[input.kind]).delete().eq("id", parsed.data.id);
+  if (error?.code === "23503" && input.kind === "series") {
+    return { ok: false, error: "Delete or move the exams of this series first, or switch the series to inactive." };
+  }
   if (error) return { ok: false, error: friendlyDbError(error) };
   revalidateClasses();
-  return { ok: true, message: `${input.kind === "batch" ? "Batch" : input.kind === "exam" ? "Exam" : "Centre"} deleted` };
+  return { ok: true, message: `${LABEL[input.kind]} deleted` };
 }

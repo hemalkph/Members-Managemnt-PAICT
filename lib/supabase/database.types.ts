@@ -390,6 +390,8 @@ export type Database = {
           name: string;
           exam_date: string | null;
           is_active: boolean;
+          series_id: string | null;
+          number: number | null;
           created_at: string;
         };
         Insert: { id?: string; batch_id: string; name: string; exam_date?: string | null; is_active?: boolean };
@@ -555,6 +557,32 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      exam_series: {
+        Row: {
+          id: string;
+          batch_id: string;
+          name: string;
+          code: string;
+          default_parts: { name: string; max_marks: number }[];
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          batch_id: string;
+          name: string;
+          code: string;
+          default_parts?: { name: string; max_marks: number }[];
+          is_active?: boolean;
+        };
+        Update: {
+          batch_id?: string;
+          name?: string;
+          code?: string;
+          default_parts?: { name: string; max_marks: number }[];
+          is_active?: boolean;
+        };
+        Relationships: [];
       };
       exam_parts: {
         Row: { id: string; exam_id: string; name: string; max_marks: number; sort_order: number; created_at: string };
@@ -1365,6 +1393,7 @@ export type Database = {
       };
     };
     Functions: {
+      exam_series_next: { Args: { p_series: string; p_exam_date?: string | null }; Returns: string };
       is_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
       is_active_member: { Args: Record<PropertyKey, never>; Returns: boolean };
       nic_birth_date: { Args: { nic: string }; Returns: string | null };
@@ -1508,6 +1537,8 @@ export type Database = {
           parts: number;
         }[];
       };
+      concession_students_import: { Args: { p_rows: Json; p_file_name: string }; Returns: number };
+      concession_payments_import: { Args: { p_rows: Json; p_file_name: string }; Returns: number };
       set_payouts_paid: {
         Args: { p_ids: string[]; p_paid: boolean; p_paid_on?: string | null; p_reference?: string | null };
         Returns: number;

@@ -67,11 +67,30 @@ export default async function PapersPage({ searchParams }: PageProps<"/admin/pap
   const overdue = inProgress.filter((p) => p.stages.some((s) => s.overdue)).length;
   const unassigned = inProgress.filter((p) => p.stages.some((s) => s.status === "in_progress" && !s.ownerId)).length;
 
+  // Exams of a series show it: "2027 A/L – Ranking Full Papers · RFP 05".
+  const seriesName = new Map(classOptions.series.map((x) => [x.id, x.name]));
+  const examById = new Map(classOptions.exams.map((e) => [e.id, e]));
+  const examTitle = (id: string) => {
+    const e = examById.get(id);
+    const series = e?.seriesId ? seriesName.get(e.seriesId) : undefined;
+    return e ? (series ? `${e.batchName} – ${series} · ${e.name}` : e.label) : undefined;
+  };
+  // For pickers: each exam with the series (or batch) it is listed under.
+  const examChoices = (list: typeof classOptions.exams) =>
+    list.map((e) => ({
+      id: e.id,
+      label: e.label,
+      name: e.name,
+      examDate: e.examDate,
+      inSeries: Boolean(e.seriesId),
+      group: `${e.batchName} – ${(e.seriesId && seriesName.get(e.seriesId)) || "Other exams"}`,
+    }));
+
   // Group by exam (papers without an exam last).
   const groups = new Map<string, { label: string; papers: typeof papers }>();
   for (const p of papers) {
     const key = p.examId ?? "none";
-    const g = groups.get(key) ?? { label: p.examLabel ?? "Not for an exam", papers: [] };
+    const g = groups.get(key) ?? { label: (p.examId && examTitle(p.examId)) || p.examLabel || "Not for an exam", papers: [] };
     g.papers.push(p);
     groups.set(key, g);
   }
@@ -99,7 +118,7 @@ export default async function PapersPage({ searchParams }: PageProps<"/admin/pap
             busy: (openTasks ?? []).filter((t) => t.assignee_id === p.id).map((t) => t.due_date!),
           }))}
           defaultOwners={(settings?.paper_default_owners ?? {}) as Record<string, string>}
-          exams={tags.exams.map((e) => ({ id: e.id, label: e.label, examDate: e.examDate }))}
+          exams={examChoices(tags.exams)}
           defaultExam={exam || undefined}
           today={todayISO()}
           nextExamDay={nextExamDay(
@@ -126,7 +145,7 @@ export default async function PapersPage({ searchParams }: PageProps<"/admin/pap
         />
       </div>
 
-      <PaperFilters status={status} exam={exam} exams={classOptions.exams.map((e) => ({ id: e.id, label: e.label }))} />
+      <PaperFilters status={status} exam={exam} exams={examChoices(classOptions.exams)} />
 
       {papers.length === 0 ? (
         <EmptyState

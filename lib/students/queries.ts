@@ -27,11 +27,11 @@ export type StudentRow = {
   createdAt: string;
   /** What is still needed before verifying (empty = ready). */
   missing: string[];
+  certificateIssuedOn: string | null;
 };
 
 export type StudentDetail = StudentRow & {
   gnDivision: string;
-  certificateIssuedOn: string | null;
   reason: string;
   monthlyAmount: number | null;
   consentOn: string | null;
@@ -92,6 +92,7 @@ export async function getConcessionStudents(supabase: Client): Promise<StudentRo
       statusChangedAt: s.status_changed_at,
       updatedAt: s.updated_at,
       createdAt: s.created_at,
+      certificateIssuedOn: p?.certificate_issued_on ?? null,
       missing: missingItems({
         card: s.card_type,
         files: fileCount.get(s.id) ?? 0,

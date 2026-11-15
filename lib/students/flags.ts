@@ -4,7 +4,7 @@
 
 import { shiftMonth } from "@/lib/core/month";
 import type { ConcessionCard, ConcessionStatus } from "@/lib/supabase/database.types";
-import { LOW_PERCENT, type Attendance } from "@/lib/students/rules";
+import { CERTIFICATE_REMIND_DAYS, certificateValidUntil, LOW_PERCENT, type Attendance } from "@/lib/students/rules";
 
 export type FlagLevel = "red" | "orange" | "yellow";
 export type AutoFlag = { key: string; level: FlagLevel; label: string };
@@ -23,6 +23,7 @@ export type StudentFacts = {
   verifiedMonth: string | null;
   /** What is still needed before verifying (lib/students/rules missingItems). */
   missing: string[];
+  certificateIssuedOn: string | null;
   /** Exams of the student's batch with a date, oldest first. */
   exams: { id: string; date: string }[];
   /** exam id -> the student's result (percent is null when no marks). */
@@ -87,6 +88,12 @@ export function autoFlags(f: StudentFacts, month: string, today: string): AutoFl
 
   if (f.missing.includes("A certificate from the last 12 months")) {
     out.push({ key: "old-certificate", level: "orange", label: "GN certificate older than 12 months" });
+  } else if (f.certificateIssuedOn) {
+    const until = certificateValidUntil(f.certificateIssuedOn);
+    const left = daysBetween(today, until);
+    if (left >= 0 && left <= CERTIFICATE_REMIND_DAYS) {
+      out.push({ key: "certificate-soon", level: "yellow", label: `GN certificate runs out in ${plural(left, "day")}` });
+    }
   }
 
   // Exams before they registered don't count.

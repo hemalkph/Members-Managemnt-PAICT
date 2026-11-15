@@ -241,6 +241,7 @@ Each request passes several independent checks. If one layer had a bug, the next
 | Concession students | `concession_students`, `concession_student_private`, `concession_guardians`, `concession_documents`, `concession_card_history` (admins with the Students page only) |
 | Student results | `exam_parts`, `concession_results`, `concession_part_marks` (Student results page, can be given to members; names come from `concession_roster()`, never the private tables) |
 | Student payments and flags | `concession_payments`, `concession_flags` (admins only). Automatic flags are worked out in `lib/students/flags.ts`, never stored |
+| Student CSV import | No tables: the CSV is read in the browser (`lib/students/csv.ts`, `lib/students/import.ts`) and saved by `concession_students_import()` / `concession_payments_import()`, all or nothing; existing rows are skipped |
 
 Key rules kept in the database:
 

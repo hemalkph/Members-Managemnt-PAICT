@@ -48,8 +48,8 @@ export const PAGES: PageInfo[] = [
   { key: "notices", title: "Notice board", href: "/admin/notices", forMembers: true },
   { key: "rates", title: "Rates & budget", href: "/admin/rates", mainOnly: true },
   { key: "classes", title: "Batches & exams", href: "/admin/classes", forMembers: true },
-  // GN certificates and family details: admins only, never given to a member.
-  { key: "students", title: "Concession students", href: "/admin/students" },
+  // GN certificates and family details: give it only to staff trusted with them.
+  { key: "students", title: "Concession students", href: "/admin/students", forMembers: true },
   // Names and marks only (no private details), so it can be given to markers.
   { key: "student_results", title: "Student results", href: "/admin/student-results", forMembers: true },
   { key: "structure", title: "Sections & roles", href: "/admin/structure" },
