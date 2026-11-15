@@ -1508,6 +1508,8 @@ export type Database = {
           parts: number;
         }[];
       };
+      concession_students_import: { Args: { p_rows: Json; p_file_name: string }; Returns: number };
+      concession_payments_import: { Args: { p_rows: Json; p_file_name: string }; Returns: number };
       set_payouts_paid: {
         Args: { p_ids: string[]; p_paid: boolean; p_paid_on?: string | null; p_reference?: string | null };
         Returns: number;
