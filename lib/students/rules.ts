@@ -38,6 +38,16 @@ export function twelveMonthsBefore(day: string): string {
   return `${y - 1}-${String(m).padStart(2, "0")}-${String(Math.min(d, last)).padStart(2, "0")}`;
 }
 
+/** The last day a GN certificate dated `issued` is good for: 12 months on, as Postgres counts it. */
+export function certificateValidUntil(issued: string): string {
+  const [y, m, d] = issued.split("-").map(Number);
+  const last = new Date(Date.UTC(y + 1, m, 0)).getUTCDate();
+  return `${y + 1}-${String(m).padStart(2, "0")}-${String(Math.min(d, last)).padStart(2, "0")}`;
+}
+
+/** Admins are reminded this many days before a certificate runs out (same as the daily database job). */
+export const CERTIFICATE_REMIND_DAYS = 30;
+
 export type VerifyInput = {
   card: ConcessionCard;
   files: number;

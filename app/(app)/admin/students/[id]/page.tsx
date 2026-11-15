@@ -22,7 +22,7 @@ import { getClassOptions } from "@/lib/organisation/classes";
 import { getStudentTimeline } from "@/lib/students/analysis";
 import { FLAG_BADGE } from "@/lib/students/flags";
 import { getConcessionStudent } from "@/lib/students/queries";
-import { CARD_LABEL, STATUS_BADGE, STATUS_LABEL } from "@/lib/students/rules";
+import { CARD_LABEL, certificateValidUntil, STATUS_BADGE, STATUS_LABEL } from "@/lib/students/rules";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Concession student" };
@@ -264,7 +264,12 @@ export default async function StudentPage({ params }: PageProps<"/admin/students
             <CardContent>
               <dl className="divide-y">
                 <Row label="GN division">{student.gnDivision || "—"}</Row>
-                <Row label="Certificate date">{formatDate(student.certificateIssuedOn)}</Row>
+                <Row label="Certificate date">
+                  {formatDate(student.certificateIssuedOn)}
+                  {student.certificateIssuedOn && (
+                    <span className="text-muted-foreground"> · valid until {formatDate(certificateValidUntil(student.certificateIssuedOn))}</span>
+                  )}
+                </Row>
                 {student.card !== "free" && (
                   <Row label="Monthly amount">{student.monthlyAmount === null ? "—" : formatLKR(student.monthlyAmount)}</Row>
                 )}

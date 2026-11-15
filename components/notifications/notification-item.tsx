@@ -18,6 +18,7 @@ import {
   UserPlusIcon,
   WalletIcon,
   LibraryIcon,
+  IdCardIcon,
   type LucideIcon,
 } from "lucide-react";
 import { Sticker } from "@/components/sticker";
@@ -60,6 +61,8 @@ const META: Record<string, { icon: LucideIcon; tone: string }> = {
   "paper.note": { icon: MessageSquareTextIcon, tone: "bg-warning/20 text-amber-700 dark:text-warning" },
   "library.new": { icon: LibraryIcon, tone: "bg-success/15 text-success" },
   "paper.unassigned": { icon: FileStackIcon, tone: "bg-warning/20 text-amber-700 dark:text-warning" },
+  "student.certificate": { icon: IdCardIcon, tone: "bg-warning/20 text-amber-700 dark:text-warning" },
+  "student.certificate_expired": { icon: IdCardIcon, tone: "bg-destructive/15 text-destructive" },
 };
 
 export function relativeTime(iso: string, now: number): string {
