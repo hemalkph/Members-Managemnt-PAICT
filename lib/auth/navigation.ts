@@ -10,6 +10,7 @@ import {
   FileStackIcon,
   GraduationCapIcon,
   IdCardIcon,
+  ClipboardPenLineIcon,
   ListTodoIcon,
   FileTextIcon,
   HistoryIcon,
@@ -63,6 +64,7 @@ export function adminNav(access: Record<PageKey, AccessLevel>): NavItem[] {
     { page: "rates", title: "Rates & budget", href: "/admin/rates", icon: CalculatorIcon, keywords: "prices pay rate" },
     { page: "classes", title: "Batches & exams", href: "/admin/classes", icon: GraduationCapIcon, keywords: "batch exam test term centre class hall" },
     { page: "students", title: "Concession students", href: "/admin/students", icon: IdCardIcon, keywords: "free card half card paid card grama niladhari gn certificate student parents" },
+    { page: "student_results", title: "Student results", href: "/admin/student-results", icon: ClipboardPenLineIcon, keywords: "marks exam attendance present absent free card concession" },
     { page: "structure", title: "Sections & roles", href: "/admin/structure", icon: Settings2Icon, keywords: "teams structure" },
     { page: "activity", title: "Activity log", href: "/admin/activity", icon: HistoryIcon, keywords: "audit history who changed approved" },
   ];

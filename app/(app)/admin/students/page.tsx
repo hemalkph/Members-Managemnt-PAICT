@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AlertTriangleIcon, BadgeCheckIcon, ClockIcon, IdCardIcon, PlusIcon, SearchCheckIcon } from "lucide-react";
+import { AlertTriangleIcon, BadgeCheckIcon, ChartColumnIcon, ClockIcon, IdCardIcon, PlusIcon, SearchCheckIcon } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { ReadOnlyNotice } from "@/components/read-only-notice";
@@ -68,13 +68,20 @@ export default async function StudentsPage({ searchParams }: PageProps<"/admin/s
         title="Concession students"
         description="Free, Half and Paid card students. GN certificates and family details are private to admins."
         actions={
-          canEdit && activeBatches.length > 0 ? (
-            <StudentDialog batches={activeBatches} centres={activeCentres}>
-              <Button>
-                <PlusIcon /> Register student
-              </Button>
-            </StudentDialog>
-          ) : undefined
+          <>
+            <Button asChild variant="outline">
+              <Link href="/admin/students/analysis">
+                <ChartColumnIcon /> Analysis
+              </Link>
+            </Button>
+            {canEdit && activeBatches.length > 0 && (
+              <StudentDialog batches={activeBatches} centres={activeCentres}>
+                <Button>
+                  <PlusIcon /> Register student
+                </Button>
+              </StudentDialog>
+            )}
+          </>
         }
       />
       {!canEdit && <ReadOnlyNotice />}

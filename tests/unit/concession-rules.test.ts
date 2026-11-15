@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { missingItems, twelveMonthsBefore } from "@/lib/students/rules";
+import { missingItems, resultTotal, twelveMonthsBefore } from "@/lib/students/rules";
 
 const complete = {
   card: "half" as const,
@@ -33,4 +33,20 @@ describe("missingItems", () => {
 test("twelveMonthsBefore handles 29 February like Postgres", () => {
   expect(twelveMonthsBefore("2028-02-29")).toBe("2027-02-28");
   expect(twelveMonthsBefore("2026-11-15")).toBe("2025-11-15");
+});
+
+describe("resultTotal", () => {
+  const parts = [
+    { id: "a", maxMarks: 40 },
+    { id: "b", maxMarks: 60 },
+  ];
+  test("adds the parts and gives a percentage of the whole exam", () => {
+    expect(resultTotal(parts, { a: 35, b: 48.5 })).toEqual({ total: 83.5, max: 100, percent: 83.5, complete: true });
+  });
+  test("a missing part is not complete", () => {
+    expect(resultTotal(parts, { a: 20 })).toEqual({ total: 20, max: 100, percent: 20, complete: false });
+  });
+  test("no marks at all", () => {
+    expect(resultTotal(parts, {})).toEqual({ total: null, max: 100, percent: null, complete: false });
+  });
 });

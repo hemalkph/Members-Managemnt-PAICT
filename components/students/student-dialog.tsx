@@ -209,8 +209,9 @@ export function StudentDialog({
                 <FormItem>
                   <FormLabel>GN division</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. 528 Maharagama" {...field} />
+                    <Input placeholder="e.g. 628B Kotigamgoda, Horana" {...field} />
                   </FormControl>
+                  <FormDescription>The number and name on the GN certificate.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

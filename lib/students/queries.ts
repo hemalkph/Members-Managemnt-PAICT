@@ -8,6 +8,8 @@ import type {
   Database,
 } from "@/lib/supabase/database.types";
 import { todayISO } from "@/lib/core/month";
+import { allRows } from "@/lib/supabase/all-rows";
+import type { FlagView } from "@/lib/students/flags";
 import { missingItems } from "@/lib/students/rules";
 
 type Client = SupabaseClient<Database>;
@@ -22,6 +24,7 @@ export type StudentRow = {
   status: ConcessionStatus;
   statusChangedAt: string;
   updatedAt: string;
+  createdAt: string;
   /** What is still needed before verifying (empty = ready). */
   missing: string[];
 };
@@ -34,7 +37,6 @@ export type StudentDetail = StudentRow & {
   consentOn: string | null;
   verifiedBy: string | null;
   verifiedAt: string | null;
-  createdAt: string;
   createdBy: string | null;
   everVerified: boolean;
   guardians: {
@@ -46,6 +48,7 @@ export type StudentDetail = StudentRow & {
   }[];
   files: { id: string; fileName: string; sizeBytes: number; mimeType: string | null; uploadedBy: string | null; createdAt: string }[];
   history: { id: number; card: ConcessionCard; status: ConcessionStatus; note: string; changedBy: string | null; changedAt: string }[];
+  flags: FlagView[];
 };
 
 function countBy(rows: { student_id: string }[] | null) {
@@ -57,23 +60,26 @@ function countBy(rows: { student_id: string }[] | null) {
 /**
  * Every concession student with what they still need. RLS returns nothing
  * without the Students page.
- * shortcut: one request per table, capped by the API's row limit (1,000); page it when there are more students.
  */
 export async function getConcessionStudents(supabase: Client): Promise<StudentRow[]> {
-  const [{ data: students }, { data: privates }, { data: guardians }, { data: files }] = await Promise.all([
-    supabase.from("concession_students").select("*").order("full_name"),
-    supabase
-      .from("concession_student_private")
-      .select("student_id, gn_division, certificate_issued_on, consent_on, monthly_amount"),
-    supabase.from("concession_guardians").select("student_id"),
-    supabase.from("concession_documents").select("student_id"),
+  const [students, privates, guardians, files] = await Promise.all([
+    allRows((a, b) => supabase.from("concession_students").select("*").order("full_name").order("id").range(a, b)),
+    allRows((a, b) =>
+      supabase
+        .from("concession_student_private")
+        .select("student_id, gn_division, certificate_issued_on, consent_on, monthly_amount")
+        .order("student_id")
+        .range(a, b),
+    ),
+    allRows((a, b) => supabase.from("concession_guardians").select("student_id").order("id").range(a, b)),
+    allRows((a, b) => supabase.from("concession_documents").select("student_id").order("id").range(a, b)),
   ]);
   const privateOf = new Map((privates ?? []).map((p) => [p.student_id, p]));
   const guardianCount = countBy(guardians);
   const fileCount = countBy(files);
   const today = todayISO();
 
-  return (students ?? []).map((s) => {
+  return students.map((s) => {
     const p = privateOf.get(s.id);
     return {
       id: s.id,
@@ -85,6 +91,7 @@ export async function getConcessionStudents(supabase: Client): Promise<StudentRo
       status: s.status,
       statusChangedAt: s.status_changed_at,
       updatedAt: s.updated_at,
+      createdAt: s.created_at,
       missing: missingItems({
         card: s.card_type,
         files: fileCount.get(s.id) ?? 0,
@@ -103,11 +110,12 @@ export async function getConcessionStudents(supabase: Client): Promise<StudentRo
 export async function getConcessionStudent(supabase: Client, id: string): Promise<StudentDetail | null> {
   const { data: s } = await supabase.from("concession_students").select("*").eq("id", id).maybeSingle();
   if (!s) return null;
-  const [{ data: p }, { data: guardians }, { data: files }, { data: history }] = await Promise.all([
+  const [{ data: p }, { data: guardians }, { data: files }, { data: history }, { data: flags }] = await Promise.all([
     supabase.from("concession_student_private").select("*").eq("student_id", id).maybeSingle(),
     supabase.from("concession_guardians").select("*").eq("student_id", id).order("created_at"),
     supabase.from("concession_documents").select("*").eq("student_id", id).order("created_at"),
     supabase.from("concession_card_history").select("*").eq("student_id", id).order("changed_at", { ascending: false }),
+    supabase.from("concession_flags").select("*").eq("student_id", id).order("raised_at", { ascending: false }),
   ]);
 
   const staffIds = [
@@ -115,6 +123,7 @@ export async function getConcessionStudent(supabase: Client, id: string): Promis
     p?.verified_by,
     ...(files ?? []).map((f) => f.uploaded_by),
     ...(history ?? []).map((h) => h.changed_by),
+    ...(flags ?? []).flatMap((f) => [f.raised_by, f.resolved_by]),
   ].filter((v): v is string => Boolean(v));
   const { data: staff } = staffIds.length
     ? await supabase.from("profiles").select("id, full_name, email").in("id", [...new Set(staffIds)])
@@ -175,6 +184,16 @@ export async function getConcessionStudent(supabase: Client, id: string): Promis
       note: h.note,
       changedBy: name(h.changed_by),
       changedAt: h.changed_at,
+    })),
+    flags: (flags ?? []).map((f) => ({
+      id: f.id,
+      kind: f.kind,
+      reason: f.reason,
+      raisedAt: f.raised_at,
+      raisedBy: name(f.raised_by),
+      resolvedAt: f.resolved_at,
+      resolvedBy: name(f.resolved_by),
+      resolveNote: f.resolve_note,
     })),
   };
 }

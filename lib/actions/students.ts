@@ -7,12 +7,18 @@ import {
   CONCESSION_BUCKET,
   concessionCardSchema,
   concessionFilesSchema,
+  concessionFlagResolveSchema,
+  concessionFlagSchema,
+  concessionPaymentSchema,
   concessionGuardianSchema,
   concessionStudentSchema,
   firstError,
   idSchema,
   type ConcessionCardInput,
   type ConcessionFilesInput,
+  type ConcessionFlagInput,
+  type ConcessionFlagResolveInput,
+  type ConcessionPaymentInput,
   type ConcessionGuardianInput,
   type ConcessionStudentInput,
 } from "@/lib/core/validation";
@@ -23,6 +29,7 @@ const editor = () => getActionContext({ page: "students", edit: true });
 
 function revalidateStudents(id?: string) {
   revalidatePath("/admin/students");
+  revalidatePath("/admin/students/analysis");
   if (id) revalidatePath(`/admin/students/${id}`);
 }
 
@@ -145,4 +152,48 @@ export async function deleteConcessionFileAction(input: { id: string }): Promise
   await ctx.supabase.storage.from(CONCESSION_BUCKET).remove([data[0].storage_path]);
   revalidateStudents(data[0].student_id);
   return { ok: true, message: "File removed" };
+}
+
+/** Record one month's payment of a Half or Paid card student; status null clears it. */
+export async function recordPaymentAction(input: ConcessionPaymentInput): Promise<ActionResult> {
+  const ctx = await editor();
+  if (!ctx) return { ok: false, error: NOT_ALLOWED };
+  const parsed = concessionPaymentSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
+  const v = parsed.data;
+
+  const { error } = await ctx.supabase.rpc("concession_payment_set", {
+    p_student: v.student_id,
+    p_month: `${v.month}-01`,
+    p_status: v.status,
+    p_amount: v.amount === "" ? null : Number(v.amount),
+    p_paid_on: v.paid_on || null,
+    p_note: v.note,
+  });
+  if (error) return { ok: false, error: friendlyDbError(error) };
+  revalidateStudents(v.student_id);
+  return { ok: true, message: v.status === null ? "Payment cleared" : v.status === "paid" ? "Marked paid" : "Marked unpaid" };
+}
+
+export async function raiseFlagAction(input: ConcessionFlagInput): Promise<ActionResult> {
+  const ctx = await editor();
+  if (!ctx) return { ok: false, error: NOT_ALLOWED };
+  const parsed = concessionFlagSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
+  const v = parsed.data;
+  const { error } = await ctx.supabase.rpc("concession_flag_raise", { p_student: v.student_id, p_kind: v.kind, p_reason: v.reason });
+  if (error) return { ok: false, error: friendlyDbError(error) };
+  revalidateStudents(v.student_id);
+  return { ok: true, message: "Flag added" };
+}
+
+export async function resolveFlagAction(input: ConcessionFlagResolveInput): Promise<ActionResult> {
+  const ctx = await editor();
+  if (!ctx) return { ok: false, error: NOT_ALLOWED };
+  const parsed = concessionFlagResolveSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
+  const { error } = await ctx.supabase.rpc("concession_flag_resolve", { p_flag: parsed.data.id, p_note: parsed.data.note });
+  if (error) return { ok: false, error: friendlyDbError(error) };
+  revalidateStudents(parsed.data.student_id);
+  return { ok: true, message: "Flag resolved" };
 }

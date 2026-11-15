@@ -8,14 +8,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { monthLabel, periodRangeLabel, recentMonths, shiftMonth } from "@/lib/core/month";
 import { cn } from "@/lib/utils";
 
-/** Month filter stored in the URL (?month=YYYY-MM). */
-export function MonthSelect({ value, className }: { value: string; className?: string }) {
+/**
+ * Month filter stored in the URL (?month=YYYY-MM). Pay months by default;
+ * `calendar` for calendar months (no 11th–10th range, no next month).
+ */
+export function MonthSelect({ value, className, calendar = false }: { value: string; className?: string; calendar?: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [pending, startTransition] = useTransition();
 
-  const months = recentMonths(24, true);
+  const months = recentMonths(24, !calendar);
   if (!months.includes(value)) months.push(value);
 
   const go = (month: string) => {
@@ -45,9 +48,11 @@ export function MonthSelect({ value, className }: { value: string; className?: s
       <Button variant="outline" size="icon" aria-label="Next month" onClick={() => go(shiftMonth(value, 1))}>
         <ChevronRightIcon />
       </Button>
-      <span className="text-muted-foreground hidden pl-1 text-xs whitespace-nowrap lg:inline">
-        {periodRangeLabel(value)}
-      </span>
+      {!calendar && (
+        <span className="text-muted-foreground hidden pl-1 text-xs whitespace-nowrap lg:inline">
+          {periodRangeLabel(value)}
+        </span>
+      )}
     </div>
   );
 }
