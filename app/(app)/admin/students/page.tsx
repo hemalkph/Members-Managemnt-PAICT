@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AlertTriangleIcon, BadgeCheckIcon, ChartColumnIcon, ClockIcon, IdCardIcon, PlusIcon, SearchCheckIcon } from "lucide-react";
+import { AlertTriangleIcon, BadgeCheckIcon, ChartColumnIcon, ClockIcon, FileUpIcon, IdCardIcon, PlusIcon, SearchCheckIcon } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { ReadOnlyNotice } from "@/components/read-only-notice";
@@ -74,6 +74,13 @@ export default async function StudentsPage({ searchParams }: PageProps<"/admin/s
                 <ChartColumnIcon /> Analysis
               </Link>
             </Button>
+            {canEdit && (
+              <Button asChild variant="outline">
+                <Link href="/admin/students/import">
+                  <FileUpIcon /> Import CSV
+                </Link>
+              </Button>
+            )}
             {canEdit && activeBatches.length > 0 && (
               <StudentDialog batches={activeBatches} centres={activeCentres}>
                 <Button>

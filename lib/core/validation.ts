@@ -719,3 +719,39 @@ export type ConcessionFlagInput = z.input<typeof concessionFlagSchema>;
 
 export const concessionFlagResolveSchema = z.object({ id: uuid, student_id: uuid, note: optionalText(300, "Note") });
 export type ConcessionFlagResolveInput = z.input<typeof concessionFlagResolveSchema>;
+
+// ---------------------------------------------------------------- concession CSV import (admins)
+const importFileName = z.string().trim().max(200);
+
+export const studentsImportSchema = z.object({
+  file_name: importFileName,
+  rows: z
+    .array(
+      concessionStudentSchema.omit({ id: true, expected_updated_at: true }).extend({
+        guardians: z.array(concessionGuardianSchema.omit({ id: true, student_id: true })).max(2),
+      }),
+    )
+    .min(1, "Nothing to import")
+    .max(1000, "Import at most 1,000 students at a time"),
+});
+export type StudentsImportInput = z.input<typeof studentsImportSchema>;
+
+export const paymentsImportSchema = z.object({
+  file_name: importFileName,
+  rows: z
+    .array(
+      z
+        .object({
+          student_id: uuid,
+          month: monthKey,
+          status: z.enum(["paid", "unpaid"]),
+          amount: z.string().trim().refine((v) => v === "" || /^\d{1,7}(\.\d{1,2})?$/.test(v), "Enter an amount in rupees"),
+          paid_on: z.union([isoDate, z.literal("")]),
+          note: optionalText(300, "Note"),
+        })
+        .refine((v) => v.status !== "paid" || v.amount !== "", "Enter the amount paid"),
+    )
+    .min(1, "Nothing to import")
+    .max(1000, "Import at most 1,000 payments at a time"),
+});
+export type PaymentsImportInput = z.input<typeof paymentsImportSchema>;
