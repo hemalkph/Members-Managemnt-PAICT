@@ -24,6 +24,7 @@ export type PaperStageName =
   | "scheme_rewrite"
   | "scheme_en"
   | "mark";
+export type PaperFileTag = "paper" | "corrected" | "images" | "answers" | "marked" | "source" | "final" | "other";
 
 export type Database = {
   __InternalSupabase: {
@@ -773,6 +774,8 @@ export type Database = {
           mime_type: string | null;
           size_bytes: number;
           note: string | null;
+          tag: PaperFileTag;
+          is_main: boolean;
           uploaded_by: string | null;
           created_at: string;
         };
@@ -786,6 +789,8 @@ export type Database = {
           mime_type?: string | null;
           size_bytes: number;
           note?: string | null;
+          tag?: PaperFileTag;
+          is_main?: boolean;
           uploaded_by: string;
         };
         Update: { [_ in never]: never };
@@ -805,6 +810,12 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      text_templates: {
+        Row: { id: string; user_id: string; body: string; created_at: string };
+        Insert: { id?: string; user_id?: string; body: string };
+        Update: { [_ in never]: never };
+        Relationships: [];
       };
       task_files: {
         Row: {
@@ -1439,6 +1450,9 @@ export type Database = {
         Returns: undefined;
       };
       task_file_seen: { Args: { p_file: string }; Returns: undefined };
+      set_main_paper_file: { Args: { p_file: string }; Returns: undefined };
+      update_paper_file: { Args: { p_file: string; p_name: string; p_tag: string; p_note: string }; Returns: undefined };
+      notify_stage_files: { Args: { p_paper: string; p_stage: string; p_files: string[] }; Returns: number };
       paper_library: {
         Args: Record<PropertyKey, never>;
         Returns: {

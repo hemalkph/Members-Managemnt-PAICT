@@ -38,6 +38,7 @@ import {
   PAID_PAGE_STAGES,
   PART_LABEL,
   paperSteps,
+  nextStages,
   STAGE_INPUTS,
   STAGE_META,
 } from "@/lib/papers";
@@ -106,19 +107,25 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
   const canUpload = paper.status === "in_progress" && uploadStages.length > 0;
   const defaultUpload =
     uploadStages.find((s) => s.mine && s.active) ?? uploadStages.find((s) => s.active) ?? uploadStages[0];
-  const latestVersion = new Map<string, number>();
-  for (const f of files) latestVersion.set(f.stage, Math.max(latestVersion.get(f.stage) ?? 0, f.version));
+  // The stage owner (once started) or a papers editor edits files and picks the correct paper.
+  const canEditStage = (stage: string) =>
+    paper.status !== "cancelled" &&
+    (canManage ||
+      paper.stages.some(
+        (s) => s.stage === stage && s.ownerId === profile.id && (s.status === "in_progress" || s.status === "done"),
+      ));
   const fileItems: FileItem[] = files.map((f) => ({
     id: f.id,
     stage: f.stage,
-    version: f.version,
     fileName: f.fileName,
     sizeBytes: f.sizeBytes,
     note: f.note,
+    tag: f.tag,
+    isMain: f.isMain,
     uploadedBy: f.uploadedBy,
     canDelete: canManage || f.uploadedById === profile.id,
+    canEdit: canEditStage(f.stage),
     when: formatDateTime(f.createdAt),
-    latest: latestVersion.get(f.stage) === f.version,
   }));
 
   // Names of the people on this paper (members can't read other profiles).
@@ -147,22 +154,19 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
 
   // "Your part": my active stages, plus finished ones that never shared a file
   // and can still take one (e.g. the converter marked done before uploading).
-  const finals = fileItems.filter((f) => f.latest && (FINAL_STAGES as string[]).includes(f.stage));
-  const latestFile = (stage: string) => fileItems.find((f) => f.stage === stage && f.latest) ?? null;
+  // Files come correct-paper-first, then newest.
+  const stageFiles = (stage: string) => fileItems.filter((f) => f.stage === stage);
+  const mainFile = (stage: string) => stageFiles(stage)[0] ?? null;
+  const finals = FINAL_STAGES.map(mainFile).filter((f): f is FileItem => Boolean(f));
   const openForUpload = new Set(uploadStages.map((u) => u.stage as string));
+  const ownerOf = Object.fromEntries(paper.stages.map((s) => [s.stage, s.ownerName]));
   const myStages: MyStage[] =
     paper.status === "in_progress"
       ? paper.stages
           .filter((s) => s.ownerId === profile.id)
-          .filter(
-            (s) =>
-              s.status === "in_progress" ||
-              (s.status === "done" &&
-                openForUpload.has(s.stage) &&
-                !latestFile(s.stage) &&
-                !s.link &&
-                !(isReview(s.stage) && notes.some((n) => n.stage === s.stage && n.mine))),
-          )
+          // Active stages, and finished ones that still take files (to add what was missed).
+          .filter((s) => s.status === "in_progress" || (s.status === "done" && openForUpload.has(s.stage)))
+          .sort((a, b) => Number(a.status === "done") - Number(b.status === "done") || a.position - b.position)
           .map((s) => ({
             stageId: s.id,
             stage: s.stage,
@@ -176,16 +180,32 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
               .map((from) => paper.stages.find((x) => x.stage === from))
               .filter((x): x is NonNullable<typeof x> => Boolean(x) && x!.status !== "skipped")
               // Reviews send corrections as notes; show them as an input only when a marked PDF was uploaded.
-              .filter((x) => !isReview(x.stage) || Boolean(latestFile(x.stage)))
+              .filter((x) => !isReview(x.stage) || stageFiles(x.stage).length > 0)
               .map((x) => ({
                 stageLabel: STAGE_META[x.stage].label,
                 ownerName: x.ownerName,
                 done: x.status === "done",
-                file: latestFile(x.stage),
+                files: stageFiles(x.stage),
                 link: x.link,
               })),
             uploadOpen: openForUpload.has(s.stage),
-            myFile: latestFile(s.stage),
+            myFiles: stageFiles(s.stage),
+            myMain: stageFiles(s.stage).some((f) => f.isMain),
+            nextOwners:
+              [
+                ...new Set(
+                  paper.stages
+                    .filter(
+                      (x) =>
+                        nextStages(s.stage).includes(x.stage) &&
+                        x.status !== "skipped" &&
+                        x.ownerId &&
+                        x.ownerId !== profile.id,
+                    )
+                    .map((x) => (x.ownerName ?? "").split(" ")[0])
+                    .filter(Boolean),
+                ),
+              ].join(" and ") || null,
             myLink: s.link,
             review: isReview(s.stage),
             myNotes: notes.filter((n) => n.stage === s.stage && n.mine).length,
@@ -345,13 +365,13 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
                     </a>
                   </Button>
                 )}
-                {latestFile(s.stage) && (
+                {mainFile(s.stage) && (
                   <Button asChild size="sm" variant="outline">
-                    <a
-                      href={`/papers/files/${latestFile(s.stage)!.id}?download=1`}
-                      title={latestFile(s.stage)!.fileName}
-                    >
-                      <DownloadIcon /> Download v{latestFile(s.stage)!.version}
+                    <a href={`/papers/files/${mainFile(s.stage)!.id}?download=1`} title={mainFile(s.stage)!.fileName}>
+                      <DownloadIcon /> {mainFile(s.stage)!.isMain ? "Correct paper" : "Download"}
+                      {stageFiles(s.stage).length > 1 && (
+                        <span className="text-muted-foreground">+{stageFiles(s.stage).length - 1}</span>
+                      )}
                     </a>
                   </Button>
                 )}
@@ -415,8 +435,9 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
           <CardHeader>
             <CardTitle>Files</CardTitle>
             <CardDescription>
-              Every file shared on this paper, newest version first. Members upload from &quot;Your part&quot; above.
-              Drafts are deleted some days after hand-over; the final PDFs and marking schemes are kept.
+              Every file shared on this paper, with the correct paper of each stage first. Members upload from
+              &quot;Your part&quot; above. Drafts are deleted some days after hand-over; the final PDFs and marking
+              schemes are kept.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -425,9 +446,10 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
                 paperId={paper.id}
                 defaultStage={defaultUpload.stage}
                 stages={uploadStages.map(({ stage, label }) => ({ stage, label }))}
+                mainStages={fileItems.filter((f) => f.isMain).map((f) => f.stage)}
               />
             )}
-            <PaperFileList files={fileItems} />
+            <PaperFileList files={fileItems} paperId={paper.id} owners={ownerOf} />
           </CardContent>
         </Card>
       )}
@@ -450,7 +472,7 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
                 {finals.map((f) => (
                   <Button key={f.id} asChild variant="outline" size="sm">
                     <a href={`/papers/files/${f.id}?download=1`} title={f.fileName}>
-                      <DownloadIcon /> {STAGE_META[f.stage as keyof typeof STAGE_META]?.label ?? f.stage} · v{f.version}
+                      <DownloadIcon /> {STAGE_META[f.stage as keyof typeof STAGE_META]?.label ?? f.stage}
                     </a>
                   </Button>
                 ))}

@@ -18,4 +18,16 @@ describe("paper file clean-up", () => {
       { stage: "typeset_si", version: 1 },
     ]);
   });
+
+  test("keeps the file marked as the correct paper, even when a newer one was added", () => {
+    const files = [
+      { stage: "handover", version: 1, is_main: true },
+      { stage: "handover", version: 2, is_main: false },
+      { stage: "create_si", version: 1, is_main: true },
+    ];
+    expect(removableFiles(files)).toEqual([
+      { stage: "handover", version: 2, is_main: false },
+      { stage: "create_si", version: 1, is_main: true },
+    ]);
+  });
 });

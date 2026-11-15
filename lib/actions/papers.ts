@@ -1,10 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { friendlyDbError, type ActionResult } from "@/lib/core/action-result";
 import { getActionContext, NOT_ALLOWED } from "@/lib/auth";
 import { pageAccess } from "@/lib/auth/page-access";
-import { addDays, PAPERS_BUCKET, PART_LABEL, SCHEME_STAGES } from "@/lib/papers";
+import { addDays, PAPERS_BUCKET, PART_LABEL, SCHEME_STAGES, withExtension } from "@/lib/papers";
 import {
   firstError,
   idSchema,
@@ -12,13 +13,17 @@ import {
   groupLinksSchema,
   paperNoteSchema,
   paperSchema,
+  paperFileEditSchema,
   paperFileSchema,
   paperStageUpdateSchema,
   pastPaperSchema,
   stageLinkSchema,
+  type PaperFileEditInput,
   type PaperFileInput,
   type PaperInput,
   type PastPaperInput,
+  UPLOAD_STAGES,
+  uuid,
 } from "@/lib/core/validation";
 
 function revalidatePapers(id?: string) {
@@ -204,8 +209,8 @@ export async function setPaperStatusAction(input: {
   };
 }
 
-/** Record a file the browser just uploaded to the papers bucket (next version for that stage). */
-export async function addPaperFileAction(input: PaperFileInput): Promise<ActionResult> {
+/** Record a file the browser just uploaded to the papers bucket. Every file stays; the version is just its number in the stage. */
+export async function addPaperFileAction(input: PaperFileInput): Promise<ActionResult<{ id: string }>> {
   const ctx = await getActionContext();
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
   const parsed = paperFileSchema.safeParse(input);
@@ -215,8 +220,8 @@ export async function addPaperFileAction(input: PaperFileInput): Promise<ActionR
     return { ok: false, error: "Invalid file." };
   }
 
-  // Next version number for this stage (retry once if two uploads race).
-  for (let attempt = 0; attempt < 2; attempt++) {
+  // Next number for this stage (retry if uploads in the same batch race).
+  for (let attempt = 0; attempt < 3; attempt++) {
     const { data: last } = await ctx.supabase
       .from("paper_files")
       .select("version")
@@ -225,30 +230,91 @@ export async function addPaperFileAction(input: PaperFileInput): Promise<ActionR
       .order("version", { ascending: false })
       .limit(1)
       .maybeSingle();
-    const { error } = await ctx.supabase.from("paper_files").insert({
-      paper_id: v.paper_id,
-      stage: v.stage,
-      version: (last?.version ?? 0) + 1,
-      storage_path: v.storage_path,
-      file_name: v.file_name,
-      mime_type: v.mime_type,
-      size_bytes: v.size_bytes,
-      note: v.note || null,
-      uploaded_by: ctx.profile.id,
-    });
+    const { data, error } = await ctx.supabase
+      .from("paper_files")
+      .insert({
+        paper_id: v.paper_id,
+        stage: v.stage,
+        version: (last?.version ?? 0) + 1,
+        storage_path: v.storage_path,
+        file_name: v.file_name,
+        mime_type: v.mime_type,
+        size_bytes: v.size_bytes,
+        tag: v.tag,
+        note: v.note || null,
+        uploaded_by: ctx.profile.id,
+      })
+      .select("id")
+      .single();
     if (!error) {
       revalidatePapers(v.paper_id);
-      return { ok: true, message: `Uploaded as version ${(last?.version ?? 0) + 1}` };
+      return { ok: true, message: `${v.file_name} uploaded`, data: { id: data.id } };
     }
     if (error.code !== "23505") {
       await ctx.supabase.storage.from(PAPERS_BUCKET).remove([v.storage_path]);
       return { ok: false, error: friendlyDbError(error) };
     }
   }
+  await ctx.supabase.storage.from(PAPERS_BUCKET).remove([v.storage_path]);
   return { ok: false, error: "Could not save the file. Please try again." };
 }
 
-/** The uploader or an admin removes a file version. */
+/** The stage owner marks which of their files is the correct paper (the next stages see it first). */
+export async function setMainPaperFileAction(input: { id: string; paper_id: string }): Promise<ActionResult> {
+  const ctx = await getActionContext();
+  if (!ctx) return { ok: false, error: NOT_ALLOWED };
+  const parsed = idSchema.safeParse({ id: input.id });
+  if (!parsed.success || !uuid.safeParse(input.paper_id).success) return { ok: false, error: "File not found." };
+  const { error } = await ctx.supabase.rpc("set_main_paper_file", { p_file: parsed.data.id });
+  if (error) return { ok: false, error: friendlyDbError(error) };
+  revalidatePapers(input.paper_id);
+  return { ok: true, message: "Marked as the correct paper" };
+}
+
+/** The stage owner renames a file, or changes what it is and its remark. The extension is kept. */
+export async function updatePaperFileAction(input: PaperFileEditInput): Promise<ActionResult> {
+  const ctx = await getActionContext();
+  if (!ctx) return { ok: false, error: NOT_ALLOWED };
+  const parsed = paperFileEditSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
+  const v = parsed.data;
+
+  const { data: file } = await ctx.supabase.from("paper_files").select("file_name").eq("id", v.id).maybeSingle();
+  if (!file) return { ok: false, error: "File not found." };
+
+  const { error } = await ctx.supabase.rpc("update_paper_file", {
+    p_file: v.id,
+    p_name: withExtension(v.file_name, file.file_name),
+    p_tag: v.tag,
+    p_note: v.note ?? "",
+  });
+  if (error) return { ok: false, error: friendlyDbError(error) };
+  revalidatePapers(v.paper_id);
+  return { ok: true, message: "File details saved" };
+}
+
+/** Tell the owners of the next stages about files just added (e.g. after the stage was finished). */
+export async function notifyStageFilesAction(input: {
+  paper_id: string;
+  stage: string;
+  file_ids: string[];
+}): Promise<ActionResult<{ told: number }>> {
+  const ctx = await getActionContext();
+  if (!ctx) return { ok: false, error: NOT_ALLOWED };
+  const ids = z.array(uuid).min(1).max(50).safeParse(input.file_ids);
+  const stage = z.enum(UPLOAD_STAGES).safeParse(input.stage);
+  if (!ids.success || !stage.success || !uuid.safeParse(input.paper_id).success)
+    return { ok: false, error: "File not found." };
+  const { data, error } = await ctx.supabase.rpc("notify_stage_files", {
+    p_paper: input.paper_id,
+    p_stage: stage.data,
+    p_files: ids.data,
+  });
+  if (error) return { ok: false, error: friendlyDbError(error) };
+  return { ok: true, data: { told: data ?? 0 } };
+}
+
+/** The uploader or an admin removes a file. */
 export async function deletePaperFileAction(input: { id: string }): Promise<ActionResult> {
   const ctx = await getActionContext();
   if (!ctx) return { ok: false, error: NOT_ALLOWED };

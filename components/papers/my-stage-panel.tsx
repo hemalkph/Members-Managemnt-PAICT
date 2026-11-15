@@ -1,21 +1,20 @@
-import { CheckIcon, DownloadIcon, ExternalLinkIcon, FileIcon, MessageSquareTextIcon, UsersIcon } from "lucide-react";
+import { CheckIcon, ExternalLinkIcon, MessageSquareTextIcon, UsersIcon } from "lucide-react";
 import { NoteForm, type NoteItem } from "@/components/papers/paper-notes";
-import { PaperFileUploader, type FileItem } from "@/components/papers/paper-files";
+import { PaperFileUploader, StageFiles, type FileItem } from "@/components/papers/paper-files";
 import { FinishStageButton, StageLinkDialog } from "@/components/papers/stage-controls";
 import SpotlightCard from "@/components/reactbits/spotlight-card";
 import { Sticker } from "@/components/sticker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { PaperStageName } from "@/lib/supabase/database.types";
-import { formatBytes } from "@/lib/core/format";
 import { cn } from "@/lib/utils";
 
 export type StageInput = {
   stageLabel: string;
   ownerName: string | null;
   done: boolean;
-  /** Latest version only. */
-  file: FileItem | null;
+  /** Every file of that stage, the correct paper first. */
+  files: FileItem[];
   link: string | null;
 };
 
@@ -31,7 +30,11 @@ export type MyStage = {
   inputs: StageInput[];
   /** This stage takes uploads right now. */
   uploadOpen: boolean;
-  myFile: FileItem | null;
+  myFiles: FileItem[];
+  /** Whether one of my files is marked as the correct paper. */
+  myMain: boolean;
+  /** Names of the people on the next stages (told about files added after finishing). */
+  nextOwners: string | null;
   myLink: string | null;
   /** Review stages: corrections are written in the system (or a marked PDF is uploaded). */
   review: boolean;
@@ -44,28 +47,6 @@ export type MyStage = {
   taskId: string | null;
   logPages: boolean;
 };
-
-function FileChip({ file, label }: { file: FileItem; label?: string }) {
-  return (
-    <div className="bg-background flex min-w-0 items-center gap-2.5 rounded-lg border p-2">
-      <div className="bg-primary/10 text-primary flex size-8 shrink-0 items-center justify-center rounded-md">
-        <FileIcon className="size-4" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">{file.fileName}</p>
-        <p className="text-muted-foreground truncate text-xs">
-          {label ? `${label} · ` : ""}v{file.version} · {formatBytes(file.sizeBytes)} · {file.uploadedBy ?? "Someone"} ·{" "}
-          {file.when}
-        </p>
-      </div>
-      <Button asChild size="sm" variant="outline">
-        <a href={`/papers/files/${file.id}?download=1`}>
-          <DownloadIcon /> Download
-        </a>
-      </Button>
-    </div>
-  );
-}
 
 function Step({
   n,
@@ -139,10 +120,12 @@ function Corrections({ notes }: { notes: NoteItem[] }) {
  * Get → Do → Finish flow with the files they need and the upload for their own work.
  */
 export function MyStagePanel({ paperId, stage: s }: { paperId: string; stage: MyStage }) {
-  const hasInput = s.inputs.some((i) => i.file || i.link);
-  const myWorkSaved = Boolean(s.myFile || s.myLink || s.myNotes > 0);
+  const hasInput = s.inputs.some((i) => i.files.length > 0 || i.link);
+  const myWorkSaved = Boolean(s.myFiles.length > 0 || s.myLink || s.myNotes > 0);
   const finished = s.status === "done";
   const needsWork = s.uploadOpen && !myWorkSaved;
+  // A finished stage only shows its own files: add more and tell the next stages.
+  const showInputs = s.inputs.length > 0 && !finished;
 
   return (
     <SpotlightCard
@@ -179,15 +162,21 @@ export function MyStagePanel({ paperId, stage: s }: { paperId: string; stage: My
       </div>
 
       <ol className="min-w-0">
-        {s.inputs.length > 0 && (
+        {showInputs && (
           <Step n={1} title="Get the work from the stage before" done={hasInput} active={!hasInput}>
             <div className="grid min-w-0 gap-2">
               {s.inputs.map((input) =>
-                input.file || input.link ? (
+                input.files.length > 0 || input.link ? (
                   <div key={input.stageLabel} className="min-w-0 space-y-1.5">
-                    {input.file && (
-                      <FileChip file={input.file} label={`${input.stageLabel} · ${input.ownerName ?? ""}`} />
+                    {s.inputs.length > 1 && (
+                      <p className="text-sm font-medium">
+                        From {input.stageLabel}
+                        {input.ownerName && (
+                          <span className="text-muted-foreground font-normal"> · {input.ownerName}</span>
+                        )}
+                      </p>
                     )}
+                    <StageFiles files={input.files} paperId={paperId} owner={input.ownerName} />
                     {input.link && (
                       <Button asChild size="sm" variant="outline">
                         <a href={input.link} target="_blank" rel="noreferrer">
@@ -213,8 +202,16 @@ export function MyStagePanel({ paperId, stage: s }: { paperId: string; stage: My
         )}
 
         <Step
-          n={s.inputs.length > 0 ? 2 : 1}
-          title={s.review ? "Write your corrections" : s.uploadOpen ? "Upload your work" : "Your work"}
+          n={showInputs ? 2 : 1}
+          title={
+            finished
+              ? "Your files"
+              : s.review
+                ? "Write your corrections"
+                : s.uploadOpen
+                  ? "Upload your work"
+                  : "Your work"
+          }
           done={myWorkSaved}
           active={!myWorkSaved && (!finished || s.uploadOpen)}
         >
@@ -231,13 +228,20 @@ export function MyStagePanel({ paperId, stage: s }: { paperId: string; stage: My
                 <p className="text-muted-foreground text-xs">Or upload the paper with your marks on it:</p>
               </>
             )}
-            {s.myFile && <FileChip file={s.myFile} label="Your latest upload" />}
+            <StageFiles files={s.myFiles} paperId={paperId} />
+            {s.myFiles.length > 1 && !s.myMain && (
+              <p className="text-amber-700 dark:text-warning text-sm">
+                Mark the correct paper so the next stages know which file to use.
+              </p>
+            )}
             {s.uploadOpen && (
               <PaperFileUploader
                 paperId={paperId}
                 defaultStage={s.stage}
                 stages={[{ stage: s.stage, label: s.label }]}
-                buttonLabel={s.myFile ? "Upload a new version" : s.review ? "Upload marked PDF" : "Upload file"}
+                mainStages={s.myMain ? [s.stage] : []}
+                tellNext={finished ? s.nextOwners : null}
+                buttonLabel={s.myFiles.length > 0 ? "Add more files" : s.review ? "Choose marked PDF" : "Choose files"}
               />
             )}
             {!s.review && (
@@ -277,7 +281,7 @@ export function MyStagePanel({ paperId, stage: s }: { paperId: string; stage: My
         </Step>
 
         <Step
-          n={s.inputs.length > 0 ? 3 : 2}
+          n={showInputs ? 3 : 2}
           title={finished ? "Marked as done" : "Mark your stage done"}
           last
           done={finished}
@@ -285,7 +289,12 @@ export function MyStagePanel({ paperId, stage: s }: { paperId: string; stage: My
         >
           {finished ? (
             <p className="text-muted-foreground text-sm">
-              The next member has been told. {s.uploadOpen ? "You can still upload a corrected version above." : ""}
+              The next member has been told.{" "}
+              {s.uploadOpen
+                ? s.nextOwners
+                  ? `Forgot something? Add it above and ${s.nextOwners} will be told.`
+                  : "You can still add files above."
+                : ""}
             </p>
           ) : s.taskId ? (
             <div className="flex flex-wrap items-center gap-2">

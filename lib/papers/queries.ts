@@ -1,7 +1,7 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/lib/supabase/database.types";
+import type { Database, PaperFileTag } from "@/lib/supabase/database.types";
 import { todayISO } from "@/lib/core/month";
 import type { PaperView, StageView } from "@/lib/papers";
 
@@ -107,6 +107,8 @@ export type PaperFileView = {
   fileName: string;
   sizeBytes: number;
   note: string | null;
+  tag: PaperFileTag;
+  isMain: boolean;
   uploadedBy: string | null;
   uploadedById: string | null;
   createdAt: string;
@@ -115,9 +117,10 @@ export type PaperFileView = {
 export async function getPaperFiles(supabase: Client, paperId: string): Promise<PaperFileView[]> {
   const { data } = await supabase
     .from("paper_files")
-    .select("id, stage, version, file_name, size_bytes, note, uploaded_by, created_at, uploader:profiles!paper_files_uploaded_by_fkey(full_name, email)")
+    .select("id, stage, version, file_name, size_bytes, note, tag, is_main, uploaded_by, created_at, uploader:profiles!paper_files_uploaded_by_fkey(full_name, email)")
     .eq("paper_id", paperId)
     .order("stage")
+    .order("is_main", { ascending: false })
     .order("version", { ascending: false });
   return (data ?? []).map((f) => {
     const uploader = f.uploader as { full_name: string; email: string } | null;
@@ -128,6 +131,8 @@ export async function getPaperFiles(supabase: Client, paperId: string): Promise<
       fileName: f.file_name,
       sizeBytes: f.size_bytes,
       note: f.note,
+      tag: f.tag,
+      isMain: f.is_main,
       uploadedBy: uploader ? uploader.full_name || uploader.email : null,
       uploadedById: f.uploaded_by,
       createdAt: f.created_at,
