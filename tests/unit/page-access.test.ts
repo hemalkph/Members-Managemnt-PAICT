@@ -27,3 +27,10 @@ describe("a member page in the page-access model", () => {
     expect(editablePages(admin).map((p) => p.key)).not.toContain("dispatch");
   });
 });
+
+test("members can be given Student results, never Concession students", () => {
+  const keys = editablePages(member).map((p) => p.key);
+  expect(keys).toContain("student_results");
+  expect(keys).not.toContain("students");
+  expect(pageAccess({ ...member, page_access: { students: "edit" } }, "students")).toBe("none");
+});

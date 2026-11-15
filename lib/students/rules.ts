@@ -62,3 +62,21 @@ export function missingItems(i: VerifyInput): string[] {
   if (i.card !== "free" && i.monthlyAmount === null) out.push("Monthly amount");
   return out;
 }
+
+export const ATTENDANCE_LABEL = { present: "Present", absent: "Absent", excused: "Excused" } as const;
+export type Attendance = keyof typeof ATTENDANCE_LABEL;
+
+/** Below this percentage a result is shown as low. */
+export const LOW_PERCENT = 35;
+
+/**
+ * Total of a student's part marks. `complete` is false while a part has no
+ * mark yet; the percentage is out of the full exam either way.
+ */
+export function resultTotal(parts: { id: string; maxMarks: number }[], marks: Record<string, number | null | undefined>) {
+  const max = parts.reduce((sum, p) => sum + p.maxMarks, 0);
+  const given = parts.filter((p) => marks[p.id] !== null && marks[p.id] !== undefined);
+  if (given.length === 0) return { total: null, max, percent: null, complete: false };
+  const total = Math.round(given.reduce((sum, p) => sum + Number(marks[p.id]), 0) * 100) / 100;
+  return { total, max, percent: max > 0 ? Math.round((total / max) * 1000) / 10 : null, complete: given.length === parts.length };
+}

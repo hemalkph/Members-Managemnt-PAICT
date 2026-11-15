@@ -662,3 +662,34 @@ export const concessionFilesSchema = z.object({
     .max(MAX_CONCESSION_FILES_AT_ONCE, `Up to ${MAX_CONCESSION_FILES_AT_ONCE} files at a time`),
 });
 export type ConcessionFilesInput = z.input<typeof concessionFilesSchema>;
+
+// ---------------------------------------------------------------- student results (results page)
+export const examPartSchema = z.object({
+  id: uuid.optional(),
+  exam_id: uuid,
+  name: trimmed(1, 60, "Part name"),
+  max_marks: z.coerce.number<string | number>("Enter the full marks").positive("Full marks must be more than 0").max(1000),
+  sort_order: z.number().int().min(0).max(100).optional(),
+});
+export type ExamPartInput = z.input<typeof examPartSchema>;
+
+const markValue = z
+  .string()
+  .trim()
+  .refine((v) => v === "" || /^\d{1,4}(\.\d{1,2})?$/.test(v), "Marks must be a number");
+
+export const resultsSaveSchema = z.object({
+  exam_id: uuid,
+  rows: z
+    .array(
+      z.object({
+        student_id: uuid,
+        attendance: z.enum(["present", "absent", "excused"]).nullable(),
+        note: optionalText(300, "Note"),
+        marks: z.record(uuid, markValue),
+      }),
+    )
+    .min(1, "Nothing to save")
+    .max(1000),
+});
+export type ResultsSaveInput = z.input<typeof resultsSaveSchema>;

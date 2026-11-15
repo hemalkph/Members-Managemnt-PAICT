@@ -9,6 +9,7 @@ export type SubmissionStatus = "pending" | "approved" | "rejected";
 export type ConcessionCard = "free" | "half" | "paid";
 export type ConcessionStatus = "applied" | "verified" | "under_review" | "ended";
 export type ConcessionRelationship = "mother" | "father" | "guardian";
+export type ConcessionAttendance = "present" | "absent" | "excused";
 export type PayoutStatus = "unpaid" | "paid";
 export type TaskStatus = "waiting" | "open" | "done" | "cancelled";
 export type PaperStageName =
@@ -554,6 +555,42 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      exam_parts: {
+        Row: { id: string; exam_id: string; name: string; max_marks: number; sort_order: number; created_at: string };
+        Insert: { exam_id: string; name: string; max_marks: number; sort_order?: number };
+        Update: { name?: string; max_marks?: number; sort_order?: number };
+        Relationships: [
+          {
+            foreignKeyName: "exam_parts_exam_id_fkey";
+            columns: ["exam_id"];
+            isOneToOne: false;
+            referencedRelation: "exams";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      concession_results: {
+        Row: {
+          id: string;
+          student_id: string;
+          exam_id: string;
+          attendance: ConcessionAttendance;
+          note: string;
+          entered_by: string | null;
+          entered_at: string;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: { [_ in never]: never };
+        Update: { [_ in never]: never };
+        Relationships: [];
+      };
+      concession_part_marks: {
+        Row: { result_id: string; part_id: string; marks: number };
+        Insert: { [_ in never]: never };
+        Update: { [_ in never]: never };
+        Relationships: [];
       };
       papers: {
         Row: {
@@ -1409,6 +1446,11 @@ export type Database = {
       };
       concession_student_delete: { Args: { p_id: string }; Returns: string[] };
       concession_document_opened: { Args: { p_doc: string }; Returns: undefined };
+      concession_roster: {
+        Args: { p_exam: string };
+        Returns: { student_id: string; student_no: string; full_name: string; card_type: ConcessionCard; centre_id: string | null }[];
+      };
+      concession_results_save: { Args: { p_exam: string; p_rows: Json }; Returns: number };
       set_payouts_paid: {
         Args: { p_ids: string[]; p_paid: boolean; p_paid_on?: string | null; p_reference?: string | null };
         Returns: number;
