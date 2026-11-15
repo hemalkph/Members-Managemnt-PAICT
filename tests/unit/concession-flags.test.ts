@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { autoFlags, type StudentFacts } from "@/lib/students/flags";
+import { certificateValidUntil } from "@/lib/students/rules";
 
 const base: StudentFacts = {
   card: "half",
@@ -7,6 +8,7 @@ const base: StudentFacts = {
   createdOn: "2026-06-01",
   verifiedMonth: "2026-06",
   missing: [],
+  certificateIssuedOn: "2026-06-01",
   exams: [],
   results: {},
   payments: { "2026-09": "paid", "2026-10": "paid" },
@@ -73,5 +75,19 @@ describe("autoFlags", () => {
 
   test("exams before the student registered need no result", () => {
     expect(keys({ ...base, createdOn: "2026-11-05", exams: [{ id: "n", date: "2026-11-02" }] })).toEqual([]);
+  });
+});
+
+describe("GN certificate running out", () => {
+  test("valid until 12 months on, 29 Feb becomes 28 Feb", () => {
+    expect(certificateValidUntil("2025-11-20")).toBe("2026-11-20");
+    expect(certificateValidUntil("2024-02-29")).toBe("2025-02-28");
+  });
+
+  test("flagged in the last 30 days, not before, and not again once it is too old", () => {
+    expect(keys({ ...base, certificateIssuedOn: "2025-12-15" })).toEqual(["certificate-soon"]); // 30 days left
+    expect(keys({ ...base, certificateIssuedOn: "2025-11-15" })).toEqual(["certificate-soon"]); // last day
+    expect(keys({ ...base, certificateIssuedOn: "2025-12-16" })).toEqual([]);
+    expect(keys({ ...base, certificateIssuedOn: "2025-11-14", missing: ["A certificate from the last 12 months"] })).toEqual(["old-certificate"]);
   });
 });

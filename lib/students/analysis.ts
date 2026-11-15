@@ -154,7 +154,7 @@ export async function getMonthAnalysis(supabase: Client, month: string): Promise
     return {
       ...s,
       flags: autoFlags(
-        { card: s.card, status: s.status, createdOn: s.createdAt.slice(0, 10), verifiedMonth, missing: s.missing, exams, results, payments: pays },
+        { card: s.card, status: s.status, createdOn: s.createdAt.slice(0, 10), verifiedMonth, missing: s.missing, certificateIssuedOn: s.certificateIssuedOn, exams, results, payments: pays },
         month,
         today,
       ),
@@ -180,7 +180,7 @@ export type TimelineExam = {
 /** One student's last 12 months: exam figures, payments and each exam's result, newest first. */
 export async function getStudentTimeline(
   supabase: Client,
-  student: Pick<StudentRow, "id" | "batchId" | "card" | "status" | "createdAt" | "missing">,
+  student: Pick<StudentRow, "id" | "batchId" | "card" | "status" | "createdAt" | "missing" | "certificateIssuedOn">,
 ) {
   const today = todayISO();
   const last = thisCalendarMonth();
@@ -209,6 +209,7 @@ export async function getStudentTimeline(
         createdOn: student.createdAt.slice(0, 10),
         verifiedMonth,
         missing: student.missing,
+        certificateIssuedOn: student.certificateIssuedOn,
         exams,
         results,
         payments: Object.fromEntries([...payOf].map(([m, p]) => [m, p.status])),
