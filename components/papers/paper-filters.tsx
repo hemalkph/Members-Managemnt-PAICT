@@ -3,6 +3,7 @@
 import { useUrlFilters } from "@/components/admin/url-filters";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ExamOptions, type ExamChoice } from "@/components/papers/exam-options";
 import { cn } from "@/lib/utils";
 
 export function PaperFilters({
@@ -12,7 +13,7 @@ export function PaperFilters({
 }: {
   status: string;
   exam: string;
-  exams: { id: string; label: string }[];
+  exams: ExamChoice[];
 }) {
   const { setParams, pending } = useUrlFilters();
   return (
@@ -30,11 +31,7 @@ export function PaperFilters({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All exams</SelectItem>
-          {exams.map((e) => (
-            <SelectItem key={e.id} value={e.id}>
-              {e.label}
-            </SelectItem>
-          ))}
+          <ExamOptions exams={exams} />
         </SelectContent>
       </Select>
     </div>

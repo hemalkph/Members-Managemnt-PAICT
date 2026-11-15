@@ -42,16 +42,18 @@ export default async function StudentResultsPage({ searchParams }: PageProps<"/a
 
       <ExamPicker
         batches={batches.map((b) => ({ id: b.id, name: b.name }))}
-        exams={exams.map((e) => ({ id: e.id, name: e.name, batchId: e.batchId, examDate: e.examDate }))}
+        series={options.series.filter((x) => x.isActive)}
+        exams={exams.map((e) => ({ id: e.id, name: e.name, batchId: e.batchId, seriesId: e.seriesId, number: e.number }))}
         batchId={batchId}
         examId={exam?.id ?? ""}
+        seriesKey={exam ? (exam.seriesId ?? "other") : param(sp.series)}
       />
 
       {!exam || !sheet ? (
         <EmptyState
           icon={ClipboardPenLineIcon}
           title="Choose an exam"
-          description="Exams are added in Batches & exams. Pick the batch and the exam to enter results."
+          description="Exams are added in Batches & exams. Pick the batch, the series and the exam (e.g. RFP 05) to enter results."
         />
       ) : (
         <Card>
@@ -59,14 +61,16 @@ export default async function StudentResultsPage({ searchParams }: PageProps<"/a
             <CardTitle>{exam.label}</CardTitle>
             <p className="text-muted-foreground flex items-center gap-1.5 text-sm">
               <CalendarDaysIcon className="size-4" />
-              {exam.examDate ? formatDate(exam.examDate) : "No exam date yet: add one in Batches & exams so it counts in a month."}
+              {exam.examDate
+                ? `${formatDate(exam.examDate)} (counts in this month)`
+                : "No exam date yet: add one in Batches & exams so it counts in a month."}
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
             <ExamParts examId={exam.id} parts={sheet.parts} canEdit={canEdit} />
             {sheet.parts.length === 0 ? (
               <p className="text-muted-foreground text-sm">
-                Add the parts of this exam first, e.g. “Paper I (MCQ)” out of 40 and “Paper II” out of 60.
+                Add the parts of this exam first, e.g. “MCQ” out of 50 and “SE & Essay” out of 100.
               </p>
             ) : (
               <ResultsSheet

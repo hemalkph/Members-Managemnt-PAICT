@@ -345,6 +345,29 @@ export const examSchema = z.object({
 });
 export type ExamInput = z.input<typeof examSchema>;
 
+/** An exam series, e.g. "Ranking Full Papers" (RFP), with the parts each of its exams has. */
+export const examSeriesSchema = z.object({
+  id: uuid.optional(),
+  batch_id: z.uuid("Choose a batch"),
+  name: trimmed(2, 80, "Series name"),
+  code: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-Z0-9][A-Z0-9-]{0,11}$/, "Short code: letters and numbers, up to 12 (e.g. RFP)"),
+  default_parts: z
+    .array(
+      z.object({
+        name: trimmed(1, 60, "Part name"),
+        max_marks: z.coerce.number("Full marks must be a number").gt(0, "Full marks must be more than 0").max(1000),
+      }),
+    )
+    .max(6, "At most 6 parts")
+    .refine((parts) => new Set(parts.map((p) => p.name.toLowerCase())).size === parts.length, "Two parts have the same name"),
+  is_active: z.boolean(),
+});
+export type ExamSeriesInput = z.input<typeof examSeriesSchema>;
+
 export const centreSchema = z.object({
   id: uuid.optional(),
   name: trimmed(2, 60, "Centre name"),

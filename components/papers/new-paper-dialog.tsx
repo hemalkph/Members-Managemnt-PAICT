@@ -20,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { ExamOptions, type ExamChoice } from "@/components/papers/exam-options";
 import { createPaperAction, setPaperDefaultOwnersAction } from "@/lib/actions/papers";
 import type { PaperStageName } from "@/lib/supabase/database.types";
 import { formatDay as day } from "@/lib/core/format";
@@ -64,7 +65,7 @@ export function NewPaperDialog({
 }: {
   /** busy = due dates of the member's open and upcoming tasks (for the workload check). */
   members: { id: string; name: string; busy: string[] }[];
-  exams: { id: string; label: string; examDate: string | null }[];
+  exams: (ExamChoice & { examDate: string | null; inSeries: boolean })[];
   defaultExam?: string;
   today: string;
   /** The Wednesday after the last planned paper, so a new paper takes the next free week. */
@@ -293,6 +294,11 @@ export function NewPaperDialog({
                   const exam = exams.find((x) => x.id === id);
                   if (exam?.examDate) applyExamDay(exam.examDate);
                   autoMedium(`${title} ${exam?.label ?? ""}`);
+                  // A series exam ("RFP 06"): its name is the title, and it is MCQ + SE & Essay.
+                  if (exam?.inSeries) {
+                    if (!title.trim() || exams.some((x) => x.name === title.trim())) setTitle(exam.name);
+                    if (part === "full") setPart("split");
+                  }
                 }}
               >
                 <SelectTrigger aria-label="Exam" className="w-full">
@@ -300,11 +306,7 @@ export function NewPaperDialog({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={NONE}>Not for an exam</SelectItem>
-                  {exams.map((e) => (
-                    <SelectItem key={e.id} value={e.id}>
-                      {e.label}
-                    </SelectItem>
-                  ))}
+                  <ExamOptions exams={exams} />
                 </SelectContent>
               </Select>
             </div>
@@ -317,11 +319,7 @@ export function NewPaperDialog({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value={NONE}>Same as MCQ</SelectItem>
-                    {exams.map((e) => (
-                      <SelectItem key={e.id} value={e.id}>
-                        {e.label}
-                      </SelectItem>
-                    ))}
+                    <ExamOptions exams={exams} />
                   </SelectContent>
                 </Select>
               </div>
