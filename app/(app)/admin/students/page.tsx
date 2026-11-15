@@ -66,7 +66,7 @@ export default async function StudentsPage({ searchParams }: PageProps<"/admin/s
     <div className="space-y-6">
       <PageHeader
         title="Concession students"
-        description="Free, Half and Paid card students. GN certificates and family details are private to admins."
+        description="Free, Half and Paid card students. GN certificates and family details are private to people with this page."
         actions={
           <>
             <Button asChild variant="outline">

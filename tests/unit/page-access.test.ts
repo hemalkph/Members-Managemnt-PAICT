@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
-import { accessMap, editablePages, pageAccess, sameStoredAccess, toStoredAccess } from "@/lib/auth/page-access";
+import { ADMIN_NAV } from "@/lib/auth/navigation";
+import { accessMap, editablePages, PAGES, pageAccess, sameStoredAccess, toStoredAccess } from "@/lib/auth/page-access";
 
 const member = { is_admin: false, is_main_admin: false };
 const admin = { is_admin: true, is_main_admin: false };
@@ -28,9 +29,19 @@ describe("a member page in the page-access model", () => {
   });
 });
 
-test("members can be given Student results, never Concession students", () => {
+test("members can be given Student results and Concession students, but not by default", () => {
   const keys = editablePages(member).map((p) => p.key);
   expect(keys).toContain("student_results");
-  expect(keys).not.toContain("students");
-  expect(pageAccess({ ...member, page_access: { students: "edit" } }, "students")).toBe("none");
+  expect(keys).toContain("students");
+  expect(pageAccess({ ...member, page_access: null }, "students")).toBe("none");
+  expect(pageAccess({ ...member, page_access: { students: "view" } }, "students")).toBe("view");
+});
+
+test("every page that can be given has a place in the sidebar, with the same name and address", () => {
+  const nav = new Map(ADMIN_NAV.map((n) => [n.page, n]));
+  for (const p of PAGES) {
+    expect(nav.get(p.key), p.key).toMatchObject({ title: p.title, href: p.href });
+    expect(nav.get(p.key)!.section, p.key).toBeTruthy();
+  }
+  expect(ADMIN_NAV).toHaveLength(PAGES.length);
 });

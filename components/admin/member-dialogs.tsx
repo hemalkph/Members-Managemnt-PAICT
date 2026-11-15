@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
+import { Fragment, useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { useForm, useWatch, type Control, type FieldValues, type Path } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertTriangleIcon, MailIcon, KeyRoundIcon, RotateCcwIcon, ShieldCheckIcon } from "lucide-react";
@@ -27,7 +27,8 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { createMemberAction, updateMemberAction } from "@/lib/actions/admin";
 import { currentMonthKey, monthLabel, shiftMonth } from "@/lib/core/month";
-import { accessMap, editablePages, type AccessLevel, type PageAccessMap } from "@/lib/auth/page-access";
+import { ADMIN_NAV } from "@/lib/auth/navigation";
+import { accessMap, editablePages, type AccessLevel, type PageAccessMap, type PageKey } from "@/lib/auth/page-access";
 import {
   memberCreateSchema,
   memberUpdateSchema,
@@ -177,6 +178,10 @@ function startingAccess(account: { is_admin: boolean; is_main_admin: boolean; pa
   return Object.fromEntries(editablePages(account).map((p) => [p.key, all[p.key]]));
 }
 
+/** Where each page sits in the sidebar ("Work", "Students", …), so the form lists them the same way. */
+const PLACE = new Map(ADMIN_NAV.map((n, i) => [n.page, { group: n.folder ?? n.section, order: i }]));
+const placeOf = (key: PageKey) => PLACE.get(key) ?? { group: "Other", order: ADMIN_NAV.length };
+
 /**
  * Page access for one account: tick Access to open a page, and Read only to
  * let them look without adding, changing or deleting anything.
@@ -193,7 +198,7 @@ function PageAccessTable({
   const isAdmin = Boolean(useWatch({ control, name: "is_admin" }));
   const chosen = (useWatch({ control, name: "page_access" }) ?? {}) as PageAccessMap;
   const account = { is_admin: isAdmin, is_main_admin: isMainAdmin };
-  const pages = editablePages(account);
+  const pages = editablePages(account).sort((a, b) => placeOf(a.key).order - placeOf(b.key).order);
   const defaults = startingAccess(account);
 
   // Turning Admin access on or off starts from that account type's defaults.
@@ -249,33 +254,48 @@ function PageAccessTable({
             </tr>
           </thead>
           <tbody>
-            {pages.map((p) => {
+            {pages.map((p, i) => {
               const l = level(p.key);
+              const group = placeOf(p.key).group;
+              const newGroup = i === 0 || placeOf(pages[i - 1].key).group !== group;
               return (
-                <tr key={p.key} className="border-t">
-                  <td className="px-3 py-2">{p.title}</td>
-                  <td className="px-2 py-2 text-center">
-                    <Checkbox
-                      aria-label={`Access to ${p.title}`}
-                      checked={l !== "none"}
-                      onCheckedChange={(v) => set(p.key, v === true ? "edit" : "none")}
-                    />
-                  </td>
-                  <td className="px-2 py-2 text-center">
-                    {p.viewOnly ? (
-                      <span className="text-muted-foreground text-xs" title="This page has nothing to edit">
-                        —
-                      </span>
-                    ) : (
+                <Fragment key={p.key}>
+                  {newGroup && (
+                    <tr className="bg-muted/30 border-t">
+                      <th
+                        colSpan={3}
+                        scope="colgroup"
+                        className="text-muted-foreground px-3 py-1.5 text-left text-xs font-medium"
+                      >
+                        {group}
+                      </th>
+                    </tr>
+                  )}
+                  <tr className="border-t">
+                    <td className="px-3 py-2">{p.title}</td>
+                    <td className="px-2 py-2 text-center">
                       <Checkbox
-                        aria-label={`${p.title} read only`}
-                        disabled={l === "none"}
-                        checked={l === "view"}
-                        onCheckedChange={(v) => set(p.key, v === true ? "view" : "edit")}
+                        aria-label={`Access to ${p.title}`}
+                        checked={l !== "none"}
+                        onCheckedChange={(v) => set(p.key, v === true ? "edit" : "none")}
                       />
-                    )}
-                  </td>
-                </tr>
+                    </td>
+                    <td className="px-2 py-2 text-center">
+                      {p.viewOnly ? (
+                        <span className="text-muted-foreground text-xs" title="This page has nothing to edit">
+                          —
+                        </span>
+                      ) : (
+                        <Checkbox
+                          aria-label={`${p.title} read only`}
+                          disabled={l === "none"}
+                          checked={l === "view"}
+                          onCheckedChange={(v) => set(p.key, v === true ? "view" : "edit")}
+                        />
+                      )}
+                    </td>
+                  </tr>
+                </Fragment>
               );
             })}
           </tbody>
@@ -342,7 +362,8 @@ export function AddMemberDialog({
           <div className="bg-warning/15 flex gap-2 rounded-lg p-3 text-sm">
             <AlertTriangleIcon className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-warning" />
             <p>
-              <code>SUPABASE_SERVICE_ROLE_KEY</code> is not set on the server, so new accounts can&apos;t be created yet.
+              <code>SUPABASE_SERVICE_ROLE_KEY</code> is not set on the server, so new accounts can&apos;t be created
+              yet.
             </p>
           </div>
         )}

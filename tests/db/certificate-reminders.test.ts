@@ -74,3 +74,12 @@ test("people can't run it", async () => {
   const [{ ok }] = await q("select has_function_privilege('authenticated', 'public.send_certificate_reminders()', 'execute') as ok");
   expect(ok).toBe(false);
 });
+
+test("members given Concession students get the reminders too", async () => {
+  await asOwner(db);
+  const staff = await createPerson(db, { pageAccess: { students: "view" } });
+  const sid = await addStudent(`M${stamp}`, "verified", 12);
+  await q("select public.send_certificate_reminders()");
+  expect(await q("select 1 from public.notifications where user_id = $1 and link = $2", [staff, `/admin/students/${sid}`])).toHaveLength(1);
+  expect(await q("select 1 from public.notifications where user_id = $1 and link = $2", [member, `/admin/students/${sid}`])).toHaveLength(0);
+});
