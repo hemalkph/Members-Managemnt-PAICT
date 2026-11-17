@@ -124,6 +124,29 @@ describe("only main admins can change a main admin's account", () => {
       "ok",
     );
   });
+
+  test("an ordinary admin can't promote a member to admin, demote an admin, or edit a main admin's name", async () => {
+    await actAs(db, admin);
+    expect(await outcome(db, "update public.profiles set is_admin = true where id = $1", [memberId])).toBe("42501");
+    expect(await outcome(db, "update public.profiles set is_admin = false where id = $1", [adminTwoStepId])).toBe(
+      "42501",
+    );
+    expect(await outcome(db, "update public.profiles set full_name = 'Hijacked' where id = $1", [mainId])).toBe("42501");
+  });
+
+  test("an admin without Members edit access can't update or delete other profiles", async () => {
+    await asOwner(db);
+    const noMembers = as(await createPerson(db, { admin: true, pageAccess: { members: "view" } }), "aal2");
+    await actAs(db, noMembers);
+    expect(await count("update public.profiles set full_name = 'Nope' where id = $1", [memberId])).toBe(0);
+    expect(await count("delete from public.profiles where id = $1", [memberId])).toBe(0);
+  });
+
+  test("a main admin can promote a member to admin and demote them back", async () => {
+    await actAs(db, main);
+    expect(await outcome(db, "update public.profiles set is_admin = true where id = $1", [memberId])).toBe("ok");
+    expect(await outcome(db, "update public.profiles set is_admin = false where id = $1", [memberId])).toBe("ok");
+  });
 });
 
 describe("reviewing work needs Work review edit access, and not your own work", () => {

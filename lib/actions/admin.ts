@@ -91,6 +91,12 @@ export async function createMemberAction(input: MemberCreateInput): Promise<Acti
   if (!parsed.success) return { ok: false, error: firstError(parsed.error), fieldErrors: fieldErrorsOf(parsed.error) };
   const v = parsed.data;
 
+  // Only main admins (with two-step done) can create an admin account, so an
+  // ordinary admin can't mint an unrestricted admin to bypass page_access.
+  if (v.is_admin && !(await mainAdminUnlocked(ctx.profile))) {
+    return { ok: false, error: "Only a main admin can give admin access." };
+  }
+
   if (!hasServiceRoleKey()) {
     return { ok: false, error: "Adding members needs SUPABASE_SERVICE_ROLE_KEY on the server. See the README." };
   }
@@ -169,17 +175,21 @@ export async function updateMemberAction(input: MemberUpdateInput): Promise<Acti
     .maybeSingle();
   if (!target) return { ok: false, error: "Member not found." };
 
+  const isMain = await mainAdminUnlocked(ctx.profile);
+  if (target.is_main_admin && !isMain) {
+    return { ok: false, error: "Only a main admin can change a main admin's account." };
+  }
+  if (target.is_admin !== v.is_admin && !isMain) {
+    return { ok: false, error: "Only a main admin can change admin access." };
+  }
+
   // Page access: only main admins (with two-step done) can change it; the
   // database checks the same. Saved as null when it matches the defaults.
   let pageAccessUpdate: { page_access: PageAccessMap | null } | Record<string, never> = {};
-  if (v.page_access && (await mainAdminUnlocked(ctx.profile))) {
+  if (v.page_access && isMain) {
     const account = { is_admin: v.is_admin, is_main_admin: target.is_main_admin };
     const stored = target.is_main_admin ? null : toStoredAccess(account, v.page_access as PageAccessMap);
     if (!sameStoredAccess(stored, target.page_access)) pageAccessUpdate = { page_access: stored };
-  } else if (target.is_admin !== v.is_admin && target.page_access !== null) {
-    // Admin turned on/off by someone who can't set page access: start from the
-    // new account type's defaults, so old choices don't carry over.
-    return { ok: false, error: "This account has custom page access. Ask a main admin to change its admin access." };
   }
 
   const { error } = await ctx.supabase

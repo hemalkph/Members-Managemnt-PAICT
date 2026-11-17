@@ -98,7 +98,7 @@ export default async function MembersPage({ searchParams }: PageProps<"/admin/me
         description={`Showing ${members.length} of ${everyone.length} accounts`}
         actions={
           canEdit ? (
-            <AddMemberDialog roleOptions={roleOptions} canCreate={canManageAuth}>
+            <AddMemberDialog roleOptions={roleOptions} canCreate={canManageAuth} canSetAdmin={canSetAccess}>
               <Button>
                 <UserPlusIcon /> Add member
               </Button>

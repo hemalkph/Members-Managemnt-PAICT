@@ -50,9 +50,11 @@ type CommonFields = {
 function MemberFields<T extends FieldValues & CommonFields>({
   control,
   roleOptions,
+  canSetAdmin = false,
 }: {
   control: Control<T>;
   roleOptions: MultiSelectOption[];
+  canSetAdmin?: boolean;
 }) {
   const name = (n: keyof CommonFields) => n as Path<T>;
   const thisMonth = currentMonthKey();
@@ -153,21 +155,23 @@ function MemberFields<T extends FieldValues & CommonFields>({
           </FormItem>
         )}
       />
-      <FormField
-        control={control}
-        name={name("is_admin")}
-        render={({ field }) => (
-          <FormItem className="flex items-center justify-between gap-4 rounded-lg border p-3 sm:col-span-2">
-            <div className="space-y-0.5">
-              <FormLabel>Admin access</FormLabel>
-              <FormDescription>Admins can manage members and review all work.</FormDescription>
-            </div>
-            <FormControl>
-              <Switch checked={Boolean(field.value)} onCheckedChange={field.onChange} />
-            </FormControl>
-          </FormItem>
-        )}
-      />
+      {canSetAdmin && (
+        <FormField
+          control={control}
+          name={name("is_admin")}
+          render={({ field }) => (
+            <FormItem className="flex items-center justify-between gap-4 rounded-lg border p-3 sm:col-span-2">
+              <div className="space-y-0.5">
+                <FormLabel>Admin access</FormLabel>
+                <FormDescription>Admins can manage members and review all work.</FormDescription>
+              </div>
+              <FormControl>
+                <Switch checked={Boolean(field.value)} onCheckedChange={field.onChange} />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+      )}
     </>
   );
 }
@@ -312,10 +316,12 @@ function PageAccessTable({
 export function AddMemberDialog({
   roleOptions,
   canCreate,
+  canSetAdmin = false,
   children,
 }: {
   roleOptions: MultiSelectOption[];
   canCreate: boolean;
+  canSetAdmin?: boolean;
   children: ReactNode;
 }) {
   const router = useRouter();
@@ -412,7 +418,7 @@ export function AddMemberDialog({
                 )}
               />
             )}
-            <MemberFields control={form.control} roleOptions={roleOptions} />
+            <MemberFields control={form.control} roleOptions={roleOptions} canSetAdmin={canSetAdmin} />
             <DialogFooter className="sm:col-span-2">
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                 Cancel
@@ -484,7 +490,7 @@ export function EditMemberDialog({
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 sm:grid-cols-2" noValidate>
-            <MemberFields control={form.control} roleOptions={roleOptions} />
+            <MemberFields control={form.control} roleOptions={roleOptions} canSetAdmin={Boolean(access)} />
             {access && (
               <PageAccessTable
                 control={form.control}
