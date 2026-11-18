@@ -6,6 +6,7 @@ export function formatDate(value: string | null | undefined): string {
   if (!value) return "—";
   // Plain dates ("YYYY-MM-DD") are shown as-is in the calendar sense.
   const date = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00Z`) : new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
   return new Intl.DateTimeFormat("en-GB", {
     day: "numeric",
     month: "short",
@@ -17,8 +18,10 @@ export function formatDate(value: string | null | undefined): string {
 /** A plain date ("YYYY-MM-DD") as "Wed 4 Nov". */
 export function formatDay(value: string | null | undefined): string {
   if (!value) return "—";
+  const date = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return "—";
   return new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).format(
-    new Date(`${value}T00:00:00Z`),
+    date,
   );
 }
 
@@ -30,6 +33,8 @@ export function formatDayRange(start: string | null | undefined, due: string | n
 
 export function formatDateTime(value: string | null | undefined): string {
   if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
   return new Intl.DateTimeFormat("en-GB", {
     day: "numeric",
     month: "short",
@@ -37,7 +42,7 @@ export function formatDateTime(value: string | null | undefined): string {
     hour: "numeric",
     minute: "2-digit",
     timeZone: "Asia/Colombo",
-  }).format(new Date(value));
+  }).format(date);
 }
 
 export function initials(name: string | null | undefined): string {
