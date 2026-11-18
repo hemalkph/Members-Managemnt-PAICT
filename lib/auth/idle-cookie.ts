@@ -9,6 +9,12 @@ export async function setLastActiveCookie(now: number = Date.now()) {
   cookieStore.set(LAST_ACTIVE_COOKIE, String(now), idleCookieOptions());
 }
 
+/** Clear the session activity cookie (e.g. after server-side idle sign-out). */
+export async function clearLastActiveCookie() {
+  const cookieStore = await cookies();
+  cookieStore.set(LAST_ACTIVE_COOKIE, "", { path: "/", maxAge: 0 });
+}
+
 /** Whether the current request's activity cookie has exceeded the idle timeout. */
 export async function isCurrentRequestIdleExpired(now: number = Date.now()): Promise<boolean> {
   const cookieStore = await cookies();

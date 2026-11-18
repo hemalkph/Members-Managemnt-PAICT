@@ -17,15 +17,20 @@ export function TwoStepLoginForm() {
   const submit = (value: string) =>
     startTransition(async () => {
       setError(null);
-      const result = await verifyLoginCodeAction({ code: value });
-      if (!result.ok) {
-        setError(result.error);
-        setCode("");
-        return;
+      try {
+        const result = await verifyLoginCodeAction({ code: value });
+        if (!result.ok) {
+          setError(result.error);
+          setCode("");
+          return;
+        }
+        const next = result.data?.redirectTo ?? "/";
+        if (!next.startsWith("/login")) toast.success("Logged in");
+        router.replace(next);
+        router.refresh();
+      } catch {
+        setError("Something went wrong. Please try again.");
       }
-      toast.success("Logged in");
-      router.replace(result.data?.redirectTo ?? "/");
-      router.refresh();
     });
 
   return (

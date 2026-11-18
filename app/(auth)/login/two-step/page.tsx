@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { ShieldCheckIcon } from "lucide-react";
+import { IdleTimeoutGuard } from "@/components/auth/idle-timeout-guard";
 import BlurText from "@/components/reactbits/blur-text";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { getAuthSession } from "@/lib/auth";
@@ -31,6 +32,7 @@ export default async function TwoStepLoginPage() {
       <CardContent>
         <TwoStepLoginForm />
       </CardContent>
+      <IdleTimeoutGuard userId={session.userId} />
     </Card>
   );
 }

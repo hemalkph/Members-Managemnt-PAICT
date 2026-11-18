@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { type ActionResult } from "@/lib/core/action-result";
 import { getActionContext, getAuthSession, NOT_ALLOWED } from "@/lib/auth";
-import { setLastActiveCookie } from "@/lib/auth/idle-cookie";
+import { clearLastActiveCookie, isCurrentRequestIdleExpired, setLastActiveCookie } from "@/lib/auth/idle-cookie";
 import { createAdminClient, hasServiceRoleKey } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { confirmTwoStepSchema, firstError, otpCodeSchema, uuid, type OtpCodeInput } from "@/lib/core/validation";
@@ -27,10 +27,16 @@ export async function verifyLoginCodeAction(input: OtpCodeInput): Promise<Action
   const parsed = otpCodeSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
 
+  const supabase = await createClient();
+  if (await isCurrentRequestIdleExpired()) {
+    await supabase.auth.signOut();
+    await clearLastActiveCookie();
+    return { ok: true, data: { redirectTo: "/login?error=idle" } };
+  }
+
   const session = await getAuthSession();
   if (!session) return { ok: false, error: "Your login has expired. Please log in again." };
 
-  const supabase = await createClient();
   // listFactors() asks Supabase Auth, so the factor list is fresh; totp holds verified factors only.
   const { data: factors } = await supabase.auth.mfa.listFactors();
   const factor = factors?.totp[0];

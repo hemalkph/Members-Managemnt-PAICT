@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { IdleTimeoutGuard } from "@/components/auth/idle-timeout-guard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ownPasswordAllowed, requireUser } from "@/lib/auth";
 import { ResetPasswordForm } from "./reset-password-form";
@@ -24,6 +25,7 @@ export default async function ResetPasswordPage() {
             Back to the app
           </Link>
         </CardContent>
+        <IdleTimeoutGuard userId={profile.id} />
       </Card>
     );
   }
@@ -37,6 +39,7 @@ export default async function ResetPasswordPage() {
       <CardContent>
         <ResetPasswordForm redirectTo={home} />
       </CardContent>
+      <IdleTimeoutGuard userId={profile.id} />
     </Card>
   );
 }
