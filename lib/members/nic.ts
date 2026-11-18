@@ -26,6 +26,9 @@ export function parseNic(nic: string | null | undefined): NicInfo | null {
     return null;
   }
 
+  // Birth years for living members start at 1900 (matching old 19YY NICs and blocking <1000 / 0000 typos).
+  if (year < 1900 || year > 2100) return null;
+
   const gender = day > 500 ? "female" : "male";
   if (day > 500) day -= 500;
   if (day < 1 || day > 366) return null;
@@ -37,6 +40,6 @@ export function parseNic(nic: string | null | undefined): NicInfo | null {
   }
   if (month === 1 && day === 29 && !isLeapYear(year)) return null;
 
-  const dateOfBirth = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  const dateOfBirth = `${String(year).padStart(4, "0")}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
   return { dateOfBirth, gender };
 }
