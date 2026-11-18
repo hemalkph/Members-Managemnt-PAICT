@@ -105,15 +105,15 @@ export async function createMemberAction(input: MemberCreateInput): Promise<Acti
   const result =
     v.mode === "invite"
       ? await admin.auth.admin.inviteUserByEmail(v.email, {
-          data: { full_name: v.full_name },
-          redirectTo: `${getSiteUrl()}/auth/confirm?next=/reset-password`,
-        })
+        data: { full_name: v.full_name },
+        redirectTo: `${getSiteUrl()}/auth/confirm?next=/reset-password`,
+      })
       : await admin.auth.admin.createUser({
-          email: v.email,
-          password: v.password,
-          email_confirm: true,
-          user_metadata: { full_name: v.full_name },
-        });
+        email: v.email,
+        password: v.password,
+        email_confirm: true,
+        user_metadata: { full_name: v.full_name },
+      });
 
   if (result.error || !result.data.user) {
     const message = result.error?.message ?? "";
@@ -332,7 +332,7 @@ export async function reviewSubmissionsAction(input: ReviewInput): Promise<Actio
   const verb = decision === "approved" ? "Approved" : decision === "rejected" ? "Rejected" : "Moved back to pending";
   const notes = [
     changed > 0 &&
-      `${changed} changed since you opened the page and ${changed === 1 ? "was" : "were"} skipped. Check ${changed === 1 ? "it" : "them"} again.`,
+    `${changed} changed since you opened the page and ${changed === 1 ? "was" : "were"} skipped. Check ${changed === 1 ? "it" : "them"} again.`,
     own.size > 0 && `${own.size} of your own skipped: another admin must review your work.`,
   ].filter(Boolean);
   if (count === 0 && notes.length > 0) return { ok: false, error: notes.join(" ") };

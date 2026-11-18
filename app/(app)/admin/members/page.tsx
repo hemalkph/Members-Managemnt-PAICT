@@ -241,24 +241,24 @@ export default async function MembersPage({ searchParams }: PageProps<"/admin/me
                           aria-label={m.is_active ? "Active" : "Inactive"}
                         />
                         {canEdit && (
-                        <MemberActions
-                          access={canSetAccess ? { isMainAdmin: m.is_main_admin, stored: m.page_access } : undefined}
-                          canManageAuth={canManageAuth}
-                          isSelf={m.id === me.id}
-                          roleOptions={roleOptions}
-                          member={{
-                            id: m.id,
-                            email: m.email,
-                            full_name: m.full_name,
-                            phone: m.phone ?? "",
-                            whatsapp: m.whatsapp ?? "",
-                            nic: m.nic ?? "",
-                            role_ids: roleIds,
-                            is_admin: m.is_admin,
-                            pay_start: startsNext.has(m.id) ? "next" : "this",
-                            is_active: m.is_active,
-                          }}
-                        />
+                          <MemberActions
+                            access={canSetAccess ? { isMainAdmin: m.is_main_admin, stored: m.page_access } : undefined}
+                            canManageAuth={canManageAuth}
+                            isSelf={m.id === me.id}
+                            roleOptions={roleOptions}
+                            member={{
+                              id: m.id,
+                              email: m.email,
+                              full_name: m.full_name,
+                              phone: m.phone ?? "",
+                              whatsapp: m.whatsapp ?? "",
+                              nic: m.nic ?? "",
+                              role_ids: roleIds,
+                              is_admin: m.is_admin,
+                              pay_start: startsNext.has(m.id) ? "next" : "this",
+                              is_active: m.is_active,
+                            }}
+                          />
                         )}
                       </div>
                     </TableCell>
