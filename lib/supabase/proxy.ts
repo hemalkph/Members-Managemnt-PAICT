@@ -12,7 +12,11 @@ function isPublic(pathname: string) {
 }
 
 function isPrefetch(request: NextRequest) {
-  return request.headers.get("next-router-prefetch") === "1" || request.headers.get("purpose") === "prefetch";
+  return (
+    request.headers.has("next-router-prefetch") ||
+    request.headers.get("purpose") === "prefetch" ||
+    (request.headers.get("sec-purpose") ?? "").includes("prefetch")
+  );
 }
 
 /** Refreshes the Supabase session cookie, enforces the idle timeout, and guards private pages. */
@@ -41,6 +45,7 @@ export async function updateSession(request: NextRequest) {
   const lastActive = parseLastActive(request.cookies.get(LAST_ACTIVE_COOKIE)?.value);
   const idleExpired = signedIn && isIdleExpired(lastActive, now);
   const isApi = pathname.startsWith("/api/") && !pathname.startsWith("/api/hooks");
+  const isServerAction = request.method === "POST" && request.headers.has("next-action");
   const isSignOut = pathname === "/auth/signout" || pathname.startsWith("/auth/signout/");
   const isConfirm = pathname === "/auth/confirm" || pathname.startsWith("/auth/confirm/");
 
@@ -57,20 +62,26 @@ export async function updateSession(request: NextRequest) {
     if (isApi) {
       return NextResponse.json({ ok: false, error: "Session timed out due to inactivity." }, { status: 401 });
     }
-    return redirectTo("/auth/signout", "?reason=idle");
+    // Server Action POSTs expect an RSC payload (not an HTML redirect); let them reach
+    // the action so getActionContext / auth actions return a structured ActionResult.
+    if (!isServerAction) {
+      return redirectTo("/auth/signout", "?reason=idle");
+    }
   }
 
   if (!signedIn && !isPublic(pathname)) {
     if (isApi) {
       return NextResponse.json({ ok: false, error: "You are not signed in." }, { status: 401 });
     }
-    return redirectTo("/login");
+    if (!isServerAction) {
+      return redirectTo("/login");
+    }
   }
-  if (signedIn && pathname === "/login") {
+  if (signedIn && pathname === "/login" && !request.nextUrl.searchParams.has("error")) {
     return redirectTo("/");
   }
 
-  if (signedIn && !isSignOut && !isConfirm && (lastActive === null || !isPrefetch(request))) {
+  if (signedIn && !idleExpired && !isSignOut && !isConfirm && (lastActive === null || !isPrefetch(request))) {
     const options = idleCookieOptions();
     request.cookies.set(LAST_ACTIVE_COOKIE, String(now));
     response.cookies.set(LAST_ACTIVE_COOKIE, String(now), options);

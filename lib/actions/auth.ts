@@ -1,7 +1,7 @@
 "use server";
 
 import { ownPasswordAllowed } from "@/lib/auth";
-import { setLastActiveCookie } from "@/lib/auth/idle-cookie";
+import { clearLastActiveCookie, isCurrentRequestIdleExpired, setLastActiveCookie } from "@/lib/auth/idle-cookie";
 import { type ActionResult } from "@/lib/core/action-result";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -44,11 +44,17 @@ export async function signInAction(input: LoginInput): Promise<ActionResult<{ re
   return { ok: true, data: { redirectTo: profile.is_admin ? "/admin" : "/dashboard" } };
 }
 
-export async function resetPasswordAction(input: ResetPasswordInput): Promise<ActionResult> {
+export async function resetPasswordAction(input: ResetPasswordInput): Promise<ActionResult<{ redirectTo?: string }>> {
   const parsed = resetPasswordSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstError(parsed.error), fieldErrors: fieldErrorsOf(parsed.error) };
 
   const supabase = await createClient();
+  if (await isCurrentRequestIdleExpired()) {
+    await supabase.auth.signOut();
+    await clearLastActiveCookie();
+    return { ok: true, data: { redirectTo: "/login?error=idle" } };
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser();

@@ -21,14 +21,23 @@ export function ResetPasswordForm({ redirectTo }: { redirectTo: string }) {
 
   const onSubmit = (values: ResetPasswordInput) =>
     startTransition(async () => {
-      const result = await resetPasswordAction(values);
-      if (!result.ok) {
-        toast.error(result.error);
-        return;
+      try {
+        const result = await resetPasswordAction(values);
+        if (!result.ok) {
+          toast.error(result.error);
+          return;
+        }
+        if (result.data?.redirectTo) {
+          router.replace(result.data.redirectTo);
+          router.refresh();
+          return;
+        }
+        toast.success(result.message);
+        router.replace(redirectTo);
+        router.refresh();
+      } catch {
+        toast.error("Something went wrong. Please try again.");
       }
-      toast.success(result.message);
-      router.replace(redirectTo);
-      router.refresh();
     });
 
   return (

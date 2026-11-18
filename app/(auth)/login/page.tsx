@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { BrandLogo } from "@/components/brand-logo";
 import BlurText from "@/components/reactbits/blur-text";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
+import { getAuthSession } from "@/lib/auth";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = { title: "Log in" };
@@ -17,6 +19,7 @@ const ERRORS: Record<string, string> = {
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const { error } = await searchParams;
   const message = typeof error === "string" ? ERRORS[error] : undefined;
+  const signedIn = message ? Boolean(await getAuthSession()) : false;
 
   return (
     <Card className="bg-card/85 w-full max-w-sm backdrop-blur-md">
@@ -29,8 +32,16 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         />
         <CardDescription>Log in to record and track your team work.</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
         <LoginForm initialError={message} />
+        {signedIn && (
+          <p className="text-muted-foreground text-center text-xs">
+            Already signed in?{" "}
+            <Link href="/" className="text-primary font-medium hover:underline">
+              Back to the app
+            </Link>
+          </p>
+        )}
       </CardContent>
     </Card>
   );
