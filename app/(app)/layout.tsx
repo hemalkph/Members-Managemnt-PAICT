@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { cookies } from "next/headers";
 import { AppSidebar } from "@/components/app-sidebar";
+import { IdleTimeoutGuard } from "@/components/auth/idle-timeout-guard";
 import { BirthdayCelebration } from "@/components/birthday-celebration";
 import { CommandMenu } from "@/components/command-menu";
 import { NotificationBell } from "@/components/notifications/notification-bell";
@@ -66,6 +67,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         <RouteTransition />
       </Suspense>
       <PushSessionSync />
+      <IdleTimeoutGuard userId={profile.id} />
       {birthdayToday && profile.date_of_birth && (
         <BirthdayCelebration
           userId={profile.id}

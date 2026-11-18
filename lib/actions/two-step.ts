@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { type ActionResult } from "@/lib/core/action-result";
 import { getActionContext, getAuthSession, NOT_ALLOWED } from "@/lib/auth";
+import { setLastActiveCookie } from "@/lib/auth/idle-cookie";
 import { createAdminClient, hasServiceRoleKey } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { confirmTwoStepSchema, firstError, otpCodeSchema, uuid, type OtpCodeInput } from "@/lib/core/validation";
@@ -37,6 +38,8 @@ export async function verifyLoginCodeAction(input: OtpCodeInput): Promise<Action
 
   const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId: factor.id, code: parsed.data.code });
   if (error) return { ok: false, error: codeError(error.message) };
+
+  await setLastActiveCookie();
 
   const { data: profile } = await supabase
     .from("profiles")

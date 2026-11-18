@@ -1,6 +1,7 @@
 "use server";
 
 import { ownPasswordAllowed } from "@/lib/auth";
+import { setLastActiveCookie } from "@/lib/auth/idle-cookie";
 import { type ActionResult } from "@/lib/core/action-result";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -35,9 +36,11 @@ export async function signInAction(input: LoginInput): Promise<ActionResult<{ re
 
   // Two-step login is on: ask for the authenticator code next.
   if ((data.user.factors ?? []).some((f) => f.factor_type === "totp" && f.status === "verified")) {
+    await setLastActiveCookie();
     return { ok: true, data: { redirectTo: "/login/two-step" } };
   }
 
+  await setLastActiveCookie();
   return { ok: true, data: { redirectTo: profile.is_admin ? "/admin" : "/dashboard" } };
 }
 

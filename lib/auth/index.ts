@@ -3,6 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import type { Profile } from "@/lib/supabase/database.types";
+import { isCurrentRequestIdleExpired } from "@/lib/auth/idle-cookie";
 import { hasAnyPage, pageAccess, type AccessLevel, type PageKey } from "@/lib/auth/page-access";
 import { isProfileComplete } from "@/lib/members/profile-completion";
 import { createClient } from "@/lib/supabase/server";
@@ -92,7 +93,12 @@ async function needsTwoStepCode(): Promise<boolean> {
  */
 export async function requireUser(): Promise<Profile> {
   // Both start at once; the redirects below keep their order.
-  const [profile, needsCode] = await Promise.all([getCurrentProfile(), needsTwoStepCode()]);
+  const [idleExpired, profile, needsCode] = await Promise.all([
+    isCurrentRequestIdleExpired(),
+    getCurrentProfile(),
+    needsTwoStepCode(),
+  ]);
+  if (idleExpired) redirect("/auth/signout?reason=idle");
   // The proxy only lets signed-in visitors reach pages. No profile here means
   // the login cookie belongs to an account that is gone (deleted user, revoked
   // session): sign out to clear it. Redirecting to /login would loop, because
@@ -191,12 +197,13 @@ export async function getActionContext(
   const supabase = await createClient();
   // Writes and file downloads also ask Supabase Auth, so a session ended elsewhere
   // (sign-out, password reset) is refused at once, not when its token expires.
-  const [profile, needsCode, { data: fresh }] = await Promise.all([
+  const [idleExpired, profile, needsCode, { data: fresh }] = await Promise.all([
+    isCurrentRequestIdleExpired(),
     getCurrentProfile(),
     needsTwoStepCode(),
     supabase.auth.getUser(),
   ]);
-  if (!profile || !profile.is_active || fresh.user?.id !== profile.id) return null;
+  if (idleExpired || !profile || !profile.is_active || fresh.user?.id !== profile.id) return null;
   if (needsCode) return null;
   if ((options.admin || options.mainAdmin) && !profile.is_admin) return null;
   if (options.mainAdmin && !(await mainAdminUnlocked(profile))) return null;

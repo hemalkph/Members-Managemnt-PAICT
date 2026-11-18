@@ -1,5 +1,6 @@
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
+import { idleCookieOptions, LAST_ACTIVE_COOKIE } from "@/lib/auth/idle-timeout";
 import { safeNext } from "@/lib/auth/safe-next";
 import { createClient } from "@/lib/supabase/server";
 
@@ -46,5 +47,7 @@ export async function GET(request: NextRequest) {
 
   const url = new URL(ok ? next : "/login", request.url);
   if (!ok) url.searchParams.set("error", "link");
-  return NextResponse.redirect(url);
+  const response = NextResponse.redirect(url);
+  if (ok) response.cookies.set(LAST_ACTIVE_COOKIE, String(Date.now()), idleCookieOptions());
+  return response;
 }

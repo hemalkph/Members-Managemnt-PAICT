@@ -7,6 +7,7 @@ import { ChevronRightIcon, ChevronsUpDownIcon, LandmarkIcon, LogOutIcon, UserIco
 
 import { BrandLogo } from "@/components/brand-logo";
 import ShinyText from "@/components/reactbits/shiny-text";
+import { unsubscribePushEndpoint } from "@/lib/auth/client-signout";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -273,17 +274,11 @@ function signOutWithAlerts(event: React.FormEvent<HTMLFormElement>) {
   const form = event.currentTarget;
   if (form.dataset.ready) return; // second pass: let the browser submit
   event.preventDefault();
-  const done = () => {
+  void unsubscribePushEndpoint().then((endpoint) => {
+    if (endpoint) {
+      (form.elements.namedItem("endpoint") as HTMLInputElement).value = endpoint;
+    }
     form.dataset.ready = "1";
     form.requestSubmit();
-  };
-  const cleanUp = async () => {
-    const reg = await navigator.serviceWorker?.getRegistration();
-    const sub = await reg?.pushManager.getSubscription();
-    if (!sub) return;
-    (form.elements.namedItem("endpoint") as HTMLInputElement).value = sub.endpoint;
-    await sub.unsubscribe();
-  };
-  // Never hold up logging out for more than a moment.
-  void Promise.race([cleanUp().catch(() => {}), new Promise((r) => setTimeout(r, 1500))]).then(done);
+  });
 }

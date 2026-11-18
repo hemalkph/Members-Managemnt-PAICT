@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { LAST_ACTIVE_COOKIE } from "@/lib/auth/idle-timeout";
 import { createClient } from "@/lib/supabase/server";
 
 async function signOut(request: NextRequest) {
@@ -21,13 +22,15 @@ async function signOut(request: NextRequest) {
   const url = new URL("/login", request.url);
   if (reason === "inactive") url.searchParams.set("error", "inactive");
   if (reason === "expired") url.searchParams.set("error", "expired");
+  if (reason === "idle") url.searchParams.set("error", "idle");
   const response = NextResponse.redirect(url, { status: 303 });
   // Always drop the login cookies, even if Supabase couldn't be reached or the
   // account no longer exists – otherwise a stale cookie keeps the user stuck.
   request.cookies
     .getAll()
-    .filter((c) => c.name.startsWith("sb-"))
+    .filter((c) => c.name.startsWith("sb-") || c.name === LAST_ACTIVE_COOKIE)
     .forEach((c) => response.cookies.set(c.name, "", { path: "/", maxAge: 0 }));
+  response.cookies.set(LAST_ACTIVE_COOKIE, "", { path: "/", maxAge: 0 });
   return response;
 }
 
