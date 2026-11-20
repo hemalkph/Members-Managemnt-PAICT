@@ -117,12 +117,12 @@ export function AppSidebar({ user, pendingReviews }: { user: SidebarUser; pendin
                 href={user.pages.overview !== "none" ? "/admin" : "/dashboard"}
                 onClick={() => setOpenMobile(false)}
               >
-                <div className="flex aspect-square size-8 shrink-0 items-center justify-center">
-                  <BrandLogo className="h-auto w-8" priority />
+                <div className="flex aspect-square size-7 shrink-0 items-center justify-center group-data-[collapsible=icon]:size-8">
+                  <BrandLogo className="h-auto w-7" priority />
                 </div>
                 <div className="grid flex-1 text-left leading-tight">
-                  <ShinyText text="Team WorkSpace PAICT" className="truncate font-semibold" />
-                  <span className="text-muted-foreground truncate text-xs">A/L ICT class team</span>
+                  <ShinyText text="Team WorkSpace PAICT" className="truncate text-[13px] font-semibold" />
+                  <span className="text-muted-foreground truncate text-[11px]">A/L ICT class team</span>
                 </div>
               </HoverPrefetchLink>
             </SidebarMenuButton>
@@ -165,15 +165,15 @@ export function AppSidebar({ user, pendingReviews }: { user: SidebarUser; pendin
                   size="lg"
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
-                  <Avatar className="size-8 rounded-lg">
+                  <Avatar className="size-7 rounded-lg group-data-[collapsible=icon]:size-8">
                     {user.avatarUrl && <AvatarImage src={user.avatarUrl} alt="" />}
-                    <AvatarFallback className="rounded-lg">{initials(user.name)}</AvatarFallback>
+                    <AvatarFallback className="rounded-lg text-[11px]">{initials(user.name)}</AvatarFallback>
                   </Avatar>
-                  <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-medium">{user.name}</span>
-                    <span className="text-muted-foreground truncate text-xs">{user.email}</span>
+                  <div className="grid flex-1 text-left leading-tight">
+                    <span className="truncate text-xs font-medium">{user.name}</span>
+                    <span className="text-muted-foreground truncate text-[11px]">{user.email}</span>
                   </div>
-                  <ChevronsUpDownIcon className="ml-auto size-4" />
+                  <ChevronsUpDownIcon className="ml-auto size-3.5" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-(--radix-dropdown-menu-trigger-width) min-w-56" side="top" align="end">
@@ -255,10 +255,10 @@ function NavFolderItem({
         <ChevronRightIcon className={cn("ml-auto transition-transform duration-200", open && "rotate-90")} />
       </SidebarMenuButton>
       {!open && badge > 0 ? (
-        <SidebarMenuBadge className="right-7">{badge > 99 ? "99+" : badge}</SidebarMenuBadge>
+        <SidebarMenuBadge className="right-6">{badge > 99 ? "99+" : badge}</SidebarMenuBadge>
       ) : null}
       {open && (
-        <ul className="border-sidebar-border mx-3.5 mt-1 flex min-w-0 translate-x-px flex-col gap-1 border-l px-2.5 py-0.5 group-data-[collapsible=icon]:hidden">
+        <ul className="border-sidebar-border mx-3 mt-0.5 flex min-w-0 translate-x-px flex-col gap-0.5 border-l px-2 py-0.5 group-data-[collapsible=icon]:hidden">
           {children}
         </ul>
       )}

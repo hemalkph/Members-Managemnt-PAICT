@@ -300,10 +300,14 @@ export function TaskCard({
             <MapPinIcon className="size-3.5" /> {task.centreName}
           </span>
         )}
+        {task.roleName && (
+          <span className="inline-flex items-center gap-1 font-medium">
+            {task.roleName}
+          </span>
+        )}
         {task.quantity && (
           <span className="inline-flex items-center gap-1">
             <HashIcon className="size-3.5" /> {task.quantity}
-            {task.roleName ? ` · ${task.roleName}` : ""}
           </span>
         )}
         {task.workCount > 0 && <span>{task.workCount} work logged</span>}

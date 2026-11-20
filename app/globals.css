@@ -43,6 +43,8 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --text-xs: 0.7857rem;
+  --text-xs--line-height: 1.45;
 }
 
 :root {
@@ -130,6 +132,12 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+  }
+  /* Compact desktop typography & spacing density (keeps mobile at native 16px for touch comfort). */
+  @media (min-width: 768px) {
+    html {
+      font-size: 14px;
+    }
   }
   /* Stop iOS from zooming into inputs smaller than 16px. */
   @media (max-width: 767px) {

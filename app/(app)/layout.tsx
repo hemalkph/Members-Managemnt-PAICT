@@ -48,10 +48,10 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         pendingReviews={pending.count ?? 0}
       />
       <SidebarInset>
-        <header className="print:hidden bg-background/80 sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b px-3 backdrop-blur sm:px-4">
+        <header className="print:hidden bg-background/80 sticky top-0 z-20 flex h-12 shrink-0 items-center gap-2 border-b px-3 backdrop-blur sm:px-5">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-1 data-[orientation=vertical]:h-4" />
-          <span className="text-muted-foreground truncate text-sm">
+          <span className="text-muted-foreground truncate text-xs sm:text-sm">
             {profile.is_main_admin ? "Main admin" : profile.is_admin ? "Admin" : "Member"} ·{" "}
             {profile.full_name || profile.email}
           </span>
@@ -61,7 +61,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
             <ThemeToggle />
           </div>
         </header>
-        <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-5 sm:px-6 sm:py-8">{children}</div>
+        <div className="mx-auto w-full max-w-[88rem] flex-1 px-4 py-4 sm:px-6 sm:py-5">{children}</div>
       </SidebarInset>
       <Suspense fallback={null}>
         <RouteTransition />

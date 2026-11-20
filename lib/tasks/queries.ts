@@ -40,7 +40,9 @@ export type TaskView = {
   paperId: string | null;
   workCount: number;
   createdByName: string | null;
+  createdAtLabel?: string | null;
   completedAt: string | null;
+  completedLabel?: string | null;
   /** Why an admin sent the finished task back (kept after it is fixed). */
   fixNote: string | null;
   sentBackAt: string | null;
@@ -57,7 +59,7 @@ export type TaskView = {
 };
 
 const SELECT =
-  "id, title, description, assignee_id, role_id, exam_id, centre_id, quantity, due_date, priority, status, completed_at, fix_note, sent_back_at, paper_stage_id, created_by, assignee:profiles!tasks_assignee_id_fkey(full_name, email), creator:profiles!tasks_created_by_fkey(full_name, email), roles(name), exam:exams(name, batch:batches(name)), centre:centres(name), stage:paper_stages(paper_id), submissions(count), task_files(id, kind, file_name, size_bytes, seen_at, created_at), type_id, details, task_types(name, icon, color, description)";
+  "id, title, description, assignee_id, role_id, exam_id, centre_id, quantity, due_date, priority, status, created_at, completed_at, fix_note, sent_back_at, paper_stage_id, created_by, assignee:profiles!tasks_assignee_id_fkey(full_name, email), creator:profiles!tasks_created_by_fkey(full_name, email), roles(name), exam:exams(name, batch:batches(name)), centre:centres(name), stage:paper_stages(paper_id), submissions(count), task_files(id, kind, file_name, size_bytes, seen_at, created_at), type_id, details, task_types(name, icon, color, description)";
 
 const DAY = 86_400_000;
 
@@ -87,6 +89,7 @@ type Row = {
   due_date: string | null;
   priority: "normal" | "high";
   status: TaskStatus;
+  created_at: string;
   completed_at: string | null;
   fix_note: string | null;
   sent_back_at: string | null;
@@ -107,19 +110,34 @@ type Row = {
 
 export async function getTasks(
   supabase: SupabaseClient<Database>,
-  filters: { assigneeId?: string; statuses?: TaskStatus[]; examId?: string; typeId?: string; limit?: number } = {},
+  filters: {
+    assigneeId?: string;
+    roleId?: string;
+    statuses?: TaskStatus[];
+    examId?: string;
+    typeId?: string;
+    orderBy?: "due" | "completed";
+    limit?: number;
+  } = {},
   /** Names for people the viewer can't read directly (from the team directory). */
   names?: Map<string, string>,
 ): Promise<TaskView[]> {
   let query = supabase.from("tasks").select(SELECT);
   if (filters.assigneeId) query = query.eq("assignee_id", filters.assigneeId);
+  if (filters.roleId) query = query.eq("role_id", filters.roleId);
   if (filters.statuses?.length) query = query.in("status", filters.statuses);
   if (filters.examId) query = query.eq("exam_id", filters.examId);
   if (filters.typeId) query = query.eq("type_id", filters.typeId);
-  const { data } = await query
-    .order("due_date", { ascending: true, nullsFirst: false })
-    .order("created_at", { ascending: false })
-    .limit(filters.limit ?? 300);
+  if (filters.orderBy === "completed") {
+    query = query
+      .order("completed_at", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false });
+  } else {
+    query = query
+      .order("due_date", { ascending: true, nullsFirst: false })
+      .order("created_at", { ascending: false });
+  }
+  const { data } = await query.limit(filters.limit ?? 300);
 
   const today = todayISO();
   return ((data ?? []) as unknown as Row[]).map((t) => ({
@@ -142,7 +160,9 @@ export async function getTasks(
     paperId: t.stage?.paper_id ?? null,
     workCount: t.submissions?.[0]?.count ?? 0,
     createdByName: t.creator ? t.creator.full_name || t.creator.email : ((t.created_by && names?.get(t.created_by)) ?? null),
+    createdAtLabel: t.created_at ? formatDate(t.created_at) : null,
     completedAt: t.completed_at,
+    completedLabel: t.completed_at ? formatDate(t.completed_at) : null,
     fixNote: t.fix_note,
     sentBackAt: t.sent_back_at,
     files: [...(t.task_files ?? [])]
