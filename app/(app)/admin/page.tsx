@@ -62,22 +62,22 @@ export default async function AdminDashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-1">
-          <BlurText as="h1" text="Team overview" className="text-2xl font-semibold tracking-tight sm:text-3xl" />
-          <p className="text-muted-foreground text-sm">
+    <div className="space-y-4">
+      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-0.5">
+          <BlurText as="h1" text="Team overview" className="text-xl font-semibold tracking-tight sm:text-2xl" />
+          <p className="text-muted-foreground text-xs sm:text-sm">
             Welcome, {profile.full_name.split(" ")[0] || "admin"}. Figures for {monthLabel(month)}.
           </p>
         </div>
-        <Button asChild>
+        <Button asChild size="sm">
           <Link href="/admin/review?status=pending">
             <ClipboardCheckIcon /> Review pending work
           </Link>
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
         <StatCard label="Active members" value={members.count ?? 0} icon={UsersIcon} />
         <StatCard label="Submissions this month" value={rows.length} icon={InboxIcon} tone="info" delay={0.1} />
         <StatCard

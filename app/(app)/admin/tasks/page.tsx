@@ -1,36 +1,34 @@
 import type { Metadata } from "next";
-import { AlarmClockIcon, CheckCheckIcon, ListTodoIcon, TriangleAlertIcon } from "lucide-react";
-import BlurText from "@/components/reactbits/blur-text";
-import { StatCard } from "@/components/stat-card";
 import { waNumber } from "@/components/papers/review-contacts";
 import { AdminTaskBoard } from "@/components/tasks/admin-task-board";
-import { TaskFilters } from "@/components/tasks/task-filters";
-import { TaskTypesButton } from "@/components/tasks/task-type-manager";
 import { requirePage } from "@/lib/auth";
+import { todayISO } from "@/lib/core/month";
+import { uuid } from "@/lib/core/validation";
+import { getTeamDirectory, teamNames } from "@/lib/members/team-directory";
 import { activeOptions, getClassOptions } from "@/lib/organisation/classes";
 import type { TaskStatus } from "@/lib/supabase/database.types";
-import { todayISO } from "@/lib/core/month";
 import { createClient } from "@/lib/supabase/server";
-import { getTeamDirectory, teamNames } from "@/lib/members/team-directory";
-import { ReadOnlyNotice } from "@/components/read-only-notice";
 import { getTasks, getTaskTypes } from "@/lib/tasks/queries";
-import { uuid } from "@/lib/core/validation";
 
 export const metadata: Metadata = { title: "Tasks" };
 
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 
-const VIEWS: Record<string, { statuses: TaskStatus[]; empty: string }> = {
-  open: { statuses: ["open", "waiting"], empty: "No open tasks" },
-  done: { statuses: ["done"], empty: "Nothing finished yet" },
-  cancelled: { statuses: ["cancelled"], empty: "No cancelled tasks" },
+const VIEWS: Record<"open" | "done" | "cancelled", { statuses: TaskStatus[] }> = {
+  open: { statuses: ["open", "waiting"] },
+  done: { statuses: ["done"] },
+  cancelled: { statuses: ["cancelled"] },
 };
+
+type ViewKey = keyof typeof VIEWS;
 
 export default async function AdminTasksPage({ searchParams }: PageProps<"/admin/tasks">) {
   const { canEdit } = await requirePage("tasks");
   const sp = await searchParams;
-  const view = VIEWS[one(sp.view)] ? one(sp.view) : "open";
+  const rawView = one(sp.view);
+  const view: ViewKey = rawView === "done" || rawView === "cancelled" ? rawView : "open";
   const member = uuid.safeParse(one(sp.member)).success ? one(sp.member) : "";
+  const role = uuid.safeParse(one(sp.role)).success ? one(sp.role) : "";
   const exam = uuid.safeParse(one(sp.exam)).success ? one(sp.exam) : "";
   const type = uuid.safeParse(one(sp.type)).success ? one(sp.type) : "";
   const today = todayISO();
@@ -38,10 +36,40 @@ export default async function AdminTasksPage({ searchParams }: PageProps<"/admin
   const supabase = await createClient();
   const team = await getTeamDirectory(supabase);
   const names = teamNames(team);
-  const [tasks, openTasks, classOptions, { data: roles }, { data: memberRoles }, types] = await Promise.all([
+
+  const countStatus = (statuses: TaskStatus[]) => {
+    let q = supabase.from("tasks").select("id", { count: "exact", head: true }).in("status", statuses);
+    if (member) q = q.eq("assignee_id", member);
+    if (role) q = q.eq("role_id", role);
+    if (exam) q = q.eq("exam_id", exam);
+    if (type) q = q.eq("type_id", type);
+    return q;
+  };
+
+  const thirtyDaysAgo = `${new Date(Date.parse(`${today}T00:00:00Z`) - 30 * 86_400_000).toISOString().slice(0, 10)}T00:00:00Z`;
+
+  const [
+    tasks,
+    openTasks,
+    classOptions,
+    { data: roles },
+    { data: memberRoles },
+    types,
+    { count: openTabCount },
+    { count: doneTabCount },
+    { count: cancelledTabCount },
+    { count: done30Count },
+  ] = await Promise.all([
     getTasks(
       supabase,
-      { statuses: VIEWS[view].statuses, assigneeId: member || undefined, examId: exam || undefined, typeId: type || undefined },
+      {
+        statuses: VIEWS[view].statuses,
+        assigneeId: member || undefined,
+        roleId: role || undefined,
+        examId: exam || undefined,
+        typeId: type || undefined,
+        orderBy: view === "done" ? "completed" : "due",
+      },
       names,
     ),
     getTasks(supabase, { statuses: ["open"], limit: 1000 }, names),
@@ -49,19 +77,16 @@ export default async function AdminTasksPage({ searchParams }: PageProps<"/admin
     supabase.from("roles").select("id, name").order("sort_order").order("name"),
     supabase.from("member_roles").select("user_id, role_id"),
     getTaskTypes(supabase),
+    countStatus(["open", "waiting"]),
+    countStatus(["done"]),
+    countStatus(["cancelled"]),
+    supabase.from("tasks").select("id", { count: "exact", head: true }).eq("status", "done").gte("completed_at", thirtyDaysAgo),
   ]);
+
   const tags = activeOptions(classOptions);
   const weekAhead = new Date(Date.parse(`${today}T00:00:00Z`) + 7 * 86_400_000).toISOString().slice(0, 10);
   const overdue = openTasks.filter((t) => t.overdue).length;
   const dueThisWeek = openTasks.filter((t) => t.dueDate && t.dueDate >= today && t.dueDate <= weekAhead).length;
-  const { count: doneCount } = await supabase
-    .from("tasks")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "done")
-    .gte(
-      "completed_at",
-      `${new Date(Date.parse(`${today}T00:00:00Z`) - 30 * 86_400_000).toISOString().slice(0, 10)}T00:00:00Z`,
-    );
 
   const activeMembers = team.filter((p) => p.isActive);
   const options = {
@@ -77,47 +102,32 @@ export default async function AdminTasksPage({ searchParams }: PageProps<"/admin
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-1">
-          <BlurText as="h1" text="Tasks" className="text-2xl font-semibold tracking-tight sm:text-3xl" />
-          <p className="text-muted-foreground text-sm">Give members work with a due date and see what is overdue.</p>
-        </div>
-        {canEdit && <TaskTypesButton types={types} options={options} />}
-      </div>
-
-      {!canEdit && <ReadOnlyNotice />}
-
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Open tasks" value={openTasks.length} icon={ListTodoIcon} />
-        <StatCard label="Overdue" value={overdue} icon={TriangleAlertIcon} tone="warning" delay={0.1} />
-        <StatCard label="Due in 7 days" value={dueThisWeek} icon={AlarmClockIcon} tone="info" delay={0.2} />
-        <StatCard label="Done (30 days)" value={doneCount ?? 0} icon={CheckCheckIcon} tone="success" delay={0.3} />
-      </div>
-
-      <TaskFilters
-        view={view}
-        member={member}
-        exam={exam}
-        type={type}
-        types={types.map((t) => ({ id: t.id, label: t.name }))}
-        members={team.map((p) => ({ id: p.id, name: p.name }))}
-        exams={classOptions.exams.map((e) => ({ id: e.id, label: e.label }))}
-      />
-
-      <AdminTaskBoard
-        tasks={tasks}
-        options={options}
-        today={today}
-        emptyTitle={VIEWS[view].empty}
-        readOnly={!canEdit}
-        phones={Object.fromEntries(
-          team.flatMap((p) => {
-            const n = waNumber(p.whatsapp || p.phone);
-            return n ? [[p.id, n]] : [];
-          }),
-        )}
-      />
-    </div>
+    <AdminTaskBoard
+      view={view}
+      tasks={tasks}
+      counts={{
+        open: openTabCount ?? 0,
+        done: doneTabCount ?? 0,
+        cancelled: cancelledTabCount ?? 0,
+      }}
+      kpis={{
+        open: openTasks.length,
+        overdue,
+        dueThisWeek,
+        done30Days: done30Count ?? 0,
+      }}
+      filters={{ member, role, exam, type }}
+      options={options}
+      allMembers={team.map((p) => ({ id: p.id, name: p.name }))}
+      allExams={classOptions.exams.map((e) => ({ id: e.id, label: e.label }))}
+      today={today}
+      readOnly={!canEdit}
+      phones={Object.fromEntries(
+        team.flatMap((p) => {
+          const n = waNumber(p.whatsapp || p.phone);
+          return n ? [[p.id, n]] : [];
+        }),
+      )}
+    />
   );
 }

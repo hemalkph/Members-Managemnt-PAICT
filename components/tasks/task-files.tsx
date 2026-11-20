@@ -71,10 +71,15 @@ export function TaskFilesButton({
   task,
   mode,
   readOnly = false,
+  variant = "button",
+  className,
 }: {
   task: TaskView;
   mode: "member" | "admin";
   readOnly?: boolean;
+  /** "icon" renders a compact circular icon button for horizontal task rows. */
+  variant?: "button" | "pill" | "icon";
+  className?: string;
 }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -130,15 +135,66 @@ export function TaskFilesButton({
 
   return (
     <>
-      <Button type="button" size="sm" variant="outline" className="w-full justify-start" onClick={() => setOpen(true)}>
-        <PaperclipIcon />
-        {task.files.length === 0 ? "Add files" : `Files (${task.files.length})`}
-        {newCount > 0 && (
-          <Badge variant="warning" className="ml-auto h-5">
-            {newCount} new
-          </Badge>
-        )}
-      </Button>
+      {variant === "icon" ? (
+        <Button
+          type="button"
+          size="icon-sm"
+          variant="ghost"
+          className={`relative rounded-full border border-transparent hover:border-border/60 hover:bg-muted/80 ${newCount > 0 ? "text-amber-600 dark:text-warning" : "text-muted-foreground hover:text-foreground"} ${className ?? ""}`}
+          aria-label={
+            task.files.length === 0
+              ? `Add files for ${task.title}`
+              : `Files (${task.files.length}${newCount > 0 ? `, ${newCount} new` : ""}) for ${task.title}`
+          }
+          onClick={(e) => {
+            e.stopPropagation();
+            setOpen(true);
+          }}
+        >
+          <PaperclipIcon className="size-4" />
+          {newCount > 0 && (
+            <span className="bg-warning ring-card absolute top-1 right-1 size-2 rounded-full ring-2" aria-hidden="true" />
+          )}
+        </Button>
+      ) : variant === "pill" ? (
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className={`h-7 gap-1.5 rounded-full px-2.5 text-xs ${newCount > 0 ? "border-amber-500/40 bg-amber-500/10 text-amber-700 hover:bg-amber-500/15 dark:text-warning" : ""} ${className ?? ""}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            setOpen(true);
+          }}
+        >
+          <PaperclipIcon className="size-3.5" />
+          <span>{task.files.length === 0 ? "Add files" : `Files (${task.files.length})`}</span>
+          {newCount > 0 && (
+            <Badge variant="warning" className="h-4 px-1.5 text-[10px]">
+              {newCount} new
+            </Badge>
+          )}
+        </Button>
+      ) : (
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className={`w-full justify-start ${className ?? ""}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            setOpen(true);
+          }}
+        >
+          <PaperclipIcon />
+          {task.files.length === 0 ? "Add files" : `Files (${task.files.length})`}
+          {newCount > 0 && (
+            <Badge variant="warning" className="ml-auto h-5">
+              {newCount} new
+            </Badge>
+          )}
+        </Button>
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-lg">

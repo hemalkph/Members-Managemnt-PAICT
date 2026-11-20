@@ -1,13 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { CheckCheckIcon, HourglassIcon, ListTodoIcon, TriangleAlertIcon } from "lucide-react";
-import { EmptyState } from "@/components/empty-state";
-import BlurText from "@/components/reactbits/blur-text";
-import { Sticker } from "@/components/sticker";
-import { StatCard } from "@/components/stat-card";
-import { TaskCard } from "@/components/tasks/task-card";
-import { TaskGroups } from "@/components/tasks/task-groups";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { MemberTaskBoard } from "@/components/tasks/member-task-board";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getTasks } from "@/lib/tasks/queries";
@@ -22,53 +14,22 @@ export default async function MyTasksPage({ searchParams }: PageProps<"/tasks">)
 
   const open = tasks.filter((t) => t.status === "open");
   const waiting = tasks.filter((t) => t.status === "waiting");
-  const done = tasks.filter((t) => t.status === "done");
-  const overdue = open.filter((t) => t.overdue);
-  // Overdue first, then by due date (no date last).
-  const sortedOpen = [...open].sort(
-    (a, b) => Number(b.overdue) - Number(a.overdue) || (a.dueDate ?? "9999").localeCompare(b.dueDate ?? "9999"),
-  );
-  const list = showDone ? [...done].reverse() : [...sortedOpen, ...waiting];
+  const done = tasks
+    .filter((t) => t.status === "done")
+    .sort((a, b) => (b.completedAt ?? b.dueDate ?? "").localeCompare(a.completedAt ?? a.dueDate ?? ""));
+
+  // Overdue first, then sent-back, then high priority, then soonest due date.
+  const sortedOpen = [...open].sort((a, b) => {
+    const rank = (t: (typeof open)[number]) => (t.overdue ? 0 : t.fixNote ? 1 : t.priority === "high" ? 2 : 3);
+    return rank(a) - rank(b) || (a.dueDate ?? "9999").localeCompare(b.dueDate ?? "9999");
+  });
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex items-center gap-3">
-          <Sticker name="study" size={64} loop />
-          <div className="space-y-1">
-            <BlurText as="h1" text="My tasks" className="text-2xl font-semibold tracking-tight sm:text-3xl" />
-            <p className="text-muted-foreground text-sm">Work the admins gave you. Log your work, then mark it done.</p>
-          </div>
-        </div>
-        <Tabs value={showDone ? "done" : "todo"}>
-          <TabsList>
-            <TabsTrigger value="todo" asChild>
-              <Link href="/tasks">To do ({open.length + waiting.length})</Link>
-            </TabsTrigger>
-            <TabsTrigger value="done" asChild>
-              <Link href="/tasks?show=done">Done ({done.length})</Link>
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="To do" value={open.length} icon={ListTodoIcon} />
-        <StatCard label="Overdue" value={overdue.length} icon={TriangleAlertIcon} tone="warning" delay={0.1} />
-        <StatCard label="Up next" value={waiting.length} icon={HourglassIcon} tone="info" hint="Paper stages" delay={0.2} />
-        <StatCard label="Done" value={done.length} icon={CheckCheckIcon} tone="success" delay={0.3} />
-      </div>
-
-      {list.length === 0 ? (
-        <EmptyState
-          icon={ListTodoIcon}
-          art={showDone ? undefined : <Sticker name="study" size={120} loop />}
-          title={showDone ? "Nothing finished yet" : "No tasks right now"}
-          description={showDone ? undefined : "When an admin gives you a task, it appears here and you get a notification."}
-        />
-      ) : (
-        <TaskGroups tasks={list} render={(t) => <TaskCard key={t.id} task={t} mode="member" />} />
-      )}
-    </div>
+    <MemberTaskBoard
+      showDone={showDone}
+      openTasks={sortedOpen}
+      waitingTasks={waiting}
+      doneTasks={done}
+    />
   );
 }

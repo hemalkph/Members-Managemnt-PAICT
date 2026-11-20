@@ -19,7 +19,7 @@ export function TaskDetails({
 }) {
   if (details.length === 0) return null;
   return (
-    <dl className="bg-muted/40 grid gap-2 rounded-lg border p-3 text-sm">
+    <dl className="bg-muted/40 grid gap-2.5 rounded-lg border p-3 text-sm sm:grid-cols-2">
       {details.map((d) => (
         <div key={d.id || d.label} className="grid min-w-0 gap-0.5">
           <dt className="text-muted-foreground text-xs">{d.label}</dt>

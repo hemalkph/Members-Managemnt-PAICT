@@ -36,23 +36,23 @@ export function StatCard({
   decimals?: number;
 }) {
   return (
-    <SpotlightCard className="p-3 sm:p-5">
-      <div className="flex items-start justify-between gap-3">
+    <SpotlightCard className="p-3 sm:p-4">
+      <div className="flex items-start justify-between gap-2.5">
         <div className="min-w-0 space-y-1">
-          <p className="text-muted-foreground line-clamp-2 text-xs leading-tight font-medium sm:text-sm">{label}</p>
-          <p className="text-2xl font-semibold tracking-tight sm:text-3xl">
-            {prefix && <span className="text-muted-foreground mr-0.5 text-base font-medium sm:text-lg">{prefix}</span>}
+          <p className="text-muted-foreground line-clamp-2 text-xs leading-tight font-medium">{label}</p>
+          <p className="text-xl font-semibold tracking-tight tabular-nums sm:text-2xl">
+            {prefix && <span className="text-muted-foreground mr-0.5 text-sm font-medium sm:text-base">{prefix}</span>}
             <CountUp key={value} to={value} delay={delay} decimals={decimals} />
-            {suffix && <span className="text-muted-foreground ml-0.5 text-base font-medium sm:text-lg">{suffix}</span>}
+            {suffix && <span className="text-muted-foreground ml-0.5 text-sm font-medium sm:text-base">{suffix}</span>}
           </p>
           {hint && <p className="text-muted-foreground truncate text-xs">{hint}</p>}
         </div>
         <AnimateIcon
           animateOnView
           animateOnHover
-          className={cn("hidden size-10 shrink-0 items-center justify-center rounded-lg sm:flex", TONES[tone])}
+          className={cn("hidden size-9 shrink-0 items-center justify-center rounded-lg sm:flex", TONES[tone])}
         >
-          <Icon className="size-5" />
+          <Icon className="size-4.5" />
         </AnimateIcon>
       </div>
     </SpotlightCard>
