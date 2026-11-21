@@ -788,3 +788,125 @@ export const paymentsImportSchema = z.object({
     .max(1000, "Import at most 1,000 payments at a time"),
 });
 export type PaymentsImportInput = z.input<typeof paymentsImportSchema>;
+
+// ---------------------------------------------------------------- fee reminders (monthly paid lists + WhatsApp)
+export const feeClassSchema = z.object({
+  id: uuid.optional(),
+  batch_id: z.uuid("Choose a batch"),
+  name: trimmed(2, 120, "Class name"),
+  is_active: z.boolean().default(true),
+});
+export type FeeClassInput = z.input<typeof feeClassSchema>;
+
+const feeImportStudentRowSchema = z.object({
+  student_key: trimmed(2, 200, "Student key"),
+  full_name: trimmed(1, 150, "Student name"),
+  email_norm: optionalText(200, "Email"),
+  raw_email: optionalText(200, "Email"),
+  whatsapp_norm: z
+    .string()
+    .regex(/^[0-9]{9,15}$/)
+    .nullable(),
+  raw_whatsapp: optionalText(60, "WhatsApp"),
+  mobile_norm: z
+    .string()
+    .regex(/^[0-9]{9,15}$/)
+    .nullable(),
+  raw_mobile: optionalText(60, "Mobile"),
+  institute: optionalText(100, "Institute"),
+  district: optionalText(100, "District"),
+  is_new_student: z.boolean(),
+  amount: z.number().min(0).max(10_000_000).nullable(),
+  export_label: optionalText(120, "Label"),
+  raw_classes: optionalText(500, "Classes"),
+});
+
+export const feeMonthImportSchema = z.object({
+  batch_id: z.uuid("Choose a batch"),
+  month: monthKey,
+  file_name: importFileName,
+  groups: z
+    .array(
+      z
+        .object({
+          /** Existing class ID, or empty string when creating a new class by name. */
+          class_id: optionalUuid.default(""),
+          /** New class name when class_id is "". */
+          new_class_name: optionalText(120, "Class name").default(""),
+          raw_row_count: z.number().int().min(0).max(10_000),
+          duplicates_merged: z.number().int().min(0).max(10_000),
+          rows: z.array(feeImportStudentRowSchema).min(1, "Each selected class must have at least 1 student").max(5000),
+        })
+        .refine((g) => g.class_id !== "" || g.new_class_name.trim().length >= 2, {
+          message: "Choose an existing class or enter a new class name (at least 2 characters).",
+        }),
+    )
+    .min(1, "Select at least one class to import")
+    .max(30, "Import at most 30 classes from one file"),
+});
+export type FeeMonthImportInput = z.input<typeof feeMonthImportSchema>;
+
+export const feeMonthDeleteSchema = z.object({
+  class_id: uuid,
+  month: monthKey,
+});
+
+export const feeFollowupSchema = z.object({
+  class_id: uuid,
+  due_month: monthKey,
+  student_key: trimmed(2, 200, "Student key"),
+  student_name: optionalText(150, "Student name"),
+  email_norm: optionalText(200, "Email"),
+  whatsapp_norm: z
+    .string()
+    .regex(/^[0-9]{9,15}$/)
+    .nullable(),
+  status: z.enum(["pending", "messaged", "excused", "dropped"]),
+  label: optionalText(80, "Label").nullable().optional(),
+  note: optionalText(500, "Note").nullable().optional(),
+  template_id: optionalUuid.nullable().optional(),
+  increment_message: z.boolean().optional(),
+});
+export type FeeFollowupInput = z.input<typeof feeFollowupSchema>;
+
+export const feeTemplateSchema = z.object({
+  id: uuid.optional(),
+  name: trimmed(2, 80, "Template name"),
+  body: trimmed(5, 3000, "Message body"),
+  is_default: z.boolean().default(false),
+});
+export type FeeTemplateInput = z.input<typeof feeTemplateSchema>;
+
+// ---------------------------------------------------------------- monthly & future-month class tutes
+export const classTuteCreateSchema = z.object({
+  batch_id: z.uuid("Choose a batch"),
+  class_id: optionalUuid.default(""),
+  name: trimmed(2, 150, "Tute name"),
+  code: optionalText(30, "Tute code").default(""),
+  months: z.array(monthKey).max(24, "Select at most 24 months at once").default([]),
+  note: optionalText(200, "Note").default(""),
+});
+export type ClassTuteCreateInput = z.input<typeof classTuteCreateSchema>;
+
+export const classTuteUpdateSchema = z.object({
+  id: uuid,
+  name: trimmed(2, 150, "Tute name"),
+  code: optionalText(30, "Tute code").default(""),
+  is_active: z.boolean().default(true),
+});
+export type ClassTuteUpdateInput = z.input<typeof classTuteUpdateSchema>;
+
+export const classMonthTuteAttachSchema = z.object({
+  class_id: uuid,
+  month: monthKey,
+  tute_id: uuid,
+  note: optionalText(200, "Note").default(""),
+});
+export type ClassMonthTuteAttachInput = z.input<typeof classMonthTuteAttachSchema>;
+
+export const classMonthTuteReorderSchema = z.object({
+  class_id: uuid,
+  month: monthKey,
+  ids: z.array(uuid).min(1).max(100),
+});
+export type ClassMonthTuteReorderInput = z.input<typeof classMonthTuteReorderSchema>;

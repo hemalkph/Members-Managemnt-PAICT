@@ -17,6 +17,7 @@ export type PageKey =
   | "classes"
   | "students"
   | "student_results"
+  | "fee_reminders"
   | "structure"
   | "activity";
 
@@ -52,6 +53,8 @@ export const PAGES: PageInfo[] = [
   { key: "students", title: "Concession students", href: "/admin/students", forMembers: true },
   // Names and marks only (no private details), so it can be given to markers.
   { key: "student_results", title: "Student results", href: "/admin/student-results", forMembers: true },
+  // Monthly paid-class comparison & WhatsApp due reminders.
+  { key: "fee_reminders", title: "Fee reminders", href: "/admin/fee-reminders", forMembers: true },
   { key: "structure", title: "Sections & roles", href: "/admin/structure" },
   { key: "activity", title: "Activity log", href: "/admin/activity", mainOnly: true },
 ];

@@ -25,6 +25,7 @@ export type PaperStageName =
   | "scheme_en"
   | "mark";
 export type PaperFileTag = "paper" | "corrected" | "images" | "answers" | "marked" | "source" | "final" | "other";
+export type FeeFollowupStatus = "pending" | "messaged" | "excused" | "dropped";
 
 export type Database = {
   __InternalSupabase: {
@@ -1390,6 +1391,360 @@ export type Database = {
           },
         ];
       };
+      fee_classes: {
+        Row: {
+          id: string;
+          batch_id: string;
+          name: string;
+          is_active: boolean;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          batch_id: string;
+          name: string;
+          is_active?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          batch_id?: string;
+          name?: string;
+          is_active?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fee_classes_batch_id_fkey";
+            columns: ["batch_id"];
+            isOneToOne: false;
+            referencedRelation: "batches";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fee_month_imports: {
+        Row: {
+          id: string;
+          class_id: string;
+          month: string;
+          file_name: string;
+          raw_row_count: number;
+          unique_student_count: number;
+          duplicates_merged: number;
+          uploaded_by: string | null;
+          uploaded_at: string;
+        };
+        Insert: {
+          id?: string;
+          class_id: string;
+          month: string;
+          file_name?: string;
+          raw_row_count?: number;
+          unique_student_count?: number;
+          duplicates_merged?: number;
+          uploaded_by?: string | null;
+          uploaded_at?: string;
+        };
+        Update: {
+          id?: string;
+          class_id?: string;
+          month?: string;
+          file_name?: string;
+          raw_row_count?: number;
+          unique_student_count?: number;
+          duplicates_merged?: number;
+          uploaded_by?: string | null;
+          uploaded_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fee_month_imports_class_id_fkey";
+            columns: ["class_id"];
+            isOneToOne: false;
+            referencedRelation: "fee_classes";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fee_month_students: {
+        Row: {
+          id: string;
+          class_id: string;
+          month: string;
+          student_key: string;
+          full_name: string;
+          email_norm: string;
+          raw_email: string;
+          whatsapp_norm: string | null;
+          raw_whatsapp: string;
+          mobile_norm: string | null;
+          raw_mobile: string;
+          institute: string;
+          district: string;
+          is_new_student: boolean;
+          amount: number | null;
+          export_label: string;
+          raw_classes: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          class_id: string;
+          month: string;
+          student_key: string;
+          full_name: string;
+          email_norm?: string;
+          raw_email?: string;
+          whatsapp_norm?: string | null;
+          raw_whatsapp?: string;
+          mobile_norm?: string | null;
+          raw_mobile?: string;
+          institute?: string;
+          district?: string;
+          is_new_student?: boolean;
+          amount?: number | null;
+          export_label?: string;
+          raw_classes?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          class_id?: string;
+          month?: string;
+          student_key?: string;
+          full_name?: string;
+          email_norm?: string;
+          raw_email?: string;
+          whatsapp_norm?: string | null;
+          raw_whatsapp?: string;
+          mobile_norm?: string | null;
+          raw_mobile?: string;
+          institute?: string;
+          district?: string;
+          is_new_student?: boolean;
+          amount?: number | null;
+          export_label?: string;
+          raw_classes?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fee_month_students_class_id_fkey";
+            columns: ["class_id"];
+            isOneToOne: false;
+            referencedRelation: "fee_classes";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fee_message_templates: {
+        Row: {
+          id: string;
+          name: string;
+          body: string;
+          is_default: boolean;
+          created_by: string | null;
+          updated_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          body: string;
+          is_default?: boolean;
+          created_by?: string | null;
+          updated_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          body?: string;
+          is_default?: boolean;
+          created_by?: string | null;
+          updated_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      fee_due_followups: {
+        Row: {
+          id: string;
+          class_id: string;
+          due_month: string;
+          student_key: string;
+          student_name: string;
+          email_norm: string;
+          whatsapp_norm: string | null;
+          status: FeeFollowupStatus;
+          label: string;
+          message_count: number;
+          last_messaged_at: string | null;
+          last_messaged_by: string | null;
+          last_template_id: string | null;
+          note: string;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          class_id: string;
+          due_month: string;
+          student_key: string;
+          student_name?: string;
+          email_norm?: string;
+          whatsapp_norm?: string | null;
+          status?: FeeFollowupStatus;
+          label?: string;
+          message_count?: number;
+          last_messaged_at?: string | null;
+          last_messaged_by?: string | null;
+          last_template_id?: string | null;
+          note?: string;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          class_id?: string;
+          due_month?: string;
+          student_key?: string;
+          student_name?: string;
+          email_norm?: string;
+          whatsapp_norm?: string | null;
+          status?: FeeFollowupStatus;
+          label?: string;
+          message_count?: number;
+          last_messaged_at?: string | null;
+          last_messaged_by?: string | null;
+          last_template_id?: string | null;
+          note?: string;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fee_due_followups_class_id_fkey";
+            columns: ["class_id"];
+            isOneToOne: false;
+            referencedRelation: "fee_classes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fee_due_followups_last_template_id_fkey";
+            columns: ["last_template_id"];
+            isOneToOne: false;
+            referencedRelation: "fee_message_templates";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      class_tutes: {
+        Row: {
+          id: string;
+          batch_id: string;
+          class_id: string | null;
+          code: string;
+          name: string;
+          paper_id: string | null;
+          is_active: boolean;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          batch_id: string;
+          class_id?: string | null;
+          code?: string;
+          name: string;
+          paper_id?: string | null;
+          is_active?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          batch_id?: string;
+          class_id?: string | null;
+          code?: string;
+          name?: string;
+          paper_id?: string | null;
+          is_active?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "class_tutes_batch_id_fkey";
+            columns: ["batch_id"];
+            isOneToOne: false;
+            referencedRelation: "batches";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "class_tutes_class_id_fkey";
+            columns: ["class_id"];
+            isOneToOne: false;
+            referencedRelation: "fee_classes";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      class_month_tutes: {
+        Row: {
+          id: string;
+          class_id: string;
+          month: string;
+          tute_id: string;
+          sort_order: number;
+          note: string;
+          added_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          class_id: string;
+          month: string;
+          tute_id: string;
+          sort_order?: number;
+          note?: string;
+          added_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          class_id?: string;
+          month?: string;
+          tute_id?: string;
+          sort_order?: number;
+          note?: string;
+          added_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "class_month_tutes_class_id_fkey";
+            columns: ["class_id"];
+            isOneToOne: false;
+            referencedRelation: "fee_classes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "class_month_tutes_tute_id_fkey";
+            columns: ["tute_id"];
+            isOneToOne: false;
+            referencedRelation: "class_tutes";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       approved_work_summary: {
@@ -1557,6 +1912,70 @@ export type Database = {
         Args: { p_ids: string[]; p_paid: boolean; p_paid_on?: string | null; p_reference?: string | null };
         Returns: number;
       };
+      fee_class_save: {
+        Args: { p_id: string | null; p_batch_id: string; p_name: string; p_is_active?: boolean };
+        Returns: string;
+      };
+      fee_class_delete: { Args: { p_id: string }; Returns: undefined };
+      fee_month_replace_import: {
+        Args: {
+          p_class_id: string;
+          p_month: string;
+          p_file_name: string;
+          p_raw_count: number;
+          p_duplicates_merged: number;
+          p_rows: Json;
+        };
+        Returns: number;
+      };
+      fee_month_delete_import: { Args: { p_class_id: string; p_month: string }; Returns: undefined };
+      fee_followup_set: {
+        Args: {
+          p_class_id: string;
+          p_due_month: string;
+          p_student_key: string;
+          p_student_name: string;
+          p_email_norm: string;
+          p_whatsapp_norm: string | null;
+          p_status: FeeFollowupStatus;
+          p_label?: string | null;
+          p_note?: string | null;
+          p_template_id?: string | null;
+          p_increment_message?: boolean;
+        };
+        Returns: Database["public"]["Tables"]["fee_due_followups"]["Row"];
+      };
+      fee_template_save: {
+        Args: { p_id: string | null; p_name: string; p_body: string; p_is_default?: boolean };
+        Returns: string;
+      };
+      fee_template_delete: { Args: { p_id: string }; Returns: undefined };
+      fee_batch_concession_labels: {
+        Args: { p_batch_id: string };
+        Returns: { full_name: string; card_type: ConcessionCard; status: ConcessionStatus; phones: string[] }[];
+      };
+      class_tute_create_and_assign: {
+        Args: {
+          p_batch_id: string;
+          p_class_id: string | null;
+          p_name: string;
+          p_code?: string;
+          p_months?: string[];
+          p_note?: string;
+        };
+        Returns: string;
+      };
+      class_tute_update: {
+        Args: { p_id: string; p_name: string; p_code?: string; p_is_active?: boolean };
+        Returns: undefined;
+      };
+      class_tute_delete: { Args: { p_id: string }; Returns: undefined };
+      class_month_tute_attach: {
+        Args: { p_class_id: string; p_month: string; p_tute_id: string; p_note?: string };
+        Returns: string;
+      };
+      class_month_tute_remove: { Args: { p_id: string }; Returns: undefined };
+      class_month_tute_reorder: { Args: { p_class_id: string; p_month: string; p_ids: string[] }; Returns: undefined };
     };
     Enums: {
       submission_status: SubmissionStatus;

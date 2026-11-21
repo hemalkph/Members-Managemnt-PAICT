@@ -201,3 +201,88 @@
     }
   }
 }
+
+/* Accessible container-responsive table for Monthly Fee Reminders */
+.fee-table-wrap {
+  container-type: inline-size;
+  overflow: auto;
+  max-inline-size: 100%;
+  max-block-size: min(680px, 72svh);
+}
+
+.fee-table-wrap table {
+  border-collapse: separate;
+  border-spacing: 0;
+  inline-size: 100%;
+}
+
+.fee-table-wrap thead {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 2;
+}
+
+.fee-table-wrap tbody th[scope="row"] {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 1;
+  background-color: var(--card);
+}
+
+@container (width < 680px) {
+  .fee-table-wrap {
+    max-block-size: none;
+  }
+  .fee-table-wrap table,
+  .fee-table-wrap thead,
+  .fee-table-wrap tbody,
+  .fee-table-wrap tr,
+  .fee-table-wrap th,
+  .fee-table-wrap td {
+    display: block;
+  }
+  .fee-table-wrap thead {
+    display: none;
+  }
+  .fee-table-wrap tbody {
+    display: grid;
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+  .fee-table-wrap tbody tr {
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    background-color: var(--card);
+  }
+  .fee-table-wrap tbody th[scope="row"] {
+    position: sticky;
+    inset-block-start: 0;
+    inset-inline-start: auto;
+    z-index: 2;
+    border-bottom: 1px solid var(--border);
+    background-color: var(--muted);
+    padding: 0.625rem 0.75rem;
+    text-align: left;
+  }
+  .fee-table-wrap tbody td {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    border-top: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
+    padding: 0.5rem 0.75rem;
+    text-align: right;
+  }
+  .fee-table-wrap tbody td:first-of-type {
+    border-top: 0;
+  }
+  .fee-table-wrap tbody td::before {
+    content: var(--col-label) ": ";
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-align: left;
+  }
+}
