@@ -8,6 +8,7 @@ export const ACTIVITY_CATEGORIES = {
   bank: { label: "Bank details", prefixes: ["bank."] },
   tasks: { label: "Tasks & papers", prefixes: ["task.", "paper."] },
   students: { label: "Concession students", prefixes: ["student."] },
+  fees: { label: "Fee reminders", prefixes: ["fee."] },
   security: { label: "Security", prefixes: ["two_step.", "member.password_reset", "payroll.exported"] },
 } as const;
 
@@ -60,6 +61,8 @@ export function activityGroupLabel(action: string): string {
       return "Security";
     case "student":
       return "Student";
+    case "fee":
+      return "Fee reminders";
     default:
       return "Other";
   }
