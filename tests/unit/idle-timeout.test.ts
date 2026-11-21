@@ -11,9 +11,10 @@ import {
 } from "@/lib/auth/idle-timeout";
 
 describe("idle-timeout", () => {
-  it("uses a 15-minute idle timeout with a 60-second warning", () => {
-    expect(IDLE_TIMEOUT_MS).toBe(15 * 60 * 1000);
+  it("uses a 48-hour idle timeout with a 60-second warning and 5-minute keepalive interval", () => {
+    expect(IDLE_TIMEOUT_MS).toBe(48 * 60 * 60 * 1000);
     expect(IDLE_WARNING_MS).toBe(60 * 1000);
+    expect(IDLE_PING_INTERVAL_MS).toBe(5 * 60 * 1000);
   });
 
   it("parses valid timestamps and rejects missing or malformed cookies", () => {
@@ -26,7 +27,7 @@ describe("idle-timeout", () => {
     expect(parseLastActive("0")).toBeNull();
   });
 
-  it("treats missing timestamps as not expired and flags elapsed >= 15 minutes plus one ping of grace", () => {
+  it("treats missing timestamps as not expired and flags elapsed >= 48 hours plus one ping of grace", () => {
     const now = 2_000_000_000_000;
     expect(isIdleExpired(null, now)).toBe(false);
     expect(isIdleExpired(undefined, now)).toBe(false);

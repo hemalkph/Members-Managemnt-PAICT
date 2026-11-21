@@ -15,6 +15,7 @@ import { submitSignOut } from "@/lib/auth/client-signout";
 import { IDLE_PING_INTERVAL_MS, IDLE_TIMEOUT_MS, IDLE_WARNING_MS } from "@/lib/auth/idle-timeout";
 
 const STORAGE_WRITE_THROTTLE_MS = 5000;
+const PING_RETRY_COOLDOWN_MS = 30_000;
 const ACTIVITY_EVENTS: ReadonlyArray<keyof WindowEventMap> = [
   "pointerdown",
   "keydown",
@@ -48,14 +49,16 @@ function writeSharedActivity(key: string, ts: number) {
 }
 
 /**
- * Watches user activity across tabs and logs out after 15 minutes of inactivity,
+ * Watches user activity across tabs and logs out after 48 hours of inactivity,
  * showing a 60-second warning dialog beforehand so active work is never interrupted.
  */
 export function IdleTimeoutGuard({ userId }: { userId: string }) {
   const storageKey = activityStorageKey(userId);
   const lastActivityRef = useRef<number>(0);
   const lastStorageWriteRef = useRef<number>(0);
-  const lastPingRef = useRef<number>(0);
+  const lastPingSuccessRef = useRef<number>(0);
+  const lastPingAttemptRef = useRef<number>(0);
+  const pingInFlightRef = useRef(false);
   const signingOutRef = useRef(false);
   const warningOpenRef = useRef(false);
 
@@ -69,16 +72,24 @@ export function IdleTimeoutGuard({ userId }: { userId: string }) {
   }, []);
 
   const pingServer = useCallback(async () => {
-    lastPingRef.current = Date.now();
+    if (pingInFlightRef.current) return false;
+    pingInFlightRef.current = true;
+    lastPingAttemptRef.current = Date.now();
     try {
       const res = await fetch("/api/auth/keepalive", { method: "POST", credentials: "same-origin" });
       if (res.status === 401) {
         triggerSignOut();
         return false;
       }
-      return res.ok;
+      if (res.ok) {
+        lastPingSuccessRef.current = Date.now();
+        return true;
+      }
+      return false;
     } catch {
       return false;
+    } finally {
+      pingInFlightRef.current = false;
     }
   }, [triggerSignOut]);
 
@@ -107,7 +118,8 @@ export function IdleTimeoutGuard({ userId }: { userId: string }) {
     const start = Date.now();
     lastActivityRef.current = start;
     lastStorageWriteRef.current = start;
-    lastPingRef.current = start;
+    lastPingSuccessRef.current = start;
+    lastPingAttemptRef.current = start;
     writeSharedActivity(storageKey, start);
 
     const evaluateIdle = () => {
@@ -141,8 +153,13 @@ export function IdleTimeoutGuard({ userId }: { userId: string }) {
         setWarningSeconds(null);
       }
 
-      // Refresh the server activity cookie periodically while the user stays active on one page.
-      if (now - lastPingRef.current >= IDLE_PING_INTERVAL_MS && elapsed < IDLE_PING_INTERVAL_MS) {
+      // Refresh the server activity cookie whenever real activity occurred since the last confirmed ping.
+      if (
+        !pingInFlightRef.current &&
+        lastActivityRef.current > lastPingSuccessRef.current &&
+        now - lastPingSuccessRef.current >= IDLE_PING_INTERVAL_MS &&
+        now - lastPingAttemptRef.current >= PING_RETRY_COOLDOWN_MS
+      ) {
         void pingServer();
       }
     };
