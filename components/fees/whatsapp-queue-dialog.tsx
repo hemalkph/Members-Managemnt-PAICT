@@ -103,12 +103,12 @@ export function WhatsAppQueueDialog({
     [templates, templateId],
   );
 
-  // Build active queue of due students.
+  // Build active queue of due students (also includes messaged students whose WhatsApp # was just updated).
   const queue = useMemo(() => {
     return students.filter((s) => {
       if (s.kind !== "due") return false;
       if (s.followupStatus === "excused" || s.followupStatus === "dropped") return false;
-      if (!includeMessaged && s.followupStatus === "messaged") return false;
+      if (!includeMessaged && s.followupStatus === "messaged" && !s.contactPhoneChanged) return false;
       if (skipFreeCards && /free/i.test(s.primaryLabel)) return false;
       return true;
     });
@@ -339,19 +339,23 @@ export function WhatsAppQueueDialog({
                   {current.district ? ` · ${current.district}` : ""}
                   {current.prevAmount !== null ? ` · Prev: Rs. ${current.prevAmount.toLocaleString("en-LK")}` : ""}
                 </p>
-                <div className="flex items-center gap-1.5 pt-0.5 text-sm font-medium tabular-nums">
+                <div className="flex flex-wrap items-center gap-1.5 pt-0.5 text-sm font-medium tabular-nums">
                   {current.contactPhone ? (
                     <>
                       <span>{formatPhoneDisplay(current.contactPhone)}</span>
-                      {current.contactSource === "mobile" && (
+                      {current.contactPhoneChanged && (
                         <Badge variant="warning" className="text-[10px]">
-                          Mobile fallback
+                          New WhatsApp #
+                          {current.previousMessagedPhone
+                            ? ` (prev: ${formatPhoneDisplay(current.previousMessagedPhone)})`
+                            : ""}
                         </Badge>
                       )}
                     </>
                   ) : (
                     <span className="text-destructive flex items-center gap-1 text-xs">
-                      <PhoneOffIcon className="size-3.5" /> No valid WhatsApp or mobile number
+                      <PhoneOffIcon className="size-3.5" /> No WhatsApp number
+                      {current.mobileNorm ? ` (mobile only: ${formatPhoneDisplay(current.mobileNorm)})` : ""}
                     </span>
                   )}
                 </div>

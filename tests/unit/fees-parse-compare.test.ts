@@ -318,7 +318,10 @@ describe("parseStudentCsv & compareClassMonths on real-world export quirks", () 
     // FREE_ENROLLMENT gets a filterable "Free enrollment" label; regular bank/card/cash methods stay clean
     expect(g.students.find((s) => s.full_name === "Sithum Senehas")?.export_label).toBe("Free enrollment");
     expect(g.students.find((s) => s.full_name === "Praveen Ekanayake")?.export_label).toBe("");
-    expect(g.missingPhoneCount).toBe(1); // Venu Shehara
+    // This sheet had Mobile only (no WhatsApp column), so all 7 are flagged as missing WhatsApp for messaging
+    // while still retaining Mobile for cross-month matching!
+    expect(oct.hasWhatsAppColumn).toBe(false);
+    expect(g.missingPhoneCount).toBe(7);
 
     // Mix October (Enrollments CSV) against November (Standard Paid Export with Gmail + WhatsApp + a phoneless Venu Shehara)
     const standardNovCsv = [
@@ -344,9 +347,101 @@ describe("parseStudentCsv & compareClassMonths on real-world export quirks", () 
     expect(praveen?.email).toBe("ekanayakep166@gmail.com");
     expect(praveen?.currentEmail).toBeNull(); // Previous month had no Gmail column, so don't flag as "changed Gmail"
 
+    // Due students from a Mobile-only export never fall back to Mobile for WhatsApp messaging
+    const udara = cmp.rows.find((r) => r.fullName === "Udara Dilmith");
+    expect(udara?.contactPhone).toBeNull();
+    expect(udara?.contactSource).toBe("none");
+    expect(udara?.mobileNorm).toBe("94741711750");
+
     const venu = cmp.rows.find((r) => r.fullName === "Venu Shehara");
     expect(venu?.kind).toBe("paid");
     expect(venu?.matchKind).toBe("name");
+  });
+
+  test("re-uploading a month with WhatsApp numbers keeps Mobile-matched follow-ups and flags only students whose WhatsApp differs from the old Mobile", () => {
+    const octWithWa = parseStudentCsv(
+      [
+        "Student name,Class,Status,Method,Enrolled on,Access state,Student index,District,Mobile,WhatsApp",
+        'kuvindu wethum,2027 Grand Revision - October Class,activated,bank_transfer,"04/10/2026",expired,270150,Gampaha,0725777748,0722415164',
+        'Malintha Lakshan,2027 Grand Revision - October Class,activated,cash,"09/11/2026",active,270019,Ampara,774309816,774309816',
+        'Thisara Senethmi,2027 Grand Revision - October Class,activated,bank_transfer,"25/10/2026",active,270131,Kalutara,0705270905,0776663401',
+      ].join("\n"),
+      "oct-with-wa.csv",
+    );
+    expect(octWithWa.hasWhatsAppColumn).toBe(true);
+    expect(octWithWa.groups[0].missingPhoneCount).toBe(0);
+
+    // November CSV has Mobile only (no WhatsApp column) — Thisara must still match as Paid via Mobile!
+    const novMobileOnly = parseStudentCsv(
+      [
+        "Student name,Class,Status,Method,Enrolled on,Access state,Student index,District,Mobile",
+        'Thisara Senethmi,2027 Grand Revision - November Class,activated,bank_transfer,"21/11/2026",active,270131,Kalutara,0705270905',
+      ].join("\n"),
+      "nov-mobile-only.csv",
+    );
+
+    // Follow-ups previously saved when October only had Mobile numbers:
+    const existingFollowups = [
+      {
+        id: "f-kuvindu",
+        studentKey: "mob:94725777748",
+        studentName: "kuvindu wethum",
+        emailNorm: "",
+        whatsappNorm: "94725777748",
+        status: "messaged" as const,
+        label: "Wrong number",
+        messageCount: 1,
+        lastMessagedAt: "2026-11-21T12:22:00Z",
+        lastMessagedBy: "u1",
+        lastMessagedByName: "Minupama",
+        lastTemplateId: null,
+        note: "isn't on wp",
+        updatedAt: "2026-11-21T12:22:00Z",
+      },
+      {
+        id: "f-malintha",
+        studentKey: "mob:94774309816",
+        studentName: "Malintha Lakshan",
+        emailNorm: "",
+        whatsappNorm: "94774309816",
+        status: "messaged" as const,
+        label: "",
+        messageCount: 1,
+        lastMessagedAt: "2026-11-21T12:24:00Z",
+        lastMessagedBy: "u1",
+        lastMessagedByName: "Minupama",
+        lastTemplateId: null,
+        note: "",
+        updatedAt: "2026-11-21T12:24:00Z",
+      },
+    ];
+
+    const cmp = compareClassMonths({
+      prevStudents: toMonthRows(octWithWa.groups[0].students, "oct"),
+      currStudents: toMonthRows(novMobileOnly.groups[0].students, "nov"),
+      followups: existingFollowups,
+    });
+
+    // Thisara matched as Paid via Mobile even though October now uses her different WhatsApp number!
+    expect(cmp.summary.paidBothCount).toBe(1);
+    expect(cmp.summary.dueTotal).toBe(2);
+
+    // kuvindu got a NEW WhatsApp number (0722415164 != old 0725777748) -> flagged contactPhoneChanged,
+    // keeps existing studentKey ("mob:94725777748") so re-messaging updates the same DB row cleanly!
+    const kuvindu = cmp.rows.find((r) => r.fullName === "kuvindu wethum")!;
+    expect(kuvindu.studentKey).toBe("mob:94725777748");
+    expect(kuvindu.contactPhone).toBe("94722415164");
+    expect(kuvindu.contactSource).toBe("whatsapp");
+    expect(kuvindu.contactPhoneChanged).toBe(true);
+    expect(kuvindu.previousMessagedPhone).toBe("94725777748");
+    expect(kuvindu.note).toBe("isn't on wp");
+
+    // Malintha's WhatsApp == old Mobile -> stays Messaged without flagging contactPhoneChanged!
+    const malintha = cmp.rows.find((r) => r.fullName === "Malintha Lakshan")!;
+    expect(malintha.studentKey).toBe("mob:94774309816");
+    expect(malintha.contactPhone).toBe("94774309816");
+    expect(malintha.contactPhoneChanged).toBe(false);
+    expect(malintha.previousMessagedPhone).toBeNull();
   });
 });
 

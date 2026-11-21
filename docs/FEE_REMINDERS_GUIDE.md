@@ -164,6 +164,6 @@ Choose your active template in the action bar above the table, then send either 
 | **Student paid under a new Gmail** | Automatically matched via WhatsApp/Mobile and shown under **Paid Both** with a `Matched by phone` badge. |
 | **Student appears twice in one month** | Automatically merged during upload (shown in the preview as `1 duplicate merged`) so they aren't messaged twice. |
 | **Two siblings share a parent's phone** | Kept separate as long as their names & Gmails differ, and matched 1-to-1 so one sibling's payment doesn't clear the other. |
-| **WhatsApp column is empty** | Automatically falls back to the **Mobile** column and shows a `Mobile fallback` badge. If both are missing, a `Missing` badge appears. |
+| **WhatsApp column is empty** | WhatsApp reminders **only** send to numbers from the `WhatsApp` column (never non-WhatsApp `Mobile` numbers). Students without a WhatsApp number show `No WhatsApp` (with their `Mobile` shown below as call reference only, while `Mobile` is still used behind the scenes to match paid students across months). Re-uploading a month with newly added `WhatsApp` numbers preserves existing follow-ups and highlights only the students whose WhatsApp number changed under **`New WhatsApp #`**. |
 | **Uploaded the wrong month by mistake** | Go to the **Uploaded Months** tab and click the trash icon to remove that month, or click **Re-upload** to replace it. |
 | **Browser blocked WhatsApp tab** | Allow pop-ups for this workspace in your browser settings so **`Open WhatsApp & Mark Sent`** opens directly in a new tab. |

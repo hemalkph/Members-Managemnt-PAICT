@@ -489,7 +489,7 @@ export function UploadMonthDialog({
                             </Badge>
                           )}
                           {group.missingPhoneCount > 0 && (
-                            <Badge variant="outline">{group.missingPhoneCount} missing phone</Badge>
+                            <Badge variant="outline">{group.missingPhoneCount} missing WhatsApp</Badge>
                           )}
                         </div>
                         {group.rawSample && (
@@ -567,7 +567,7 @@ export function UploadMonthDialog({
                           </thead>
                           <tbody>
                             {group.students.slice(0, 4).map((s) => {
-                              const phone = pickContactPhone(s.whatsapp_norm, s.mobile_norm);
+                              const phone = pickContactPhone(s.whatsapp_norm);
                               return (
                                 <tr key={s.student_key} className="border-b last:border-0">
                                   <td className="py-1 pr-2">
@@ -579,9 +579,12 @@ export function UploadMonthDialog({
                                     )}
                                   </td>
                                   <td className="py-1 pr-2 tabular-nums">
-                                    {phone.number ? formatPhoneDisplay(phone.number) : "—"}
-                                    {phone.source === "mobile" && (
-                                      <span className="text-muted-foreground ml-1 text-[10px]">(mobile)</span>
+                                    {phone.number ? (
+                                      formatPhoneDisplay(phone.number)
+                                    ) : (
+                                      <span className="text-muted-foreground">
+                                        —{s.mobile_norm ? ` (mobile: ${formatPhoneDisplay(s.mobile_norm)})` : ""}
+                                      </span>
                                     )}
                                   </td>
                                   <td className="py-1">

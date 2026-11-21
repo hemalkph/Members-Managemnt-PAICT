@@ -89,7 +89,7 @@ export type DetectedClassGroup = {
   mergedNames: string[];
   /** Non-paid rows (rejected / failed / pending / revoked) filtered out before deduplication. */
   excludedRows: ExcludedRowsSummary;
-  /** Number of students missing both WhatsApp and Mobile. */
+  /** Number of students missing a valid WhatsApp number. */
   missingPhoneCount: number;
   /** Deduplicated paid students belonging strictly to this class. */
   students: ParsedStudentRecord[];
@@ -98,6 +98,8 @@ export type DetectedClassGroup = {
 export type ParsedUploadFile = {
   fileName: string;
   sheetName: string | null;
+  /** True when the uploaded file contained a WhatsApp column. */
+  hasWhatsAppColumn: boolean;
   /** True when extra "New Students" / "Summary" / "Item,Value" sections or sheets were skipped. */
   skippedExtraSections: boolean;
   /** File-wide summary of non-paid rows filtered out (rejected, failed, pending, revoked). */
@@ -821,7 +823,7 @@ export function parseStudentTable(
     // Skip any class bucket that only had rejected/failed/revoked attempts and 0 valid paid students.
     if (bucket.rows.length === 0) continue;
     const { students, duplicatesMerged, mergedNames } = deduplicateStudents(bucket.rows);
-    const missingPhoneCount = students.filter((s) => !s.whatsapp_norm && !s.mobile_norm).length;
+    const missingPhoneCount = students.filter((s) => !s.whatsapp_norm).length;
     groups.push({
       detectedName: bucket.detectedName,
       rawSample: bucket.rawSample,
@@ -841,7 +843,13 @@ export function parseStudentTable(
 
   const months = [...new Set(groups.map((g) => g.monthNumberHint).filter((m): m is number => m !== null))];
   const batches = [...new Set(groups.map((g) => g.batchHint).filter((b): b is string => b !== null))];
+  const hasWhatsAppColumn = cols.whatsapp >= 0;
 
+  if (!hasWhatsAppColumn && groups.length > 0) {
+    warnings.push(
+      'No "WhatsApp" column was found in this file. Students will still match across months via Mobile, but WhatsApp reminders only send to numbers from a "WhatsApp" column.',
+    );
+  }
   if (months.length > 1) {
     warnings.push("Multiple month names were detected in the Classes column. Double-check the selected month before importing.");
   }
@@ -856,6 +864,7 @@ export function parseStudentTable(
   return {
     fileName,
     sheetName,
+    hasWhatsAppColumn,
     skippedExtraSections: skippedExtraSections || extraSheetsSkipped,
     excludedRows: fileExcluded,
     monthNumberHint: months.length === 1 ? months[0] : months[0] ?? null,

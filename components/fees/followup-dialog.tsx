@@ -67,7 +67,7 @@ export function FollowupDialog({
         student_key: student.studentKey,
         student_name: student.fullName,
         email_norm: student.emailNorm,
-        whatsapp_norm: student.contactPhone,
+        whatsapp_norm: student.contactPhoneChanged ? student.previousMessagedPhone : student.contactPhone,
         status,
         label: label.trim(),
         note: note.trim(),
