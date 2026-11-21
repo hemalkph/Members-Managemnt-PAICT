@@ -75,12 +75,11 @@ export function formatPhoneDisplay(norm: string | null | undefined): string {
 }
 
 export type ResolvedPhone =
-  | { number: string; source: "whatsapp" | "mobile" }
+  | { number: string; source: "whatsapp" }
   | { number: null; source: "none" };
 
-/** Prefer normalized WhatsApp number; fall back to normalized Mobile when WhatsApp is missing/invalid. */
-export function pickContactPhone(whatsappNorm: string | null, mobileNorm: string | null): ResolvedPhone {
+/** Strictly return the normalized WhatsApp number only (never fall back to Mobile for WhatsApp messaging). */
+export function pickContactPhone(whatsappNorm: string | null): ResolvedPhone {
   if (whatsappNorm) return { number: whatsappNorm, source: "whatsapp" };
-  if (mobileNorm) return { number: mobileNorm, source: "mobile" };
   return { number: null, source: "none" };
 }

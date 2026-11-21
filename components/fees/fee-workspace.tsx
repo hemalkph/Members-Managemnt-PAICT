@@ -63,7 +63,7 @@ import { feeWhatsAppUrl, renderFeeMessage, templateUsesTutes } from "@/lib/fees/
 import type { FeeFollowupStatus } from "@/lib/supabase/database.types";
 import { cn } from "@/lib/utils";
 
-type FilterBucket = "due_pending" | "due_messaged" | "due_all" | "paid" | "new" | "excused_dropped";
+type FilterBucket = "due_pending" | "due_new_wa" | "due_messaged" | "due_all" | "paid" | "new" | "excused_dropped";
 
 const STATUS_META: Record<
   FeeFollowupStatus,
@@ -143,6 +143,7 @@ export function FeeWorkspace({
   // Recompute live counts from local rows so instant updates reflect immediately in KPIs & filter chips.
   const counts = useMemo(() => {
     let duePending = 0;
+    let dueNewWa = 0;
     let dueMessaged = 0;
     let dueExcusedDropped = 0;
     let paid = 0;
@@ -150,13 +151,16 @@ export function FeeWorkspace({
     for (const r of rows) {
       if (r.kind === "due") {
         if (r.followupStatus === "pending") duePending++;
-        else if (r.followupStatus === "messaged") dueMessaged++;
-        else dueExcusedDropped++;
+        else if (r.followupStatus === "messaged") {
+          dueMessaged++;
+          if (r.contactPhoneChanged) dueNewWa++;
+        } else dueExcusedDropped++;
       } else if (r.kind === "paid") paid++;
       else fresh++;
     }
     return {
       duePending,
+      dueNewWa,
       dueMessaged,
       dueActive: duePending + dueMessaged,
       dueAll: duePending + dueMessaged + dueExcusedDropped,
@@ -227,6 +231,10 @@ export function FeeWorkspace({
           followupStatus: patch.status,
           customLabel,
           primaryLabel,
+          contactPhoneChanged:
+            patch.status === "messaged" && patch.messageCount !== undefined ? false : r.contactPhoneChanged,
+          previousMessagedPhone:
+            patch.status === "messaged" && patch.messageCount !== undefined ? null : r.previousMessagedPhone,
           note: patch.note !== undefined ? patch.note : r.note,
           messageCount: patch.messageCount !== undefined ? patch.messageCount : r.messageCount,
           lastMessagedAt: patch.lastMessagedAt !== undefined ? patch.lastMessagedAt : r.lastMessagedAt,
@@ -239,6 +247,7 @@ export function FeeWorkspace({
     const q = search.trim().toLowerCase();
     return rows.filter((r) => {
       if (bucket === "due_pending" && !(r.kind === "due" && r.followupStatus === "pending")) return false;
+      if (bucket === "due_new_wa" && !(r.kind === "due" && r.contactPhoneChanged)) return false;
       if (bucket === "due_messaged" && !(r.kind === "due" && r.followupStatus === "messaged")) return false;
       if (bucket === "due_all" && r.kind !== "due") return false;
       if (bucket === "excused_dropped" && !(r.kind === "due" && (r.followupStatus === "excused" || r.followupStatus === "dropped")))
@@ -252,7 +261,7 @@ export function FeeWorkspace({
       if (instituteFilter !== "__all__" && r.institute !== instituteFilter) return false;
 
       if (q) {
-        const hay = `${r.fullName} ${r.email} ${r.currentEmail ?? ""} ${r.contactPhone ?? ""} ${r.primaryLabel} ${r.district} ${r.note}`.toLowerCase();
+        const hay = `${r.fullName} ${r.email} ${r.currentEmail ?? ""} ${r.contactPhone ?? ""} ${r.mobileNorm ?? ""} ${r.primaryLabel} ${r.district} ${r.note}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
@@ -676,7 +685,7 @@ export function FeeWorkspace({
                         onClick={() => setQueueOpen(true)}
                       >
                         <MessageCircleIcon />
-                        Send WhatsApp Queue ({counts.duePending} left)
+                        Send WhatsApp Queue ({counts.duePending + counts.dueNewWa} left)
                       </Button>
                     </div>
                   </div>
@@ -724,6 +733,9 @@ export function FeeWorkspace({
                       {(
                         [
                           ["due_pending", `Unmessaged Due (${counts.duePending})`],
+                          ...(counts.dueNewWa > 0
+                            ? ([["due_new_wa", `New WhatsApp # (${counts.dueNewWa})`]] as [FilterBucket, string][])
+                            : []),
                           ["due_messaged", `Messaged (${counts.dueMessaged})`],
                           ["due_all", `All Due (${counts.dueAll})`],
                           ["paid", `Paid Both (${counts.paid})`],
@@ -871,16 +883,31 @@ export function FeeWorkspace({
                                     {s.contactPhone ? (
                                       <div className="space-y-0.5">
                                         <span className="font-medium">{formatPhoneDisplay(s.contactPhone)}</span>
-                                        {s.contactSource === "mobile" && (
-                                          <Badge variant="warning" className="block w-fit text-[10px]">
-                                            Mobile fallback
+                                        {s.contactPhoneChanged && (
+                                          <Badge
+                                            variant="warning"
+                                            className="block w-fit text-[10px]"
+                                            title={
+                                              s.previousMessagedPhone
+                                                ? `Previously messaged on ${formatPhoneDisplay(s.previousMessagedPhone)}`
+                                                : "Updated WhatsApp number"
+                                            }
+                                          >
+                                            New WhatsApp #
                                           </Badge>
                                         )}
                                       </div>
                                     ) : (
-                                      <span className="text-muted-foreground inline-flex items-center gap-1 text-xs">
-                                        <PhoneOffIcon className="size-3.5" /> Missing
-                                      </span>
+                                      <div className="space-y-0.5">
+                                        <span className="text-muted-foreground inline-flex items-center gap-1 text-xs">
+                                          <PhoneOffIcon className="size-3.5" /> No WhatsApp
+                                        </span>
+                                        {s.mobileNorm && (
+                                          <span className="text-muted-foreground block text-[11px]">
+                                            Mobile: {formatPhoneDisplay(s.mobileNorm)}
+                                          </span>
+                                        )}
+                                      </div>
                                     )}
                                   </td>
 

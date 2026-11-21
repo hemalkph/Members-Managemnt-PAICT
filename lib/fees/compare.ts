@@ -63,7 +63,11 @@ export type ComparedStudent = {
   whatsappNorm: string | null;
   mobileNorm: string | null;
   contactPhone: string | null;
-  contactSource: "whatsapp" | "mobile" | "none";
+  contactSource: "whatsapp" | "none";
+  /** True when a previously messaged due student now has a different WhatsApp number (e.g. upgraded from Mobile-only sheet). */
+  contactPhoneChanged: boolean;
+  /** The old number previously messaged when `contactPhoneChanged` is true. */
+  previousMessagedPhone: string | null;
   institute: string;
   district: string;
   isNewStudent: boolean;
@@ -178,13 +182,24 @@ export function compareClassMonths(params: {
     }
   }
 
+  const matchedFollowupIds = new Set<string>();
   const findFollowup = (s: MonthStudentRow): FollowupRecord | null => {
-    const byKey = followupByKey.get(s.studentKey);
+    const claim = (f: FollowupRecord | undefined): FollowupRecord | null => {
+      if (!f || matchedFollowupIds.has(f.id)) return null;
+      matchedFollowupIds.add(f.id);
+      return f;
+    };
+    const byKey = claim(followupByKey.get(s.studentKey));
     if (byKey) return byKey;
-    if (s.emailNorm && followupByEmail.has(s.emailNorm)) return followupByEmail.get(s.emailNorm)!;
+    if (s.emailNorm) {
+      const byEmail = claim(followupByEmail.get(s.emailNorm));
+      if (byEmail) return byEmail;
+    }
     for (const phone of [s.whatsappNorm, s.mobileNorm]) {
       if (!phone) continue;
-      const match = (followupByWa.get(phone) ?? []).find((f) => areNamesCompatible(f.studentName, s.fullName));
+      const match = claim(
+        (followupByWa.get(phone) ?? []).find((f) => !matchedFollowupIds.has(f.id) && areNamesCompatible(f.studentName, s.fullName)),
+      );
       if (match) return match;
     }
     return null;
@@ -274,7 +289,7 @@ export function compareClassMonths(params: {
     const matchKind = hit?.matchKind ?? null;
 
     const base = matched ?? prev;
-    const contact = pickContactPhone(base.whatsappNorm ?? prev.whatsappNorm, base.mobileNorm ?? prev.mobileNorm);
+    const contact = pickContactPhone(base.whatsappNorm ?? prev.whatsappNorm);
     const exportLabel = (matched?.exportLabel || prev.exportLabel || "").trim();
     const concessionCard = findConcession(prev) ?? (matched ? findConcession(matched) : null);
     const inferredFeeLabel = inferFeeLabel(matched ? matched.amount : prev.amount, medianFee);
@@ -298,6 +313,8 @@ export function compareClassMonths(params: {
         mobileNorm: matched.mobileNorm ?? prev.mobileNorm,
         contactPhone: contact.number,
         contactSource: contact.source,
+        contactPhoneChanged: false,
+        previousMessagedPhone: null,
         institute: matched.institute || prev.institute,
         district: matched.district || prev.district,
         isNewStudent: prev.isNewStudent,
@@ -320,6 +337,9 @@ export function compareClassMonths(params: {
       const followupStatus: FeeFollowupStatus = f?.status ?? "pending";
       const customLabel = f?.label?.trim() ?? "";
       const primaryLabel = customLabel || exportLabel || (concessionCard ? CARD_DISPLAY[concessionCard] : "") || inferredFeeLabel || "";
+      const contactPhoneChanged = Boolean(
+        followupStatus === "messaged" && contact.number && f?.whatsappNorm && f.whatsappNorm !== contact.number,
+      );
 
       dueTotal++;
       if (followupStatus === "pending") dueUnmessaged++;
@@ -329,7 +349,8 @@ export function compareClassMonths(params: {
       if (!contact.number) dueMissingPhone++;
 
       rows.push({
-        studentKey: prev.studentKey,
+        // Reuse matched follow-up's studentKey so re-messaging updates the existing row in place without orphans.
+        studentKey: f ? f.studentKey : prev.studentKey,
         kind: "due",
         matchKind: null,
         currentEmail: null,
@@ -340,6 +361,8 @@ export function compareClassMonths(params: {
         mobileNorm: prev.mobileNorm,
         contactPhone: contact.number,
         contactSource: contact.source,
+        contactPhoneChanged,
+        previousMessagedPhone: contactPhoneChanged ? (f?.whatsappNorm ?? null) : null,
         institute: prev.institute,
         district: prev.district,
         isNewStudent: prev.isNewStudent,
@@ -364,7 +387,7 @@ export function compareClassMonths(params: {
   for (const curr of currStudents) {
     if (matchedCurrIds.has(curr.id)) continue;
     newCount++;
-    const contact = pickContactPhone(curr.whatsappNorm, curr.mobileNorm);
+    const contact = pickContactPhone(curr.whatsappNorm);
     const concessionCard = findConcession(curr);
     const inferredFeeLabel = inferFeeLabel(curr.amount, medianFee);
     const primaryLabel = curr.exportLabel || (concessionCard ? CARD_DISPLAY[concessionCard] : "") || inferredFeeLabel || "";
@@ -381,6 +404,8 @@ export function compareClassMonths(params: {
       mobileNorm: curr.mobileNorm,
       contactPhone: contact.number,
       contactSource: contact.source,
+      contactPhoneChanged: false,
+      previousMessagedPhone: null,
       institute: curr.institute,
       district: curr.district,
       isNewStudent: curr.isNewStudent,
@@ -400,16 +425,17 @@ export function compareClassMonths(params: {
     });
   }
 
-  // Sort: Due (pending -> messaged -> excused -> dropped) -> Paid (phone match first) -> New; alpha within group.
+  // Sort: Due (pending -> messaged with new WhatsApp # -> messaged -> excused -> dropped) -> Paid -> New; alpha within group.
   const kindRank = (r: ComparedStudent) => {
     if (r.kind === "due") {
       if (r.followupStatus === "pending") return 0;
-      if (r.followupStatus === "messaged") return 1;
-      if (r.followupStatus === "excused") return 2;
-      return 3;
+      if (r.followupStatus === "messaged" && r.contactPhoneChanged) return 1;
+      if (r.followupStatus === "messaged") return 2;
+      if (r.followupStatus === "excused") return 3;
+      return 4;
     }
-    if (r.kind === "paid") return r.matchKind === "phone" ? 4 : 5;
-    return 6;
+    if (r.kind === "paid") return r.matchKind === "phone" ? 5 : 6;
+    return 7;
   };
   rows.sort((a, b) => kindRank(a) - kindRank(b) || a.fullName.localeCompare(b.fullName));
 

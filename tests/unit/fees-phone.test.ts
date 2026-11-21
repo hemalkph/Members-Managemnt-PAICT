@@ -41,9 +41,8 @@ describe("formatPhoneDisplay and pickContactPhone", () => {
     expect(formatPhoneDisplay(null)).toBe("—");
   });
 
-  test("prefers WhatsApp over Mobile, falling back to Mobile when needed", () => {
-    expect(pickContactPhone("94741256235", "94713811811")).toEqual({ number: "94741256235", source: "whatsapp" });
-    expect(pickContactPhone(null, "94713811811")).toEqual({ number: "94713811811", source: "mobile" });
-    expect(pickContactPhone(null, null)).toEqual({ number: null, source: "none" });
+  test("strictly returns WhatsApp number only and never falls back to Mobile", () => {
+    expect(pickContactPhone("94741256235")).toEqual({ number: "94741256235", source: "whatsapp" });
+    expect(pickContactPhone(null)).toEqual({ number: null, source: "none" });
   });
 });
