@@ -27,6 +27,8 @@ export type ParsedStudentRecord = {
   raw_mobile: string;
   institute: string;
   district: string;
+  /** Postal address when the export has one (saved privately for Speed Post, never in the fee list). */
+  address: string;
   is_new_student: boolean;
   amount: number | null;
   export_label: string;
@@ -248,6 +250,8 @@ type ColumnMap = {
   whatsapp: number;
   institute: number;
   district: number;
+  address: number;
+  city: number;
   classesCount: number;
   classes: number;
   amount: number;
@@ -301,6 +305,8 @@ function detectColumns(row: string[]): ColumnMap | null {
     newStudent: findColumn(headers, ["new student", "new", "first paid"]),
     institute: findColumn(headers, ["institute", "centre", "center", "hall"]),
     district: findColumn(headers, ["district"]),
+    address: findColumn(headers, ["address", "postal address", "home address", "mailing address", "delivery address"]),
+    city: findColumn(headers, ["nearest city", "city", "town"]),
     classesCount: findColumn(headers, ["classes count", "class count"]),
     classes: findColumn(headers, ["classes", "class", "class name", "course"]),
     amount: findColumn(headers, ["total amount rs", "total amount", "amount rs", "amount", "fee", "paid amount"]),
@@ -461,6 +467,7 @@ type RawRow = {
   mobileNorm: string | null;
   institute: string;
   district: string;
+  address: string;
   isNewStudent: boolean;
   amount: number | null;
   exportLabel: string;
@@ -582,6 +589,7 @@ function deduplicateStudents(rawRows: RawRow[]): {
     const rawMobile = list.find((r) => r.mobileNorm)?.rawMobile ?? list.find((r) => r.rawMobile)?.rawMobile ?? "";
     const institute = list.find((r) => r.institute)?.institute ?? "";
     const district = list.find((r) => r.district)?.district ?? "";
+    const address = list.find((r) => r.address)?.address ?? "";
     const exportLabel = [...new Set(list.map((r) => r.exportLabel).filter(Boolean))].join(" · ").slice(0, 120);
     const rawClasses = primary.rawClasses;
     const isNewStudent = list.every((r) => r.isNewStudent);
@@ -613,6 +621,7 @@ function deduplicateStudents(rawRows: RawRow[]): {
       raw_mobile: rawMobile,
       institute,
       district,
+      address,
       is_new_student: isNewStudent,
       amount,
       export_label: exportLabel,
@@ -756,6 +765,10 @@ export function parseStudentTable(
     const mobileNorm = normalizeWaPhone(rawMobile);
     const institute = getCell(row, cols.institute);
     const district = getCell(row, cols.district);
+    // "32/91/1 Galapitagala" + nearest city "Ampara" → one postal address.
+    const street = getCell(row, cols.address);
+    const city = getCell(row, cols.city);
+    const address = (street && city && !street.toLowerCase().includes(city.toLowerCase()) ? `${street}, ${city}` : street).slice(0, 500);
     const isNewStudent = parseBoolYes(getCell(row, cols.newStudent));
     const amount = cols.amount >= 0 ? parseAmount(getCell(row, cols.amount)) : null;
     const explicitLabel = getCell(row, cols.label);
@@ -774,6 +787,7 @@ export function parseStudentTable(
       mobileNorm,
       institute,
       district,
+      address,
       isNewStudent,
       amount,
       exportLabel,

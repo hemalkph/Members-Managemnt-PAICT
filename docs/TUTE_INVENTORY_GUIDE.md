@@ -66,3 +66,30 @@ They are checked every day at 9:00, after every stock change, and when someone o
 - **Always keep at least** — optional minimum; leave empty to warn only when this month and next aren't covered.
 
 A tute with stock or print history can't be deleted from the catalog; remove it from its months instead.
+
+---
+
+# Speed Post — quick guide
+
+**Where:** Manage → Students → **Speed Post** (`/admin/post`). It holds students' home addresses, so give it only to the people who post tutes.
+
+## Each month
+
+1. **Upload the paid list** on Fee reminders as usual. Online students' addresses (Address + Nearest City) are saved for posting.
+2. **Addresses tab:** check new or changed addresses. *Confirm N that look fine* confirms every address with no warning; open the others (*Too short*, *Needs a town*, *No address*), fix them, and *Save and confirm*.
+3. **Rounds tab → Build round.** Everyone Online who paid, has a confirmed address and still needs this month's tutes gets a parcel. Students at the same address share one parcel. The copies are held for the round (Tute stock shows "held for post"). If there isn't enough stock, it says which tutes to print or count first.
+4. **Labels** and **Post list** print from the round page.
+5. **Pack:** parcels with the same tutes are grouped. Tick each one, or type its number in *Packed parcel number*.
+6. **Tracking numbers:** type or scan each Speed Post sticker into its parcel (camera button on Android Chrome).
+7. **Handed over at the post office:** when every parcel is packed and tracked. Type the receipt total if you like. Copies leave stock now, once.
+8. **Send tracking** opens WhatsApp with the message ready for each student.
+9. Students who pay later: **Build top-up round**. Nobody is ever sent the same tute for the same month twice.
+
+## Afterwards
+
+- **Delivered** — optional, for your own tracking.
+- **Came back** — choose *Usable* (copies go back into stock) or *Damaged*. The address is marked to check again; once confirmed, the next top-up round sends the tutes again.
+- **Lost** — the student can be sent the tutes again in a top-up round.
+- **Take out of this round** (before handover) — e.g. the student will collect in person. Their copies become free again.
+
+Addresses not used for 18 months are removed automatically.

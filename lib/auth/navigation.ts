@@ -1,6 +1,7 @@
 import {
   BackpackIcon,
   BookCopyIcon,
+  TruckIcon,
   BarChart3Icon,
   BriefcaseBusinessIcon,
   CalculatorIcon,
@@ -283,6 +284,15 @@ export const ADMIN_NAV: (NavItem & { page: PageKey; section: string })[] = [
     href: "/admin/tutes",
     icon: BookCopyIcon,
     keywords: "tutes inventory stock low out print printing printer press copies count stocktake",
+    section: "Manage",
+    folder: "Students",
+  },
+  {
+    page: "post",
+    title: "Speed Post",
+    href: "/admin/post",
+    icon: TruckIcon,
+    keywords: "post speed post parcels address labels tracking courier dispatch send tutes online students",
     section: "Manage",
     folder: "Students",
   },

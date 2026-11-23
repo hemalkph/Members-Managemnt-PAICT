@@ -1,6 +1,6 @@
 # Tute Inventory & Speed Post Dispatch — Plan
 
-Status: **Phases 0–1 live** (migration 063); **Phase 2 built** on `feature/tute-print-planner` (migration 064); Phase 3 onwards not started (2026-11-23).
+Status: **Phases 0–2 live** (migrations 063–064); **Phase 3 built** on `feature/speed-post` (migration 065); Phase 4 not started (2026-11-23).
 
 Goal: one system that always knows **how many copies of each tute we have**, **how many we will need**, **what to print and when**, warns the team **before stock runs out**, and later **posts tutes to students by Speed Post** using the same stock numbers. All "smart" parts run inside our own database and app: **no AI bills, no outside AI service**.
 
@@ -228,6 +228,15 @@ flowchart LR
 - **Only if you later choose to pay:** a tracking aggregator posting to `/api/hooks/tracking` to mark delivered / returned automatically.
 
 ---
+
+### How Phase 3 was built (decisions taken 2026-11-23)
+
+- **Addresses** come from the monthly paid-list upload (LMS *Address* + *Nearest City* columns), only for **Online** students, into the private `student_addresses` table. The uploader can write but not read them. A new address in the LMS replaces a staff correction and needs checking again.
+- **Who is posted:** Online students only. **Postage:** the class covers it; each round records the post office receipt total.
+- **Labels and post list** are a print page in the browser (Sinhala addresses print correctly; PDF fonts can't show them). Each label carries a big parcel number instead of a QR code; packing is ticked per parcel or by typing the number.
+- **Tracking numbers** are typed, scanned with a USB scanner, or read with the phone camera (Chrome's built-in barcode reader; the button hides where the browser can't).
+- **Not built yet:** the postal-code list for the address checker (Phase 3 checks length and town only), automatic weekly top-up rounds (a *Build top-up round* button instead), and the return-risk flag (Phase 4).
+- The LMS export also has a **Tute Delivery** column ("Delivery" / "Pickup by institute"). It may be a better "who is posted" signal than *Institute = Online*; switching is a small change if wanted.
 
 ## 7. In-built AI & ML (zero cost)
 

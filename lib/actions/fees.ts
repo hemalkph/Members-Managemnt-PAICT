@@ -139,13 +139,30 @@ export async function importFeeMonthAction(
       p_file_name: file_name,
       p_raw_count: group.raw_row_count,
       p_duplicates_merged: group.duplicates_merged,
+      // The address stays out of the fee list (saved privately below).
       p_rows: group.rows.map((r) => ({
         ...r,
+        address: undefined,
         amount: r.amount !== null ? String(r.amount) : null,
       })),
     });
     if (impErr) return { ok: false, error: friendlyDbError(impErr) };
     importedClasses.push({ id: targetClassId, count });
+
+    // Postal addresses of Online students go to the private Speed Post table.
+    const addresses = group.rows
+      .filter((r) => r.address && /online/i.test(r.institute))
+      .map((r) => ({
+        student_key: r.student_key,
+        full_name: r.full_name,
+        whatsapp: r.whatsapp_norm,
+        address: r.address,
+        district: r.district,
+      }));
+    if (addresses.length > 0) {
+      const { error: addrErr } = await ctx.supabase.rpc("post_addresses_save", { p_rows: addresses });
+      if (addrErr) return { ok: false, error: friendlyDbError(addrErr) };
+    }
   }
 
   revalidate();
