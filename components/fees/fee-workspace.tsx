@@ -81,6 +81,7 @@ export function FeeWorkspace({
   templates,
   tuteCatalog,
   scheduledTutes,
+  tuteStock,
   selectedBatchId,
   selectedClassId,
   prevMonth,
@@ -95,6 +96,7 @@ export function FeeWorkspace({
   templates: FeeTemplateItem[];
   tuteCatalog: ClassTuteCatalogItem[];
   scheduledTutes: ScheduledMonthTute[];
+  tuteStock: Record<string, { onHand: number; inPrint: number }>;
   selectedBatchId: string;
   selectedClassId: string | null;
   prevMonth: string | null;
@@ -1054,6 +1056,7 @@ export function FeeWorkspace({
                   defaultMonth={activeTuteMonth}
                   catalog={tuteCatalog}
                   scheduled={scheduledTutes}
+                  stock={tuteStock}
                   canEdit={canEdit}
                 />
               )}

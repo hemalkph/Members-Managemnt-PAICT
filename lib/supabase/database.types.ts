@@ -1657,6 +1657,9 @@ export type Database = {
           is_active: boolean;
           created_by: string | null;
           created_at: string;
+          pages: number | null;
+          reorder_level: number | null;
+          print_batch: number;
         };
         Insert: {
           id?: string;
@@ -1665,6 +1668,9 @@ export type Database = {
           code?: string;
           name: string;
           paper_id?: string | null;
+          pages?: number | null;
+          reorder_level?: number | null;
+          print_batch?: number;
           is_active?: boolean;
           created_by?: string | null;
           created_at?: string;
@@ -1741,6 +1747,102 @@ export type Database = {
             columns: ["tute_id"];
             isOneToOne: false;
             referencedRelation: "class_tutes";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      tute_printers: {
+        Row: {
+          id: string;
+          name: string;
+          phone: string;
+          notes: string;
+          usual_days: number;
+          is_active: boolean;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      tute_print_jobs: {
+        Row: {
+          id: string;
+          tute_id: string;
+          printer_id: string | null;
+          qty: number;
+          received_qty: number;
+          status: TutePrintJobStatus;
+          cost: number | null;
+          due_date: string | null;
+          note: string;
+          created_by: string | null;
+          created_at: string;
+          started_at: string | null;
+          received_at: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "tute_print_jobs_tute_id_fkey";
+            columns: ["tute_id"];
+            isOneToOne: false;
+            referencedRelation: "class_tutes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tute_print_jobs_printer_id_fkey";
+            columns: ["printer_id"];
+            isOneToOne: false;
+            referencedRelation: "tute_printers";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tute_print_jobs_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      tute_stock_moves: {
+        Row: {
+          id: string;
+          tute_id: string;
+          qty: number;
+          kind: TuteMoveKind;
+          class_id: string | null;
+          month: string | null;
+          ref_id: string | null;
+          note: string;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "tute_stock_moves_tute_id_fkey";
+            columns: ["tute_id"];
+            isOneToOne: false;
+            referencedRelation: "class_tutes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tute_stock_moves_class_id_fkey";
+            columns: ["class_id"];
+            isOneToOne: false;
+            referencedRelation: "fee_classes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tute_stock_moves_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
         ];
@@ -1976,6 +2078,60 @@ export type Database = {
       };
       class_month_tute_remove: { Args: { p_id: string }; Returns: undefined };
       class_month_tute_reorder: { Args: { p_class_id: string; p_month: string; p_ids: string[] }; Returns: undefined };
+      tute_stock_summary: { Args: { p_batch: string; p_month: string | null }; Returns: TuteStockRow[] };
+      tute_stock_levels: {
+        Args: { p_tute_ids?: string[] | null; p_paper_ids?: string[] | null };
+        Returns: {
+          tute_id: string;
+          batch_id: string;
+          paper_id: string | null;
+          name: string;
+          on_hand: number;
+          in_print: number;
+        }[];
+      };
+      tute_today: { Args: Record<string, never>; Returns: { low: number; out: number; late: number; due_soon: number } };
+      send_tute_stock_alerts: { Args: { p_tute?: string | null }; Returns: number };
+      tute_settings_save: {
+        Args: { p_tute: string; p_pages: number | null; p_reorder_level: number | null; p_print_batch: number };
+        Returns: undefined;
+      };
+      tute_printer_save: {
+        Args: {
+          p_id: string | null;
+          p_name: string;
+          p_phone?: string;
+          p_notes?: string;
+          p_usual_days?: number;
+          p_is_active?: boolean;
+        };
+        Returns: string;
+      };
+      tute_print_job_create: {
+        Args: {
+          p_tute: string;
+          p_qty: number;
+          p_printer?: string | null;
+          p_due_date?: string | null;
+          p_cost?: number | null;
+          p_note?: string;
+        };
+        Returns: string;
+      };
+      tute_print_job_set_status: { Args: { p_id: string; p_status: "printing" | "cancelled" }; Returns: undefined };
+      tute_print_job_receive: { Args: { p_id: string; p_qty: number }; Returns: number };
+      tute_stock_issue: {
+        Args: {
+          p_tute: string;
+          p_qty: number;
+          p_kind: "class_issue" | "damaged";
+          p_class?: string | null;
+          p_month?: string | null;
+          p_note?: string;
+        };
+        Returns: number;
+      };
+      tute_stock_count: { Args: { p_tute: string; p_counted: number; p_note?: string }; Returns: number };
     };
     Enums: {
       submission_status: SubmissionStatus;
@@ -1984,6 +2140,36 @@ export type Database = {
       [_ in never]: never;
     };
   };
+};
+
+export type TutePrintJobStatus = "planned" | "printing" | "received" | "cancelled";
+export type TuteMoveKind =
+  | "opening_stock"
+  | "print_in"
+  | "class_issue"
+  | "post_out"
+  | "return_in"
+  | "damaged"
+  | "count_fix";
+export type TuteStockStatus = "ok" | "low" | "out" | "not_scheduled";
+export type TuteStockRow = {
+  tute_id: string;
+  code: string;
+  name: string;
+  is_active: boolean;
+  pages: number | null;
+  print_batch: number;
+  reorder_level: number | null;
+  paper_id: string | null;
+  paper_ready: boolean;
+  on_hand: number;
+  in_print: number;
+  open_jobs: number;
+  need_this: number;
+  given_this: number;
+  need_next: number;
+  status: TuteStockStatus;
+  classes: { id: string; name: string; expected: number; given: number }[];
 };
 
 type PublicSchema = Database["public"];

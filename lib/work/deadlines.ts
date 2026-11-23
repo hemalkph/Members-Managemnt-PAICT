@@ -92,7 +92,10 @@ export async function getDeadlines(
  * page has been sent, so dashboards don't wait for it. The daily job sends
  * them too; this just catches up when someone opens the app.
  */
-export async function sendDueRemindersLater(supabase: SupabaseClient<Database>): Promise<void> {
+export async function sendDueRemindersLater(
+  supabase: SupabaseClient<Database>,
+  fn: "send_deadline_reminders" | "send_tute_stock_alerts" = "send_deadline_reminders",
+): Promise<void> {
   // Request data (the session cookie) must be read before the page finishes.
   const {
     data: { session },
@@ -105,7 +108,7 @@ export async function sendDueRemindersLater(supabase: SupabaseClient<Database>):
         auth: { persistSession: false, autoRefreshToken: false },
         global: { headers: { Authorization: `Bearer ${token}` } },
       });
-      await client.rpc("send_deadline_reminders");
+      await client.rpc(fn);
     } catch {
       // Best effort.
     }

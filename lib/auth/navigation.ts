@@ -1,5 +1,6 @@
 import {
   BackpackIcon,
+  BookCopyIcon,
   BarChart3Icon,
   BriefcaseBusinessIcon,
   CalculatorIcon,
@@ -273,6 +274,15 @@ export const ADMIN_NAV: (NavItem & { page: PageKey; section: string })[] = [
     href: "/admin/fee-reminders",
     icon: MessageCircleHeartIcon,
     keywords: "fees due unpaid whatsapp monthly class payments reminders excel csv",
+    section: "Manage",
+    folder: "Students",
+  },
+  {
+    page: "tutes",
+    title: "Tute stock",
+    href: "/admin/tutes",
+    icon: BookCopyIcon,
+    keywords: "tutes inventory stock low out print printing printer press copies count stocktake",
     section: "Manage",
     folder: "Students",
   },

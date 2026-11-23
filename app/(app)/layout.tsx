@@ -27,12 +27,13 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   const pages = accessMap(profile);
   const birthdayToday = isBirthdayToday(profile.date_of_birth, today);
 
-  const [avatarUrl, pending, bell] = await Promise.all([
+  const [avatarUrl, pending, bell, tutes] = await Promise.all([
     signedAvatarUrl(supabase, profile.avatar_path),
     pages.review !== "none"
       ? supabase.from("submissions").select("id", { count: "exact", head: true }).eq("status", "pending")
       : Promise.resolve({ count: 0 }),
     getBellNotifications(supabase, profile.id),
+    pages.tutes !== "none" ? supabase.rpc("tute_today") : Promise.resolve({ data: null }),
   ]);
 
   return (
@@ -46,6 +47,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           pages,
         }}
         pendingReviews={pending.count ?? 0}
+        tuteAlerts={(tutes.data?.low ?? 0) + (tutes.data?.out ?? 0)}
       />
       <SidebarInset>
         <header className="print:hidden bg-background/80 sticky top-0 z-20 flex h-12 shrink-0 items-center gap-2 border-b px-3 backdrop-blur sm:px-5">

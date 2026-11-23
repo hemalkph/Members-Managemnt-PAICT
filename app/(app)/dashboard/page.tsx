@@ -13,9 +13,11 @@ import { RolesList } from "@/components/member/roles-list";
 import { NoticeBoard } from "@/components/notice-board";
 import { SubmissionCard } from "@/components/member/submission-card";
 import { MyTasksCard } from "@/components/tasks/my-tasks-card";
+import { TuteTodayCard } from "@/components/tutes/tute-today-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireCompleteProfile } from "@/lib/auth";
+import { pageAccess } from "@/lib/auth/page-access";
 import { SHOW_MEMBERS_THEIR_EARNINGS } from "@/lib/core/config";
 import { getMyPayMonth, getMySalary, getSubmissionsForMonth, summarise } from "@/lib/members/queries";
 import { getDeadlines, sendDueRemindersLater } from "@/lib/work/deadlines";
@@ -58,6 +60,7 @@ export default async function DashboardPage() {
     myTasks,
     avatarUrl,
     { count: alertDevices },
+    { data: tuteCounts },
   ] = await Promise.all([
     getSubmissionsForMonth(supabase, profile.id, month),
     getMemberRoles(supabase, profile.id),
@@ -69,6 +72,7 @@ export default async function DashboardPage() {
     getTasks(supabase, { assigneeId: profile.id, statuses: ["open"], limit: 20 }),
     SHOW_MEMBERS_THEIR_EARNINGS ? signedAvatarUrl(supabase, profile.avatar_path) : Promise.resolve(null),
     supabase.from("push_subscriptions").select("id", { count: "exact", head: true }).eq("user_id", profile.id),
+    pageAccess(profile, "tutes") !== "none" ? supabase.rpc("tute_today") : Promise.resolve({ data: null }),
   ]);
   const setupSteps = [
     {
@@ -135,6 +139,8 @@ export default async function DashboardPage() {
       <GettingStarted userId={profile.id} steps={setupSteps} />
 
       {roles.length > 0 && nextDeadline && <DeadlineCard deadline={nextDeadline} progress={deadlineProgress} />}
+
+      <TuteTodayCard counts={tuteCounts} />
 
       <MonthlySummary month={month} {...summary} salary={salary} showMoney={SHOW_MEMBERS_THEIR_EARNINGS} />
 

@@ -78,12 +78,25 @@ export type SidebarUser = {
   pages: Record<PageKey, AccessLevel>;
 };
 
-export function AppSidebar({ user, pendingReviews }: { user: SidebarUser; pendingReviews: number }) {
+export function AppSidebar({
+  user,
+  pendingReviews,
+  tuteAlerts = 0,
+}: {
+  user: SidebarUser;
+  pendingReviews: number;
+  /** Tutes low or out of stock. */
+  tuteAlerts?: number;
+}) {
   const pathname = usePathname();
   const { setOpenMobile } = useSidebar();
 
   const adminNav: NavItem[] = getAdminNav(user.pages).map((item) =>
-    item.href === "/admin/review" ? { ...item, badge: pendingReviews } : item,
+    item.href === "/admin/review"
+      ? { ...item, badge: pendingReviews }
+      : item.href === "/admin/tutes"
+        ? { ...item, badge: tuteAlerts }
+        : item,
   );
 
   const isActive = (item: NavItem) => {

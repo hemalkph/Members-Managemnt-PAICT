@@ -69,6 +69,7 @@ export function TutesManager({
   defaultMonth,
   catalog,
   scheduled,
+  stock,
   canEdit,
 }: {
   batchId: string;
@@ -78,6 +79,7 @@ export function TutesManager({
   defaultMonth: string;
   catalog: ClassTuteCatalogItem[];
   scheduled: ScheduledMonthTute[];
+  stock: Record<string, { onHand: number; inPrint: number }>;
   canEdit: boolean;
 }) {
   const router = useRouter();
@@ -285,8 +287,8 @@ export function TutesManager({
               <CardDescription>
                 Add different tutes for each month — including upcoming future months. Scheduled tutes automatically
                 fill <code className="text-[11px]">{"{tutes}"}</code> and{" "}
-                <code className="text-[11px]">{"{tutes_list}"}</code> in WhatsApp reminders and are ready for future
-                Tute Dispatch.
+                <code className="text-[11px]">{"{tutes_list}"}</code> in WhatsApp reminders, and Tute stock uses them to
+                work out how many copies each month needs.
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -383,6 +385,12 @@ export function TutesManager({
                           {item.tuteCode && (
                             <Badge variant="outline" className="font-mono text-[10px]">
                               {item.tuteCode}
+                            </Badge>
+                          )}
+                          {stock[item.tuteId] && (
+                            <Badge variant="secondary" className="text-[10px] tabular-nums">
+                              {stock[item.tuteId].onHand} in stock
+                              {stock[item.tuteId].inPrint > 0 && ` · ${stock[item.tuteId].inPrint} printing`}
                             </Badge>
                           )}
                         </div>
@@ -583,7 +591,7 @@ export function TutesManager({
         )}
       </div>
 
-      {/* Batch Tute Catalog (ready for future Tute Dispatch) */}
+      {/* Batch tute catalog */}
       {catalog.length > 0 && (
         <Card>
           <CardHeader className="pb-3">
@@ -591,7 +599,7 @@ export function TutesManager({
               {batchName} Tute Catalog ({catalog.length})
             </CardTitle>
             <CardDescription>
-              Shared catalog for this batch — reusable across months, classes, and future Tute Dispatch rounds.
+              Shared catalog for this batch — reusable across months and classes. Stock is kept per tute on Tute stock.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -646,7 +654,8 @@ export function TutesManager({
                             <AlertDialogHeader>
                               <AlertDialogTitle>Delete &ldquo;{t.name}&rdquo; from catalog?</AlertDialogTitle>
                               <AlertDialogDescription>
-                                This removes the tute from the catalog and unlinks it from all scheduled months.
+                                This removes the tute from the catalog and unlinks it from all scheduled months. A tute
+                                with stock or print history can&apos;t be deleted.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>

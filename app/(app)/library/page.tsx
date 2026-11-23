@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { requireUser } from "@/lib/auth";
+import { pageAccess } from "@/lib/auth/page-access";
 import type { PaperStageName } from "@/lib/supabase/database.types";
 import { getSiteUrl } from "@/lib/core/env";
 import { formatBytes, formatDate, formatDay } from "@/lib/core/format";
@@ -64,6 +65,20 @@ export default async function LibraryPage({ searchParams }: PageProps<"/library"
     profile.is_admin ? getLibraryContacts(supabase) : Promise.resolve(null),
   ]);
   const rows = data ?? [];
+
+  // People with Tute stock: a stock chip and an "Order print" link on each tute.
+  type TuteStock = { onHand: number; inPrint: number; href: string };
+  const tutePaperIds = [...new Set(rows.filter((r) => r.kind === "tute").map((r) => r.paper_id))];
+  const { data: levels } =
+    pageAccess(profile, "tutes") !== "none" && tutePaperIds.length > 0
+      ? await supabase.rpc("tute_stock_levels", { p_paper_ids: tutePaperIds })
+      : { data: [] };
+  const tuteStock = new Map<string, TuteStock>(
+    (levels ?? []).map((l) => [
+      l.paper_id ?? "",
+      { onHand: l.on_hand, inPrint: l.in_print, href: `/admin/tutes?batch=${l.batch_id}&tab=jobs` },
+    ]),
+  );
   const examOf = (r: (typeof rows)[number]) =>
     r.exam_name ? `${r.batch_name ? `${r.batch_name} – ` : ""}${r.exam_name}` : "Other papers";
   const exams = [...new Set(rows.map(examOf))].sort((a, b) => (a === "Other papers" ? 1 : b === "Other papers" ? -1 : a.localeCompare(b)));
@@ -175,7 +190,7 @@ export default async function LibraryPage({ searchParams }: PageProps<"/library"
             </CardHeader>
             <CardContent className="grid gap-3 lg:grid-cols-2">
               {g.sets.map((set) => (
-                <PaperSet key={set.key} set={set} contacts={contacts} />
+                <PaperSet key={set.key} set={set} contacts={contacts} stock={tuteStock.get(set.papers[0].id)} />
               ))}
             </CardContent>
           </Card>
@@ -229,7 +244,15 @@ function FilterRow({ label, items }: { label: string; items: { label: string; hr
 }
 
 /** One paper set: its question papers (per part) and its marking scheme. */
-function PaperSet({ set, contacts }: { set: LibSet; contacts: LibraryContact[] | null }) {
+function PaperSet({
+  set,
+  contacts,
+  stock,
+}: {
+  set: LibSet;
+  contacts: LibraryContact[] | null;
+  stock?: { onHand: number; inPrint: number; href: string };
+}) {
   const split = set.papers.length > 1;
   const schemeFrom = set.papers.find((p) => SCHEME_STAGES.some((s) => p.files[s.stage]));
   const parts = set.kind === "tute" ? "Tute" : split ? set.papers.map((p) => PART_LABEL[p.part]).join(" + ") : PART_LABEL[set.papers[0].part];
@@ -245,6 +268,16 @@ function PaperSet({ set, contacts }: { set: LibSet; contacts: LibraryContact[] |
             <span className="text-muted-foreground inline-flex items-center gap-1">
               <CalendarDaysIcon className="size-3.5 shrink-0" /> {formatDay(set.examDay)}
             </span>
+          )}
+          {stock && (
+            <>
+              <Badge variant={stock.onHand > 0 ? "success" : "warning"} className="tabular-nums">
+                {stock.onHand} in stock{stock.inPrint > 0 && ` · ${stock.inPrint} printing`}
+              </Badge>
+              <Link href={stock.href} className="text-primary font-medium underline-offset-2 hover:underline">
+                Order print
+              </Link>
+            </>
           )}
         </div>
       </div>
