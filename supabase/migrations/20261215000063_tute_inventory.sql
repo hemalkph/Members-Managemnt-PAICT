@@ -176,6 +176,8 @@ as $$
 $$;
 
 -- Stock and need for every tute (or one batch) in a month.
+-- (Dropped first: migration 064 changes its columns, and this file must stay re-runnable.)
+drop function if exists public.tute_levels(date, uuid);
 create or replace function public.tute_levels(p_month date, p_batch uuid default null)
 returns table (
   tute_id uuid, batch_id uuid, name text, is_active boolean, reorder_level integer,
@@ -235,6 +237,7 @@ $$;
 -- -----------------------------------------------------------------------------
 -- 4. Reads
 -- -----------------------------------------------------------------------------
+drop function if exists public.tute_stock_summary(uuid, date);
 create or replace function public.tute_stock_summary(p_batch uuid, p_month date)
 returns table (
   tute_id uuid, code text, name text, is_active boolean, pages integer, print_batch integer,

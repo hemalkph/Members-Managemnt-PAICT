@@ -1818,6 +1818,7 @@ export type Database = {
           month: string | null;
           ref_id: string | null;
           note: string;
+          flag: string;
           created_by: string | null;
           created_at: string;
         };
@@ -2090,6 +2091,17 @@ export type Database = {
           in_print: number;
         }[];
       };
+      tute_forecast_report: {
+        Args: { p_batch: string };
+        Returns: {
+          class_id: string;
+          class_name: string;
+          month: string;
+          forecast: number;
+          actual: number;
+          method: TuteForecastMethod;
+        }[];
+      };
       tute_today: { Args: Record<string, never>; Returns: { low: number; out: number; late: number; due_soon: number } };
       send_tute_stock_alerts: { Args: { p_tute?: string | null }; Returns: number };
       tute_settings_save: {
@@ -2168,8 +2180,29 @@ export type TuteStockRow = {
   need_this: number;
   given_this: number;
   need_next: number;
+  /** Needed the month after next (for "print together" hints). */
+  need_after: number;
+  safety: number;
+  loss_extra: number;
+  /** Copies to print now, rounded up to print_batch (0 = covered). */
+  print_now: number;
+  lead_days: number;
+  print_by: string | null;
   status: TuteStockStatus;
-  classes: { id: string; name: string; expected: number; given: number }[];
+  classes: TuteClassNeed[];
+  classes_next: TuteClassNeed[];
+};
+export type TuteForecastMethod = "last_month" | "avg3" | "smooth" | "trend" | "start_rule" | "none";
+export type TuteClassNeed = {
+  id: string;
+  name: string;
+  expected: number;
+  online: number;
+  uploaded: boolean;
+  low: number;
+  high: number;
+  method: TuteForecastMethod;
+  given: number;
 };
 
 type PublicSchema = Database["public"];

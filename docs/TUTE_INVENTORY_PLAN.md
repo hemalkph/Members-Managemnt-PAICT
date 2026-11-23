@@ -1,6 +1,6 @@
 # Tute Inventory & Speed Post Dispatch — Plan
 
-Status: **Phase 0 and Phase 1 built** on `feature/tute-inventory` (migration 063); Phase 2 onwards not started (2026-11-23).
+Status: **Phases 0–1 live** (migration 063); **Phase 2 built** on `feature/tute-print-planner` (migration 064); Phase 3 onwards not started (2026-11-23).
 
 Goal: one system that always knows **how many copies of each tute we have**, **how many we will need**, **what to print and when**, warns the team **before stock runs out**, and later **posts tutes to students by Speed Post** using the same stock numbers. All "smart" parts run inside our own database and app: **no AI bills, no outside AI service**.
 
@@ -16,7 +16,7 @@ Goal: one system that always knows **how many copies of each tute we have**, **h
 | Paid students per month | `fee_month_students` (migration 061) | Who paid each class each month, with `institute`, `district`, `is_new_student` — the history the forecasts learn from |
 | Paper Library + print alert | migrations 036, 038 | Tutes are kept per language; the Library already tells the Physical Coordinator "send it for printing" |
 | Notifications + phone push | `notifications`, `/api/hooks/push` | Any row in `notifications` already reaches phones — no new code for alerts |
-| Daily jobs | pg_cron (`'30 3 * * *'` = 9:00 Sri Lanka) | Same pattern for stock alerts and nightly forecasts |
+| Daily jobs | pg_cron (`'30 3 * * *'` = 9:00 Sri Lanka) | Same pattern for stock alerts |
 | Activity log, page access | `write_activity()`, `has_page()` | Every stock change is logged; a new `tutes` page key controls who sees it |
 | Open-app catch-up | `sendDueRemindersLater()` in `lib/work/deadlines.ts` | Same pattern runs the stock alert check when someone opens the app, as a backup to the daily job |
 | Sidebar badge | `pendingReviews` badge in `components/app-sidebar.tsx` | Same pattern shows the low / out count next to "Tutes" |
@@ -163,7 +163,7 @@ Every suggestion shows its reason in plain words — including the **Online (Spe
 
 When the same tute is also scheduled next month (or across multiple classes), the row shows a multi-month bundling hint (e.g. *"Also scheduled next month: +95 copies"*) so staff can combine runs at the press instead of ordering two smaller batches.
 
-It updates by itself: uploading a new paid list, scheduling a tute, receiving a print job or issuing stock all change the numbers on the next page load (need is computed live; only the forecasts are saved nightly).
+It updates by itself: uploading a new paid list, scheduling a tute, receiving a print job or issuing stock all change the numbers on the next page load (everything, forecasts included, is computed live from the paid lists, so there is nothing to keep in sync).
 
 ---
 
@@ -235,11 +235,11 @@ Everything below runs **inside our own Postgres database** (plain SQL and the fr
 
 | Feature | How it works | Phase |
 | --- | --- | --- |
-| **Student forecast that picks its own method** | Every night, for each class, four simple methods are tested on that class's own past months: *same as last month*, *3-month average*, *exponential smoothing*, *trend smoothing (Holt)*. The one that would have been most accurate in past months is used. It gives a range ("120–150, most likely 138") worked out from its own past errors. Recalculated right after a paid list is uploaded | 2 |
+| **Student forecast that picks its own method** | For each class, four simple methods are tested on that class's own past months: *same as last month*, *3-month average*, *exponential smoothing*, *trend smoothing (Holt)*. The one that would have been most accurate in past months is used. It gives a range ("120–150, most likely 138") worked out from its own past errors. Computed live, so a new paid list changes it at once | 2 |
 | **Learns each class's habits** | From the paid history: % of students who pay again next month, new students per month (`is_new_student`), and, once a year of data exists, the same month last year (exam and holiday dips) | 2 |
 | **Smart safety stock & print-by timing** | Safety stock = 1.65 × typical monthly forecast error (about a 95% chance of covering a month's need without over-printing). Separately, each printer's real lead time is learned from its past jobs (start → received) and, from Phase 2, replaces the printer's usual days in **when** the "Month starting, not ready" alert fires (`lead days + 3 buffer days` before the month starts). A typed `reorder_level` still overrides the automatic threshold | 2 |
 | **Odd-number check** | Stocktake differences and handouts that don't fit the class size are compared with the tute's usual differences (median-based outlier check). Big ones get flagged, e.g. *"Unit 07 count is 40 below the record, about 3× more than usual. Check it."* The usual loss rate is added to the need | 2 |
-| **Forecast report card** | The saved forecast vs the real paid count, per class per month. The Print plan shows how close the last 3 months were, so trust is earned, not assumed | 2 |
+| **Forecast report card** | The forecast (worked out only from the months before) vs the real paid count, per class per month. The Print plan shows how close the last 3 months were, so trust is earned, not assumed | 2 |
 | **Address checker** | Fuzzy matching (`pg_trgm`) against a Sri Lanka post office / postal code list loaded once: suggests the right town and postal code for misspelt or mixed Sinhala/English addresses, flags unknown towns, and finds students sharing an address or phone (brothers and sisters → one parcel). A person confirms before it's used | 3 |
 | **Return-risk flag** | Learns from returned parcels: return rate by district and post office, plus an address-completeness score. Risky parcels are flagged before posting so someone calls the student first | 3+ |
 | **Smart search** | ⌘K understands short phrases like "unit 07 dec", "low stock", "print plan" with keyword and fuzzy matching. No language model needed | 1 |

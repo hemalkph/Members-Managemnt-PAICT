@@ -80,7 +80,7 @@ describe("stock", () => {
     await actAs(db, editor);
     const [row] = await q("select * from public.tute_stock_summary($1, null) where tute_id = $2", [batch, tuteId]);
     expect(row).toMatchObject({ on_hand: 0, need_this: 30, given_this: 0, status: "out" });
-    expect(row.classes).toEqual([{ id: classId, name: `Theory ${stamp}`, expected: 30, given: 0 }]);
+    expect(row.classes).toMatchObject([{ id: classId, name: `Theory ${stamp}`, expected: 30, given: 0 }]);
   });
 
   test("first count is opening stock, later counts write the difference", async () => {
