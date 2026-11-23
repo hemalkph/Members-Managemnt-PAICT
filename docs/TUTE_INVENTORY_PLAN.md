@@ -1,6 +1,6 @@
 # Tute Inventory & Speed Post Dispatch — Plan
 
-Status: **Phases 0–2 live** (migrations 063–064); **Phase 3 built** on `feature/speed-post` (migration 065); Phase 4 not started (2026-11-23).
+Status: **Phases 0–3 live** (migrations 063–065); **Phase 4 built** on `feature/tute-phase4` (migration 066). Still left: auto-tuning the forecast (at ~12 months of data) and the postal-code list for the address checker (2026-11-23).
 
 Goal: one system that always knows **how many copies of each tute we have**, **how many we will need**, **what to print and when**, warns the team **before stock runs out**, and later **posts tutes to students by Speed Post** using the same stock numbers. All "smart" parts run inside our own database and app: **no AI bills, no outside AI service**.
 
@@ -238,6 +238,14 @@ flowchart LR
 - **Not built yet:** the postal-code list for the address checker (Phase 3 checks length and town only), automatic weekly top-up rounds (a *Build top-up round* button instead), and the return-risk flag (Phase 4).
 - The LMS export also has a **Tute Delivery** column ("Delivery" / "Pickup by institute"). It may be a better "who is posted" signal than *Institute = Online*; switching is a small change if wanted.
 
+### How Phase 4 was built (decisions taken 2026-11-23)
+
+- **Built now, switches on by itself:** the mid-month forecast and the return-risk flag show "learning" until there is enough history, then start working without anyone changing anything.
+- **Mid-month forecast:** learned **per batch** from the upload log: the median share of a month's final count that was in by each day. On after 4 past class-months in the batch with more than one upload. This month's need uses the paid list, the forecast or the mid-month estimate, whichever is highest. No separate "surge" alert: a higher estimate raises the need, so the usual low-stock alert fires.
+- **Return-risk flag:** on after 30 posted parcels have a known outcome (delivered, came back, lost, or posted over 30 days ago). Score = the district's return rate (pulled toward the overall rate while a district has few parcels) + 0.5 if the student or address came back before + 0.15 for an unclear address + 0.05 for no WhatsApp. Flagged when at least 15% and at least twice the overall rate.
+- **Weekly summary:** Monday 9:00, one notification per person with only the parts they can open (Stock and/or Speed Post). Nothing is sent when there's nothing to say.
+- **Tracking stays free:** no paid tracking service; Delivered / Came back are marked by hand.
+
 ## 7. In-built AI & ML (zero cost)
 
 Everything below runs **inside our own Postgres database** (plain SQL and the free `pg_trgm` extension Supabase already offers) or in our own TypeScript. No OpenAI / Gemini / AI Gateway calls, no per-use bills, and no student data leaves our database.
@@ -259,7 +267,7 @@ The maths is written **once, in SQL**, because the 9:00 alert job and the page b
 
 | Idea | Why not now | When |
 | --- | --- | --- |
-| Mid-month pacing forecast ("96 paid by the 10th → about 160 by month end") and a "demand surge" alert built on it | Today's uploads replace the month's list and carry no payment dates, so there's nothing to learn from | After the Phase 1 upload log has ~6 months of history (Phase 4) |
+| Mid-month pacing forecast ("96 paid by the 10th → about 160 by month end") and a "demand surge" alert built on it | Today's uploads replace the month's list and carry no payment dates, so there's nothing to learn from | Built in Phase 4; switches on per batch after 4 past class-months with more than one upload |
 | Auto-tuning the forecast's smoothing weights | With 3–5 months per class, tuning fits noise and gives a misleading accuracy score | Revisit at ~12 months |
 | Reorder formula based on daily use | Tutes go out in monthly lumps and we have no class dates to measure a daily rate; monthly need + safety stock fits better | — |
 | "Ask Tute AI" keyword bar or chat assistant | A real assistant needs a paid model; a Sinhala keyword list needs upkeep. ⌘K and the Stock page answer the same questions | — |

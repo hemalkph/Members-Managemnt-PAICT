@@ -2232,6 +2232,9 @@ export type Database = {
         Returns: undefined;
       };
       post_parcel_whatsapp_sent: { Args: { p_parcel: string }; Returns: undefined };
+      tute_pace_status: { Args: { p_batch: string }; Returns: { samples: number; needed: number }[] };
+      post_risk_learning: { Args: Record<string, never>; Returns: { resolved: number; returned: number; needed: number }[] };
+      post_round_risks: { Args: { p_round: string }; Returns: { parcel_id: string; risk: number; reason: string }[] };
       tute_forecast_report: {
         Args: { p_batch: string };
         Returns: {
@@ -2342,6 +2345,10 @@ export type TuteClassNeed = {
   expected: number;
   online: number;
   uploaded: boolean;
+  /** Paid so far this month (null before the first upload). */
+  paid: number | null;
+  /** Month-end estimate from how payments usually come in (null while learning). */
+  pace: number | null;
   low: number;
   high: number;
   method: TuteForecastMethod;

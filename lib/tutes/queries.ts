@@ -58,7 +58,7 @@ export async function getTuteBatches(supabase: Client) {
 
 /** Everything the Tute stock page shows for one batch and month. */
 export async function getTuteWorkspace(supabase: Client, batchId: string, month: string) {
-  const [stock, jobs, printers, moves, directory, report, held] = await Promise.all([
+  const [stock, jobs, printers, moves, directory, report, held, pace] = await Promise.all([
     supabase.rpc("tute_stock_summary", { p_batch: batchId, p_month: monthKeyToDate(month) }),
     supabase
       .from("tute_print_jobs")
@@ -76,6 +76,7 @@ export async function getTuteWorkspace(supabase: Client, batchId: string, month:
     supabase.rpc("team_directory"),
     supabase.rpc("tute_forecast_report", { p_batch: batchId }),
     supabase.from("tute_stock_reservations").select("tute_id, qty").eq("status", "active"),
+    supabase.rpc("tute_pace_status", { p_batch: batchId }),
   ]);
   if (stock.error) throw new Error(stock.error.message);
 
@@ -87,6 +88,8 @@ export async function getTuteWorkspace(supabase: Client, batchId: string, month:
   return {
     stock: (stock.data ?? []) as TuteStockRow[],
     reserved,
+    /** Past class-months the mid-month forecast has learned from, and how many it needs. */
+    pace: pace.data?.[0] ?? { samples: 0, needed: 4 },
     report: (report.data ?? []).map(
       (r): TuteForecastCheck => ({
         classId: r.class_id,

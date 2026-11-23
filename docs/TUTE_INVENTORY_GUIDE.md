@@ -36,6 +36,8 @@ Until a month's paid list is uploaded, its students are a **forecast** (shown wi
 
 **Spare copies** = safety copies (bigger when the forecast is less sure, at least 5% and at least 5) + the usual loss (damaged and counted-short copies over the last 6 months, per copy given out).
 
+**Mid-month forecast:** if you upload the paid list a few times a month, Tute stock learns how payments usually come in (per batch). After 4 past months it scales an early upload up to a month-end estimate (shown as "~160, 120 paid so far at the usual pace"). The Print plan says whether it is on yet.
+
 ## Odd numbers
 
 A count that's far off this tute's usual count fixes, or more copies given to a class than it has students, gets a warning in **History** and an alert. Check the shelf and the last handouts, then count again if needed.
@@ -58,6 +60,8 @@ Everyone with the Tute stock page gets a bell and phone alert:
 - when a print job is past its due date.
 
 They are checked every day at 9:00, after every stock change, and when someone opens Tute stock. The sidebar shows how many tutes are low or out.
+
+Every **Monday at 9:00** there is also one short summary: tutes low or out, print jobs late or due, and (for Speed Post people) parcels to pack, posted and returned last week.
 
 ## Settings per tute (⋯ → Settings)
 
@@ -90,6 +94,7 @@ A tute with stock or print history can't be deleted from the catalog; remove it 
 - **Delivered** — optional, for your own tracking.
 - **Came back** — choose *Usable* (copies go back into stock) or *Damaged*. The address is marked to check again; once confirmed, the next top-up round sends the tutes again.
 - **Lost** — the student can be sent the tutes again in a top-up round.
+- **May come back** — once 30 posted parcels have a known outcome, a round marks parcels likely to come back (came back before, a district that often returns them, an unclear address, no WhatsApp). Call the student before posting. Until then the round page says it is still learning.
 - **Take out of this round** (before handover) — e.g. the student will collect in person. Their copies become free again.
 
 Addresses not used for 18 months are removed automatically.

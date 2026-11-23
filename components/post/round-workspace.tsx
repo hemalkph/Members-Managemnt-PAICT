@@ -66,7 +66,18 @@ function trackingMessage(p: PostParcel, month: string): string {
   );
 }
 
-export function RoundWorkspace({ round, canEdit }: { round: PostRound; canEdit: boolean }) {
+export function RoundWorkspace({
+  round,
+  canEdit,
+  risks,
+  learning,
+}: {
+  round: PostRound;
+  canEdit: boolean;
+  /** Parcels that may come back → why. */
+  risks: Record<string, string>;
+  learning: { resolved: number; returned: number; needed: number };
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [quick, setQuick] = useState("");
@@ -151,6 +162,16 @@ export function RoundWorkspace({ round, canEdit }: { round: PostRound; canEdit: 
         }
       />
 
+      {packing && (
+        <p className="text-muted-foreground text-sm">
+          {learning.resolved < learning.needed
+            ? `Return check is learning: ${learning.resolved} of ${learning.needed} posted parcels have a known outcome.`
+            : Object.keys(risks).length > 0
+              ? `${Object.keys(risks).length} parcel${Object.keys(risks).length === 1 ? "" : "s"} may come back (marked below). Call the student to check the address before posting.`
+              : "No parcel in this round looks likely to come back."}
+        </p>
+      )}
+
       {packing && canEdit && (
         <Card>
           <CardContent className="grid gap-4 pt-6 lg:grid-cols-[1fr_auto] lg:items-end">
@@ -220,6 +241,9 @@ export function RoundWorkspace({ round, canEdit }: { round: PostRound; canEdit: 
                   <div className="min-w-0">
                     <p className="font-medium">{p.name}</p>
                     <p className="text-muted-foreground line-clamp-2 text-xs whitespace-pre-line">{p.address}</p>
+                    {risks[p.id] && (
+                      <p className="mt-1 text-xs text-amber-700 dark:text-warning">May come back: {risks[p.id]}</p>
+                    )}
                   </div>
                 </div>
 
