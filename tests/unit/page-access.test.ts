@@ -41,6 +41,8 @@ test("members can be given Student results, Concession students, Fee reminders a
   expect(keys).toContain("tutes");
   expect(pageAccess({ ...member, page_access: null }, "tutes")).toBe("none");
   expect(pageAccess({ ...member, page_access: { tutes: "view" } }, "tutes")).toBe("view");
+  expect(keys).toContain("post");
+  expect(pageAccess({ ...member, page_access: null }, "post")).toBe("none");
 });
 
 test("every page that can be given has a place in the sidebar, with the same name and address", () => {

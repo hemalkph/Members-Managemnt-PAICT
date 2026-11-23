@@ -1848,6 +1848,114 @@ export type Database = {
           },
         ];
       };
+      student_addresses: {
+        Row: {
+          student_key: string;
+          full_name: string;
+          whatsapp: string | null;
+          address: string;
+          lms_address: string;
+          district: string;
+          checked: boolean;
+          checked_by: string | null;
+          checked_at: string | null;
+          updated_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      post_rounds: {
+        Row: {
+          id: string;
+          batch_id: string;
+          month: string;
+          kind: "main" | "top_up";
+          status: PostRoundStatus;
+          receipt_total: number | null;
+          created_by: string | null;
+          created_at: string;
+          handed_over_by: string | null;
+          handed_over_at: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      post_parcels: {
+        Row: {
+          id: string;
+          round_id: string;
+          number: number;
+          student_key: string;
+          full_name: string;
+          whatsapp: string | null;
+          address: string;
+          district: string;
+          tracking_no: string | null;
+          status: PostParcelStatus;
+          packed_by: string | null;
+          packed_at: string | null;
+          status_at: string | null;
+          wa_sent_at: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "post_parcels_round_id_fkey";
+            columns: ["round_id"];
+            isOneToOne: false;
+            referencedRelation: "post_rounds";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      post_parcel_items: {
+        Row: {
+          id: string;
+          parcel_id: string;
+          tute_id: string;
+          class_id: string | null;
+          student_key: string;
+          month: string;
+          qty: number;
+          active: boolean;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "post_parcel_items_parcel_id_fkey";
+            columns: ["parcel_id"];
+            isOneToOne: false;
+            referencedRelation: "post_parcels";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "post_parcel_items_tute_id_fkey";
+            columns: ["tute_id"];
+            isOneToOne: false;
+            referencedRelation: "class_tutes";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      tute_stock_reservations: {
+        Row: {
+          id: string;
+          tute_id: string;
+          round_id: string;
+          month: string;
+          qty: number;
+          status: "active" | "committed" | "released";
+          created_at: string;
+          resolved_at: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
     };
     Views: {
       approved_work_summary: {
@@ -2091,6 +2199,39 @@ export type Database = {
           in_print: number;
         }[];
       };
+      post_addresses_save: {
+        Args: {
+          p_rows: { student_key: string; full_name: string; whatsapp: string | null; address: string; district: string }[];
+        };
+        Returns: number;
+      };
+      post_address_save: { Args: { p_student_key: string; p_address: string; p_checked?: boolean }; Returns: undefined };
+      post_addresses_confirm: { Args: { p_keys: string[] }; Returns: number };
+      post_month_students: {
+        Args: { p_batch: string; p_month: string };
+        Returns: {
+          student_key: string;
+          full_name: string;
+          classes: string;
+          whatsapp: string | null;
+          address: string | null;
+          checked: boolean;
+          problem: string;
+          tutes_due: number;
+          tutes_sent: number;
+        }[];
+      };
+      post_round_build: { Args: { p_batch: string; p_month: string; p_kind: "main" | "top_up" }; Returns: string };
+      post_parcel_pack: { Args: { p_parcel: string; p_packed?: boolean }; Returns: undefined };
+      post_parcel_set_tracking: { Args: { p_parcel: string; p_tracking: string }; Returns: undefined };
+      post_parcel_void: { Args: { p_parcel: string }; Returns: undefined };
+      post_round_cancel: { Args: { p_round: string }; Returns: undefined };
+      post_round_handover: { Args: { p_round: string; p_receipt_total?: number | null }; Returns: number };
+      post_parcel_set_status: {
+        Args: { p_parcel: string; p_status: "delivered" | "returned" | "lost"; p_copies_ok?: boolean };
+        Returns: undefined;
+      };
+      post_parcel_whatsapp_sent: { Args: { p_parcel: string }; Returns: undefined };
       tute_forecast_report: {
         Args: { p_batch: string };
         Returns: {
@@ -2154,6 +2295,8 @@ export type Database = {
   };
 };
 
+export type PostRoundStatus = "packing" | "handed_over" | "cancelled";
+export type PostParcelStatus = "planned" | "packed" | "handed_over" | "delivered" | "returned" | "lost" | "void";
 export type TutePrintJobStatus = "planned" | "printing" | "received" | "cancelled";
 export type TuteMoveKind =
   | "opening_stock"

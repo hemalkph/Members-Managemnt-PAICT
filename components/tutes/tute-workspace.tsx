@@ -106,6 +106,7 @@ export function TuteWorkspace({
   printers,
   moves,
   report,
+  reserved,
   month,
   tab: initialTab,
   canEdit,
@@ -115,6 +116,7 @@ export function TuteWorkspace({
   printers: TutePrinter[];
   moves: TuteMove[];
   report: TuteForecastCheck[];
+  reserved: Record<string, number>;
   month: string;
   tab: TuteTab;
   canEdit: boolean;
@@ -219,7 +221,12 @@ export function TuteWorkspace({
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-right font-semibold tabular-nums">{r.on_hand}</TableCell>
+                      <TableCell className="text-right font-semibold tabular-nums">
+                        {r.on_hand}
+                        {reserved[r.tute_id] > 0 && (
+                          <span className="text-muted-foreground block text-xs font-normal">{reserved[r.tute_id]} held for post</span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right tabular-nums">{r.in_print || "—"}</TableCell>
                       <TableCell className="text-right tabular-nums" title={needTitle(r)}>
                         {r.need_this > 0 ? (

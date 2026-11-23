@@ -144,6 +144,12 @@ describe("parseStudentCsv & compareClassMonths on real-world export quirks", () 
 
     const nov = parseStudentCsv(novemberCsv, "nov.csv");
     expect(nov.monthNumberHint).toBe(11);
+    // Address + nearest city make the postal address (city not repeated when already there).
+    expect(nov.groups[0].students.map((st) => st.address)).toEqual([
+      "32/91/1 Galapitagala, Ampara",
+      "Anamaduwa",
+      "Ratnapura, Godakawela",
+    ]);
     expect(nov.groups[0].detectedName).toBe("2027 Grand Revision");
     expect(nov.groups[0].students).toHaveLength(3);
 

@@ -815,6 +815,8 @@ const feeImportStudentRowSchema = z.object({
   raw_mobile: optionalText(60, "Mobile"),
   institute: optionalText(100, "Institute"),
   district: optionalText(100, "District"),
+  /** Saved privately for Speed Post (Online students only), never in the fee list. */
+  address: optionalText(500, "Address").default(""),
   is_new_student: z.boolean(),
   amount: z.number().min(0).max(10_000_000).nullable(),
   export_label: optionalText(120, "Label"),
@@ -973,3 +975,32 @@ export type TuteReceiveInput = z.input<typeof tuteReceiveSchema>;
 
 export const tuteJobStatusSchema = z.object({ id: uuid, status: z.enum(["printing", "cancelled"]) });
 export type TuteJobStatusInput = z.input<typeof tuteJobStatusSchema>;
+
+// ---------------------------------------------------------------------------
+// Speed Post (Phase 3)
+// ---------------------------------------------------------------------------
+export const postAddressSchema = z.object({
+  student_key: z.string().trim().min(2).max(200),
+  address: trimmed(1, 500, "Address"),
+  checked: z.boolean().default(true),
+});
+export type PostAddressInput = z.input<typeof postAddressSchema>;
+
+export const postRoundBuildSchema = z.object({ batch_id: uuid, month: monthKey, kind: z.enum(["main", "top_up"]) });
+export type PostRoundBuildInput = z.input<typeof postRoundBuildSchema>;
+
+export const postTrackingSchema = z.object({ id: uuid, tracking: optionalText(60, "Tracking number") });
+export type PostTrackingInput = z.input<typeof postTrackingSchema>;
+
+export const postHandoverSchema = z.object({
+  id: uuid,
+  receipt_total: z.coerce.number().min(0, "Can't be negative").max(100000000).nullable().default(null),
+});
+export type PostHandoverInput = z.input<typeof postHandoverSchema>;
+
+export const postParcelStatusSchema = z.object({
+  id: uuid,
+  status: z.enum(["delivered", "returned", "lost"]),
+  copies_ok: z.boolean().default(true),
+});
+export type PostParcelStatusInput = z.input<typeof postParcelStatusSchema>;

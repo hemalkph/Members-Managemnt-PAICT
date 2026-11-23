@@ -19,6 +19,7 @@ export type PageKey =
   | "student_results"
   | "fee_reminders"
   | "tutes"
+  | "post"
   | "structure"
   | "activity";
 
@@ -58,6 +59,8 @@ export const PAGES: PageInfo[] = [
   { key: "fee_reminders", title: "Fee reminders", href: "/admin/fee-reminders", forMembers: true },
   // Tute stock and print jobs (no student details), e.g. for the Physical Coordinator.
   { key: "tutes", title: "Tute stock", href: "/admin/tutes", forMembers: true },
+  // Postal addresses of Online students: give it only to staff who post the tutes.
+  { key: "post", title: "Speed Post", href: "/admin/post", forMembers: true },
   { key: "structure", title: "Sections & roles", href: "/admin/structure" },
   { key: "activity", title: "Activity log", href: "/admin/activity", mainOnly: true },
 ];

@@ -58,7 +58,7 @@ export async function getTuteBatches(supabase: Client) {
 
 /** Everything the Tute stock page shows for one batch and month. */
 export async function getTuteWorkspace(supabase: Client, batchId: string, month: string) {
-  const [stock, jobs, printers, moves, directory, report] = await Promise.all([
+  const [stock, jobs, printers, moves, directory, report, held] = await Promise.all([
     supabase.rpc("tute_stock_summary", { p_batch: batchId, p_month: monthKeyToDate(month) }),
     supabase
       .from("tute_print_jobs")
@@ -75,13 +75,18 @@ export async function getTuteWorkspace(supabase: Client, batchId: string, month:
       .limit(300),
     supabase.rpc("team_directory"),
     supabase.rpc("tute_forecast_report", { p_batch: batchId }),
+    supabase.from("tute_stock_reservations").select("tute_id, qty").eq("status", "active"),
   ]);
   if (stock.error) throw new Error(stock.error.message);
 
   const nameById = new Map((directory.data ?? []).map((p) => [p.id, p.name]));
+  // Copies held for Speed Post rounds that aren't handed over yet.
+  const reserved: Record<string, number> = {};
+  for (const r of held.data ?? []) reserved[r.tute_id] = (reserved[r.tute_id] ?? 0) + r.qty;
 
   return {
     stock: (stock.data ?? []) as TuteStockRow[],
+    reserved,
     report: (report.data ?? []).map(
       (r): TuteForecastCheck => ({
         classId: r.class_id,
