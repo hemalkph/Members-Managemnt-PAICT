@@ -13,7 +13,18 @@ export default async function PostRoundPage({ params }: PageProps<"/admin/post/[
   const { round: id } = await params;
   if (!uuid.safeParse(id).success) notFound();
   const supabase = await createClient();
-  const round = await getPostRound(supabase, id);
+  const [round, { data: risks }, { data: learning }] = await Promise.all([
+    getPostRound(supabase, id),
+    supabase.rpc("post_round_risks", { p_round: id }),
+    supabase.rpc("post_risk_learning"),
+  ]);
   if (!round) notFound();
-  return <RoundWorkspace round={round} canEdit={canEdit} />;
+  return (
+    <RoundWorkspace
+      round={round}
+      canEdit={canEdit}
+      risks={Object.fromEntries((risks ?? []).map((r) => [r.parcel_id, r.reason]))}
+      learning={learning?.[0] ?? { resolved: 0, returned: 0, needed: 30 }}
+    />
+  );
 }

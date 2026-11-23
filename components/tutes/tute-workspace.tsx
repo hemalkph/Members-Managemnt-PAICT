@@ -107,6 +107,7 @@ export function TuteWorkspace({
   moves,
   report,
   reserved,
+  pace,
   month,
   tab: initialTab,
   canEdit,
@@ -117,6 +118,7 @@ export function TuteWorkspace({
   moves: TuteMove[];
   report: TuteForecastCheck[];
   reserved: Record<string, number>;
+  pace: { samples: number; needed: number };
   month: string;
   tab: TuteTab;
   canEdit: boolean;
@@ -287,6 +289,7 @@ export function TuteWorkspace({
           <PrintPlan
             rows={rows}
             report={report}
+            pace={pace}
             month={month}
             canEdit={canEdit}
             onCreateJob={(r) => setDialog({ kind: "job", row: r })}

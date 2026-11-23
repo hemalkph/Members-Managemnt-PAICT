@@ -23,9 +23,11 @@ const left = (r: TuteStockRow) => Math.max(r.need_this - r.given_this, 0);
 
 /** "Theory ~102 (60 Online + 42 Hall)" — a guess shows its range. */
 export function classNeed(c: TuteClassNeed): string {
-  const n = c.uploaded ? `${c.expected}` : `~${c.expected}`;
+  const paced = c.pace !== null && c.paid !== null && c.expected === c.pace && c.pace > c.paid;
+  const n = c.uploaded && !paced ? `${c.expected}` : `~${c.expected}`;
   const range = !c.uploaded && c.high > c.low ? `, ${c.low}–${c.high}` : "";
-  return `${c.name} ${n} (${c.online} Online + ${c.expected - c.online} Hall${range})`;
+  const sofar = paced ? `, ${c.paid} paid so far at the usual pace` : "";
+  return `${c.name} ${n} (${c.online} Online + ${c.expected - c.online} Hall${range}${sofar})`;
 }
 
 /** The sum behind "print N", in plain words. */
@@ -49,12 +51,14 @@ export function printReason(r: TuteStockRow, month: string): string {
 export function PrintPlan({
   rows,
   report,
+  pace,
   month,
   canEdit,
   onCreateJob,
 }: {
   rows: TuteStockRow[];
   report: TuteForecastCheck[];
+  pace: { samples: number; needed: number };
   month: string;
   canEdit: boolean;
   onCreateJob: (row: TuteStockRow) => void;
@@ -138,6 +142,11 @@ export function PrintPlan({
           </CardDescription>
         </CardHeader>
         <CardContent>
+          <p className="text-muted-foreground mb-3 text-xs">
+            {pace.samples >= pace.needed
+              ? "Mid-month forecast is on: an early paid list is scaled up by how far payments usually are by that day."
+              : `Mid-month forecast is still learning: ${pace.samples} of ${pace.needed} past class-months with more than one upload. Upload the paid list a few times a month to teach it.`}
+          </p>
           {byClass.size === 0 ? (
             <p className="text-muted-foreground text-sm">Upload at least two months of paid lists to see this.</p>
           ) : (
