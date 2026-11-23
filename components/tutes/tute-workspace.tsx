@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/empty-state";
+import { classNeed, PrintPlan, printReason } from "@/components/tutes/print-plan";
 import { StatCard } from "@/components/stat-card";
 import {
   AlertDialog,
@@ -57,9 +58,9 @@ import type { ActionResult } from "@/lib/core/action-result";
 import { formatDate, formatDateTime } from "@/lib/core/format";
 import { monthLabel, shiftMonth, todayISO } from "@/lib/core/month";
 import type { TuteMoveKind, TuteStockRow, TuteStockStatus } from "@/lib/supabase/database.types";
-import type { TuteMove, TutePrinter, TutePrintJob } from "@/lib/tutes/queries";
+import type { TuteForecastCheck, TuteMove, TutePrinter, TutePrintJob } from "@/lib/tutes/queries";
 
-export type TuteTab = "stock" | "jobs" | "history";
+export type TuteTab = "stock" | "plan" | "jobs" | "history";
 
 const STATUS: Record<TuteStockStatus, { label: string; variant: "destructive" | "warning" | "success" | "outline" }> = {
   out: { label: "Out", variant: "destructive" },
@@ -94,17 +95,9 @@ type DialogState =
 
 const leftThisMonth = (r: TuteStockRow) => Math.max(r.need_this - r.given_this, 0);
 
-/** Copies to print so this month and next are covered, rounded up to the print batch. */
-function suggestedPrint(r: TuteStockRow): number {
-  const short = leftThisMonth(r) + r.need_next - r.on_hand - r.in_print;
-  if (short <= 0) return 0;
-  const batch = Math.max(r.print_batch, 1);
-  return Math.ceil(short / batch) * batch;
-}
-
 function needTitle(r: TuteStockRow): string {
   if (r.classes.length === 0) return "Not scheduled for any class this month";
-  return r.classes.map((c) => `${c.name}: ${c.expected} expected, ${c.given} given`).join("\n");
+  return r.classes.map((c) => `${classNeed(c)}: ${c.given} given`).join("\n");
 }
 
 export function TuteWorkspace({
@@ -112,6 +105,7 @@ export function TuteWorkspace({
   jobs,
   printers,
   moves,
+  report,
   month,
   tab: initialTab,
   canEdit,
@@ -120,6 +114,7 @@ export function TuteWorkspace({
   jobs: TutePrintJob[];
   printers: TutePrinter[];
   moves: TuteMove[];
+  report: TuteForecastCheck[];
   month: string;
   tab: TuteTab;
   canEdit: boolean;
@@ -172,6 +167,12 @@ export function TuteWorkspace({
       <Tabs value={tab} onValueChange={changeTab}>
         <TabsList>
           <TabsTrigger value="stock">Stock</TabsTrigger>
+          <TabsTrigger value="plan">
+            Print plan
+            {rows.some((r) => r.print_now > 0) && (
+              <span className="text-muted-foreground ml-1 tabular-nums">{rows.filter((r) => r.print_now > 0).length}</span>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="jobs">
             Print jobs{openJobs.length > 0 && <span className="text-muted-foreground ml-1 tabular-nums">{openJobs.length}</span>}
           </TabsTrigger>
@@ -269,8 +270,20 @@ export function TuteWorkspace({
             </Card>
           )}
           <p className="text-muted-foreground mt-2 text-xs">
-            Needed = students who paid that month (or the latest uploaded month). Hover a number to see each class.
+            Needed = students who paid that month, or the forecast while its paid list isn&apos;t in yet (whichever is
+            higher). Hover a number to see each class.
           </p>
+        </TabsContent>
+
+        {/* ------------------------------------------------------- Print plan */}
+        <TabsContent value="plan" className="mt-3">
+          <PrintPlan
+            rows={rows}
+            report={report}
+            month={month}
+            canEdit={canEdit}
+            onCreateJob={(r) => setDialog({ kind: "job", row: r })}
+          />
         </TabsContent>
 
         {/* ------------------------------------------------------- Print jobs */}
@@ -457,6 +470,11 @@ export function TuteWorkspace({
                           <span className="text-muted-foreground"> · {monthLabel(m.month.slice(0, 7), "short")}</span>
                         )}
                         {m.note && <p className="text-muted-foreground text-xs">{m.note}</p>}
+                        {m.flag && (
+                          <p className="mt-1 flex items-start gap-1 text-xs text-amber-700 dark:text-warning">
+                            <TriangleAlertIcon className="mt-px size-3.5 shrink-0" /> {m.flag}
+                          </p>
+                        )}
                       </TableCell>
                       <TableCell>{m.by}</TableCell>
                     </TableRow>
@@ -619,7 +637,7 @@ function TuteDialog({
     printer: state.kind === "printer" && state.printer ? "Edit printer" : "Add printer",
   }[state.kind];
 
-  const suggestion = jobRow ? suggestedPrint(jobRow) : 0;
+  const suggestion = jobRow?.print_now ?? 0;
 
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
@@ -743,8 +761,8 @@ function TuteDialog({
                 defaultValue={suggestion || ""}
                 hint={
                   jobRow && suggestion > 0
-                    ? `Suggested: ${leftThisMonth(jobRow)} still to give + ${jobRow.need_next} next month − ${jobRow.on_hand} on hand − ${jobRow.in_print} printing, rounded up to ${jobRow.print_batch}.`
-                    : "This month and next are already covered."
+                    ? `Suggested: ${printReason(jobRow, month)}.`
+                    : "This month and next are already covered, with spare copies."
                 }
               />
               <div className="space-y-1.5">

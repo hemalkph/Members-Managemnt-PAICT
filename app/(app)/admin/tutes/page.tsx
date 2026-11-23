@@ -13,7 +13,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Tute stock" };
 
-const TABS: TuteTab[] = ["stock", "jobs", "history"];
+const TABS: TuteTab[] = ["stock", "plan", "jobs", "history"];
 
 function param(value: string | string[] | undefined) {
   return (Array.isArray(value) ? value[0] : value) ?? "";

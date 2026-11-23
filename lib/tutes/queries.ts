@@ -1,6 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { monthKeyToDate } from "@/lib/core/month";
-import type { Database, TuteMoveKind, TutePrintJobStatus, TuteStockRow } from "@/lib/supabase/database.types";
+import type {
+  Database,
+  TuteForecastMethod,
+  TuteMoveKind,
+  TutePrintJobStatus,
+  TuteStockRow,
+} from "@/lib/supabase/database.types";
 
 type Client = SupabaseClient<Database>;
 
@@ -30,8 +36,19 @@ export type TuteMove = {
   className: string | null;
   month: string | null;
   note: string;
+  /** Why the number looked odd ("" when fine). */
+  flag: string;
   by: string;
   createdAt: string;
+};
+
+export type TuteForecastCheck = {
+  classId: string;
+  className: string;
+  month: string;
+  forecast: number;
+  actual: number;
+  method: TuteForecastMethod;
 };
 
 export async function getTuteBatches(supabase: Client) {
@@ -41,7 +58,7 @@ export async function getTuteBatches(supabase: Client) {
 
 /** Everything the Tute stock page shows for one batch and month. */
 export async function getTuteWorkspace(supabase: Client, batchId: string, month: string) {
-  const [stock, jobs, printers, moves, directory] = await Promise.all([
+  const [stock, jobs, printers, moves, directory, report] = await Promise.all([
     supabase.rpc("tute_stock_summary", { p_batch: batchId, p_month: monthKeyToDate(month) }),
     supabase
       .from("tute_print_jobs")
@@ -57,6 +74,7 @@ export async function getTuteWorkspace(supabase: Client, batchId: string, month:
       .order("created_at", { ascending: false })
       .limit(300),
     supabase.rpc("team_directory"),
+    supabase.rpc("tute_forecast_report", { p_batch: batchId }),
   ]);
   if (stock.error) throw new Error(stock.error.message);
 
@@ -64,6 +82,16 @@ export async function getTuteWorkspace(supabase: Client, batchId: string, month:
 
   return {
     stock: (stock.data ?? []) as TuteStockRow[],
+    report: (report.data ?? []).map(
+      (r): TuteForecastCheck => ({
+        classId: r.class_id,
+        className: r.class_name,
+        month: r.month.slice(0, 7),
+        forecast: r.forecast,
+        actual: r.actual,
+        method: r.method,
+      }),
+    ),
     printers: (printers.data ?? []).map(
       (p): TutePrinter => ({
         id: p.id,
@@ -100,6 +128,7 @@ export async function getTuteWorkspace(supabase: Client, batchId: string, month:
         className: m.fee_classes?.name ?? null,
         month: m.month,
         note: m.note,
+        flag: m.flag,
         by: (m.created_by && nameById.get(m.created_by)) || "—",
         createdAt: m.created_at,
       }),
