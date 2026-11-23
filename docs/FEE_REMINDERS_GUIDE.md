@@ -123,7 +123,7 @@ Open the **`Tutes`** tab for any selected Batch and Class:
 - **Different tutes per month:** Choose any month in **Schedule month** (past, current, or **up to 12 future months ahead**) to add or arrange that month's tutes — even before student paid lists are uploaded.
 - **Assign to multiple months at once:** When adding a new tute (English or Helakuru Sinhala), tap any upcoming month chips (e.g. `+ Dec 2026`, `+ Jan 2027`) to schedule it across multiple months in one click.
 - **Reuse from the batch catalog:** Use **Reuse existing tute** to attach a previously created tute to another month or another class in the same batch without re-typing.
-- **Reorder or remove:** Use ↑ / ↓ arrows to control the exact order shown in `{tutes_list}`, or click **×** to unlink a tute from a single month while keeping it in the catalog (ready for your future Tute Dispatch module).
+- **Reorder or remove:** Use ↑ / ↓ arrows to control the exact order shown in `{tutes_list}`, or click **×** to unlink a tute from a single month while keeping it in the catalog (its stock on Tute stock is kept).
 - **Missing-tutes guard:** If your selected WhatsApp template uses `{tutes}` or `{tutes_list}` while the current month has 0 tutes added yet, a yellow banner alerts you right above the Due table and inside the WhatsApp Queue.
 
 ### Using Helakuru for Sinhala Templates

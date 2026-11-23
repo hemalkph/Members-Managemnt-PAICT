@@ -119,6 +119,12 @@ export default async function FeeRemindersPage({ searchParams }: PageProps<"/adm
 
   const defaultUploadMonth = todayISO().slice(0, 7);
 
+  // Stock chips next to each scheduled tute.
+  const { data: levels } = tuteCatalog.length
+    ? await supabase.rpc("tute_stock_levels", { p_tute_ids: tuteCatalog.map((t) => t.id) })
+    : { data: [] };
+  const tuteStock = Object.fromEntries((levels ?? []).map((l) => [l.tute_id, { onHand: l.on_hand, inPrint: l.in_print }]));
+
   return (
     <FeeWorkspace
       batches={batches}
@@ -126,6 +132,7 @@ export default async function FeeRemindersPage({ searchParams }: PageProps<"/adm
       templates={templates}
       tuteCatalog={tuteCatalog}
       scheduledTutes={scheduledTutes}
+      tuteStock={tuteStock}
       selectedBatchId={selectedBatchId}
       selectedClassId={selectedClass?.id ?? null}
       prevMonth={prevMonth}

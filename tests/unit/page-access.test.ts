@@ -29,7 +29,7 @@ describe("a member page in the page-access model", () => {
   });
 });
 
-test("members can be given Student results, Concession students and Fee reminders, but not by default", () => {
+test("members can be given Student results, Concession students, Fee reminders and Tute stock, but not by default", () => {
   const keys = editablePages(member).map((p) => p.key);
   expect(keys).toContain("student_results");
   expect(keys).toContain("students");
@@ -38,6 +38,9 @@ test("members can be given Student results, Concession students and Fee reminder
   expect(pageAccess({ ...member, page_access: { students: "view" } }, "students")).toBe("view");
   expect(pageAccess({ ...member, page_access: null }, "fee_reminders")).toBe("none");
   expect(pageAccess({ ...member, page_access: { fee_reminders: "edit" } }, "fee_reminders")).toBe("edit");
+  expect(keys).toContain("tutes");
+  expect(pageAccess({ ...member, page_access: null }, "tutes")).toBe("none");
+  expect(pageAccess({ ...member, page_access: { tutes: "view" } }, "tutes")).toBe("view");
 });
 
 test("every page that can be given has a place in the sidebar, with the same name and address", () => {

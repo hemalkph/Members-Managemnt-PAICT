@@ -910,3 +910,66 @@ export const classMonthTuteReorderSchema = z.object({
   ids: z.array(uuid).min(1).max(100),
 });
 export type ClassMonthTuteReorderInput = z.input<typeof classMonthTuteReorderSchema>;
+
+// ---------------------------------------------------------------------------
+// Tute stock (Phase 1)
+// ---------------------------------------------------------------------------
+const copies = (label: string, min = 1) =>
+  z.coerce
+    .number(`${label} must be a number`)
+    .int(`${label} must be a whole number`)
+    .min(min, `${label} must be at least ${min}`)
+    .max(100000, `${label} is too large`);
+
+export const tuteCountSchema = z.object({
+  tute_id: uuid,
+  counted: copies("Count", 0),
+  note: optionalText(300, "Note").default(""),
+});
+export type TuteCountInput = z.input<typeof tuteCountSchema>;
+
+export const tuteIssueSchema = z
+  .object({
+    tute_id: uuid,
+    qty: copies("Copies"),
+    kind: z.enum(["class_issue", "damaged"]),
+    class_id: uuid.nullable().default(null),
+    month: monthKey,
+    note: optionalText(300, "Note").default(""),
+  })
+  .refine((v) => v.kind !== "class_issue" || v.class_id, { message: "Pick the class", path: ["class_id"] });
+export type TuteIssueInput = z.input<typeof tuteIssueSchema>;
+
+export const tuteSettingsSchema = z.object({
+  tute_id: uuid,
+  pages: z.coerce.number().int().min(1, "Pages must be at least 1").max(2000).nullable(),
+  reorder_level: z.coerce.number().int().min(0).max(100000).nullable(),
+  print_batch: z.coerce.number().int().min(1, "Print in batches of at least 1").max(10000),
+});
+export type TuteSettingsInput = z.input<typeof tuteSettingsSchema>;
+
+export const tutePrinterSchema = z.object({
+  id: uuid.optional(),
+  name: trimmed(2, 100, "Printer name"),
+  phone: phone("phone number").default(""),
+  notes: optionalText(300, "Notes").default(""),
+  usual_days: z.coerce.number().int().min(1, "At least 1 day").max(90, "At most 90 days"),
+  is_active: z.boolean().default(true),
+});
+export type TutePrinterInput = z.input<typeof tutePrinterSchema>;
+
+export const tutePrintJobSchema = z.object({
+  tute_id: uuid,
+  qty: copies("Copies"),
+  printer_id: uuid.nullable().default(null),
+  due_date: isoDate.nullable().default(null),
+  cost: z.coerce.number().min(0, "Cost can't be negative").max(100000000).nullable().default(null),
+  note: optionalText(300, "Note").default(""),
+});
+export type TutePrintJobInput = z.input<typeof tutePrintJobSchema>;
+
+export const tuteReceiveSchema = z.object({ id: uuid, qty: copies("Copies") });
+export type TuteReceiveInput = z.input<typeof tuteReceiveSchema>;
+
+export const tuteJobStatusSchema = z.object({ id: uuid, status: z.enum(["printing", "cancelled"]) });
+export type TuteJobStatusInput = z.input<typeof tuteJobStatusSchema>;
