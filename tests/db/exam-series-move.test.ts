@@ -18,8 +18,20 @@ beforeAll(async () => {
 afterAll(() => db.end());
 
 test("papers and tasks land on RFP 02–05 with their parts; paid work keeps its exam", async () => {
+  // The move takes every untagged "RFP n" paper in the database, so other test
+  // files' papers (e.g. "RFP 09 - MCQ") are hidden here, and it all rolls back.
+  await db.query("begin");
+  try {
+    await moveTest();
+  } finally {
+    await db.query("rollback");
+  }
+});
+
+async function moveTest() {
   const member = await createPerson(db);
   await asOwner(db);
+  await q("update public.papers set title = 'other ' || title where title ~* '^\\s*RFP\\s*[0-9]' and exam_id is null");
   await q("delete from public.batches where name = '2027 A/L'");
   const [{ id: batch }] = await q("insert into public.batches (name) values ('2027 A/L') returning id");
   const [{ id: full }] = await q(
@@ -79,4 +91,4 @@ test("papers and tasks land on RFP 02–05 with their parts; paid work keeps its
   expect(
     (await q("select name from public.exams where id in ($1, $2) order by name", [rfp, full])).map((r) => r.name),
   ).toEqual(["RFP 04", "RFP 05"]);
-});
+}
