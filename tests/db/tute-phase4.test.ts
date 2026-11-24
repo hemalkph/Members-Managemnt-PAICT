@@ -2,7 +2,7 @@
 // known outcomes), and the Monday summary.
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import type pg from "pg";
-import { actAs, asOwner, createBatch, createPerson, session, type Actor } from "./helpers";
+import { actAs, asOwner, createBatch, createPerson, createTute, session, type Actor } from "./helpers";
 
 let db: pg.Client;
 let stocker: Actor;
@@ -55,8 +55,11 @@ describe("mid-month forecast", () => {
     // Past months never use it.
     expect((await q(`select public.tute_paced_expected($1, ${MONTH(-1)}) as n`, [classId]))[0].n).toBeNull();
 
+    expect((await q("select samples from public.tute_pace_share($1, 31)", [batch]))[0].samples).toBe(4);
+    // The whole shelf reports the batch that has learned least: add one that has learned nothing.
+    await q("insert into public.fee_classes (batch_id, name) values ($1, $2)", [await createBatch(db), `New batch ${stamp}`]);
     await actAs(db, stocker);
-    expect((await q("select * from public.tute_pace_status($1)", [batch]))[0].samples).toBe(4);
+    expect((await q("select * from public.tute_pace_status()"))[0]).toEqual({ samples: 0, needed: 4 });
   });
 });
 
@@ -110,9 +113,7 @@ describe("weekly summary", () => {
   test("each person gets one Monday note with the parts they can open", async () => {
     await actAs(db, stocker);
     const classId = (await q("select public.fee_class_save(null, $1, $2, true) as id", [batch, `Weekly ${stamp}`]))[0].id;
-    const tute = (
-      await q(`select public.class_tute_create_and_assign($1, $2, $3, '', array[${MONTH(0)}]) as id`, [batch, classId, `Unit 20 ${stamp}`])
-    )[0].id;
+    const tute = await createTute(db, classId, `Unit 20 ${stamp}`, [MONTH(0)]);
     await asOwner(db);
     await q("insert into public.tute_alert_state (tute_id, level) values ($1, 'out') on conflict (tute_id) do update set level = 'out'", [tute]);
 

@@ -880,24 +880,6 @@ export const feeTemplateSchema = z.object({
 export type FeeTemplateInput = z.input<typeof feeTemplateSchema>;
 
 // ---------------------------------------------------------------- monthly & future-month class tutes
-export const classTuteCreateSchema = z.object({
-  batch_id: z.uuid("Choose a batch"),
-  class_id: optionalUuid.default(""),
-  name: trimmed(2, 150, "Tute name"),
-  code: optionalText(30, "Tute code").default(""),
-  months: z.array(monthKey).max(24, "Select at most 24 months at once").default([]),
-  note: optionalText(200, "Note").default(""),
-});
-export type ClassTuteCreateInput = z.input<typeof classTuteCreateSchema>;
-
-export const classTuteUpdateSchema = z.object({
-  id: uuid,
-  name: trimmed(2, 150, "Tute name"),
-  code: optionalText(30, "Tute code").default(""),
-  is_active: z.boolean().default(true),
-});
-export type ClassTuteUpdateInput = z.input<typeof classTuteUpdateSchema>;
-
 export const classMonthTuteAttachSchema = z.object({
   class_id: uuid,
   month: monthKey,
@@ -942,13 +924,38 @@ export const tuteIssueSchema = z
   .refine((v) => v.kind !== "class_issue" || v.class_id, { message: "Pick the class", path: ["class_id"] });
 export type TuteIssueInput = z.input<typeof tuteIssueSchema>;
 
-export const tuteSettingsSchema = z.object({
-  tute_id: uuid,
+/** Count all: one shelf count per tute (blank rows are left out by the page). */
+export const tuteCountManySchema = z
+  .array(z.object({ tute_id: uuid, counted: copies("Count", 0) }))
+  .min(1, "Enter at least one count")
+  .max(300);
+export type TuteCountManyInput = z.input<typeof tuteCountManySchema>;
+
+/** Hand out by class: copies of several tutes given to one class in a month. */
+export const tuteHandOutSchema = z.object({
+  class_id: uuid,
+  month: monthKey,
+  items: z
+    .array(z.object({ tute_id: uuid, qty: copies("Copies") }))
+    .min(1, "Enter copies for at least one tute")
+    .max(100),
+});
+export type TuteHandOutInput = z.input<typeof tuteHandOutSchema>;
+
+export const tuteSaveSchema = z.object({
+  id: uuid.optional(),
+  name: trimmed(2, 150, "Tute name"),
+  code: optionalText(30, "Tute code").default(""),
+  is_active: z.boolean().default(true),
   pages: z.coerce.number().int().min(1, "Pages must be at least 1").max(2000).nullable(),
   reorder_level: z.coerce.number().int().min(0).max(100000).nullable(),
   print_batch: z.coerce.number().int().min(1, "Print in batches of at least 1").max(10000),
+  paper_id: uuid.nullable().default(null),
+  opening_stock: z.coerce.number().int().min(0, "Opening copies can't be negative").max(100000).nullable().optional(),
+  schedule_class_ids: z.array(uuid).max(50).optional(),
+  schedule_month: monthKey.optional(),
 });
-export type TuteSettingsInput = z.input<typeof tuteSettingsSchema>;
+export type TuteSaveInput = z.input<typeof tuteSaveSchema>;
 
 export const tutePrinterSchema = z.object({
   id: uuid.optional(),
@@ -970,11 +977,32 @@ export const tutePrintJobSchema = z.object({
 });
 export type TutePrintJobInput = z.input<typeof tutePrintJobSchema>;
 
-export const tuteReceiveSchema = z.object({ id: uuid, qty: copies("Copies") });
+export const tutePrintJobUpdateSchema = z.object({
+  id: uuid,
+  qty: copies("Copies"),
+  printer_id: uuid.nullable().default(null),
+  due_date: isoDate.nullable().default(null),
+  cost: z.coerce.number().min(0, "Cost can't be negative").max(100000000).nullable().default(null),
+  note: optionalText(300, "Note").default(""),
+});
+export type TutePrintJobUpdateInput = z.input<typeof tutePrintJobUpdateSchema>;
+
+export const tuteReceiveSchema = z.object({
+  id: uuid,
+  qty: copies("Copies"),
+  cost: z.coerce.number().min(0, "Cost can't be negative").max(100000000).nullable().optional(),
+});
 export type TuteReceiveInput = z.input<typeof tuteReceiveSchema>;
 
 export const tuteJobStatusSchema = z.object({ id: uuid, status: z.enum(["printing", "cancelled"]) });
 export type TuteJobStatusInput = z.input<typeof tuteJobStatusSchema>;
+
+export const MAX_TUTE_COVER_BYTES = 5 * 1024 * 1024;
+export const tuteCoverSchema = z.object({
+  tute_id: uuid,
+  path: z.string().trim().min(1).max(300).nullable(),
+});
+export type TuteCoverInput = z.input<typeof tuteCoverSchema>;
 
 // ---------------------------------------------------------------------------
 // Speed Post (Phase 3)

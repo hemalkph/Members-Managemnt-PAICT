@@ -76,11 +76,16 @@ export default async function LibraryPage({ searchParams }: PageProps<"/library"
   const tuteStock = new Map<string, TuteStock>(
     (levels ?? []).map((l) => [
       l.paper_id ?? "",
-      { onHand: l.on_hand, inPrint: l.in_print, href: `/admin/tutes?batch=${l.batch_id}&tab=jobs` },
+      { onHand: l.on_hand, inPrint: l.in_print, href: `/admin/tutes?tab=jobs&order=${l.tute_id}` },
     ]),
   );
+  // Grouped by exam; tutes for no exam are one shared "Tutes" group (every batch uses them).
   const examOf = (r: (typeof rows)[number]) =>
-    r.exam_name ? `${r.batch_name ? `${r.batch_name} – ` : ""}${r.exam_name}` : "Other papers";
+    r.exam_name
+      ? `${r.batch_name ? `${r.batch_name} – ` : ""}${r.exam_name}`
+      : r.kind === "tute"
+        ? "Tutes"
+        : "Other papers";
   const exams = [...new Set(rows.map(examOf))].sort((a, b) => (a === "Other papers" ? 1 : b === "Other papers" ? -1 : a.localeCompare(b)));
 
   // exam → set → paper → latest file per stage

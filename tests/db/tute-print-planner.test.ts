@@ -3,7 +3,7 @@
 // and the forecast report card.
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import type pg from "pg";
-import { actAs, asOwner, createBatch, createPerson, session, type Actor } from "./helpers";
+import { actAs, asOwner, createBatch, createPerson, createTute, session, type Actor } from "./helpers";
 
 let db: pg.Client;
 let editor: Actor;
@@ -31,17 +31,12 @@ async function forecast(classId: string, offset: number) {
 
 async function newTute(name: string, classId: string, offsets: number[]): Promise<string> {
   await actAs(db, editor);
-  return (
-    await q(
-      `select public.class_tute_create_and_assign($1, $2, $3, '', array[${offsets.map(MONTH).join(", ")}]) as id`,
-      [batch, classId, `${name} ${stamp}`],
-    )
-  )[0].id;
+  return createTute(db, classId, `${name} ${stamp}`, offsets.map(MONTH));
 }
 
 async function summary(tuteId: string) {
   await actAs(db, editor);
-  return (await q("select * from public.tute_stock_summary($1, null) where tute_id = $2", [batch, tuteId]))[0];
+  return (await q("select * from public.tute_stock_summary(null) where tute_id = $1", [tuteId]))[0];
 }
 
 beforeAll(async () => {
@@ -104,6 +99,7 @@ describe("print plan", () => {
     tuteId = await newTute("Unit 09", classId, [1]);
     await actAs(db, editor);
     await q("select public.tute_settings_save($1, 40, null, 25)", [tuteId]);
+    await q("select public.tute_stock_count($1, 0)", [tuteId]); // counted: the shelf is empty
     const row = await summary(tuteId);
     // next month ~100, safety max(1.65 × 0, 5% of 100, 5) = 5 → 105 → 125
     expect(row).toMatchObject({ need_next: 100, safety: 5, loss_extra: 0, print_now: 125, status: "low" });

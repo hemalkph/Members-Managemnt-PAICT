@@ -5,6 +5,7 @@ import type { Database } from "@/lib/supabase/database.types";
 
 export const ATTACHMENTS_BUCKET = "attachments";
 export const AVATARS_BUCKET = "avatars";
+export const TUTE_COVERS_BUCKET = "tute-covers";
 const SIGNED_URL_SECONDS = 60 * 60; // 1 hour
 
 type Client = SupabaseClient<Database>;
@@ -22,6 +23,18 @@ export async function signedAvatarUrls(supabase: Client, paths: (string | null)[
   const map = new Map<string, string>();
   if (unique.length === 0) return map;
   const { data } = await supabase.storage.from(AVATARS_BUCKET).createSignedUrls(unique, SIGNED_URL_SECONDS);
+  for (const item of data ?? []) {
+    if (item.path && item.signedUrl) map.set(item.path, item.signedUrl);
+  }
+  return map;
+}
+
+/** Signed URLs for many tute cover images at once, keyed by path. */
+export async function signedTuteCoverUrls(supabase: Client, paths: (string | null)[]): Promise<Map<string, string>> {
+  const unique = [...new Set(paths.filter((p): p is string => Boolean(p)))];
+  const map = new Map<string, string>();
+  if (unique.length === 0) return map;
+  const { data } = await supabase.storage.from(TUTE_COVERS_BUCKET).createSignedUrls(unique, SIGNED_URL_SECONDS);
   for (const item of data ?? []) {
     if (item.path && item.signedUrl) map.set(item.path, item.signedUrl);
   }

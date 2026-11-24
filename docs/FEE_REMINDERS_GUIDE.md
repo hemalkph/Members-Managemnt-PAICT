@@ -118,11 +118,13 @@ Tap any chip below the editor to insert it at your cursor:
 
 ## 5B. Managing Monthly & Future-Month Tutes
 
+Tutes are **created on Tute stock** (Manage → Students → Tute stock → **New tute**), where their copies are kept too. Fee reminders only picks them.
+
 Open the **`Tutes`** tab for any selected Batch and Class:
 
-- **Different tutes per month:** Choose any month in **Schedule month** (past, current, or **up to 12 future months ahead**) to add or arrange that month's tutes — even before student paid lists are uploaded.
-- **Assign to multiple months at once:** When adding a new tute (English or Helakuru Sinhala), tap any upcoming month chips (e.g. `+ Dec 2026`, `+ Jan 2027`) to schedule it across multiple months in one click.
-- **Reuse from the batch catalog:** Use **Reuse existing tute** to attach a previously created tute to another month or another class in the same batch without re-typing.
+- **Different tutes per month:** Choose any month in **Schedule month** (past, current, or **up to 12 future months ahead**) to arrange that month's tutes — even before student paid lists are uploaded.
+- **Pick tutes one by one:** In **Add a tute to …**, choose a tute of the batch and press **Add**. Repeat for each tute, and for each month or class that uses it.
+- **No tute in the list?** Press **Create or edit tutes on Tute stock**, add it there, and come back.
 - **Reorder or remove:** Use ↑ / ↓ arrows to control the exact order shown in `{tutes_list}`, or click **×** to unlink a tute from a single month while keeping it in the catalog (its stock on Tute stock is kept).
 - **Missing-tutes guard:** If your selected WhatsApp template uses `{tutes}` or `{tutes_list}` while the current month has 0 tutes added yet, a yellow banner alerts you right above the Due table and inside the WhatsApp Queue.
 

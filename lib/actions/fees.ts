@@ -7,8 +7,6 @@ import { monthKeyToDate } from "@/lib/core/month";
 import {
   classMonthTuteAttachSchema,
   classMonthTuteReorderSchema,
-  classTuteCreateSchema,
-  classTuteUpdateSchema,
   feeClassSchema,
   feeFollowupSchema,
   feeMonthDeleteSchema,
@@ -18,8 +16,6 @@ import {
   idSchema,
   type ClassMonthTuteAttachInput,
   type ClassMonthTuteReorderInput,
-  type ClassTuteCreateInput,
-  type ClassTuteUpdateInput,
   type FeeClassInput,
   type FeeFollowupInput,
   type FeeMonthImportInput,
@@ -261,69 +257,6 @@ export async function deleteFeeTemplateAction(id: string): Promise<ActionResult>
   if (error) return { ok: false, error: friendlyDbError(error) };
   revalidate();
   return { ok: true, message: "Template deleted" };
-}
-
-/** Create a tute in the batch catalog (or reuse same name) and schedule it to one or more months (including future months). */
-export async function createAndAssignClassTuteAction(
-  input: ClassTuteCreateInput,
-): Promise<ActionResult<{ id: string }>> {
-  const ctx = await editor();
-  if (!ctx) return { ok: false, error: NOT_ALLOWED };
-  const parsed = classTuteCreateSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
-
-  const d = parsed.data;
-  const { data: id, error } = await ctx.supabase.rpc("class_tute_create_and_assign", {
-    p_batch_id: d.batch_id,
-    p_class_id: d.class_id || null,
-    p_name: d.name,
-    p_code: d.code,
-    p_months: d.months.map(monthKeyToDate),
-    p_note: d.note,
-  });
-  if (error) return { ok: false, error: friendlyDbError(error) };
-  revalidate();
-  return {
-    ok: true,
-    message:
-      d.months.length > 1
-        ? `Added "${d.name}" to ${d.months.length} months`
-        : d.months.length === 1
-          ? `Added "${d.name}" for ${d.months[0]}`
-          : `Added "${d.name}" to tute catalog`,
-    data: { id },
-  };
-}
-
-/** Update a catalog tute's name, code, or active flag. */
-export async function updateClassTuteAction(input: ClassTuteUpdateInput): Promise<ActionResult> {
-  const ctx = await editor();
-  if (!ctx) return { ok: false, error: NOT_ALLOWED };
-  const parsed = classTuteUpdateSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
-
-  const { error } = await ctx.supabase.rpc("class_tute_update", {
-    p_id: parsed.data.id,
-    p_name: parsed.data.name,
-    p_code: parsed.data.code,
-    p_is_active: parsed.data.is_active,
-  });
-  if (error) return { ok: false, error: friendlyDbError(error) };
-  revalidate();
-  return { ok: true, message: `Updated tute "${parsed.data.name}"` };
-}
-
-/** Delete a tute completely from the batch catalog (and unlink from all months). */
-export async function deleteClassTuteAction(id: string): Promise<ActionResult> {
-  const ctx = await editor();
-  if (!ctx) return { ok: false, error: NOT_ALLOWED };
-  const parsed = idSchema.safeParse({ id });
-  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
-
-  const { error } = await ctx.supabase.rpc("class_tute_delete", { p_id: parsed.data.id });
-  if (error) return { ok: false, error: friendlyDbError(error) };
-  revalidate();
-  return { ok: true, message: "Tute deleted from catalog" };
 }
 
 /** Attach an existing catalog tute to a (class, month) — works for current & future months. */

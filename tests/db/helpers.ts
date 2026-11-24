@@ -76,3 +76,21 @@ export async function outcome(client: pg.Client, sql: string, params: unknown[] 
     return (err as { code?: string }).code ?? "error";
   }
 }
+
+/**
+ * Add a catalog tute (Tute stock) and schedule it for a class in the given
+ * months (SQL date expressions), as the current actor.
+ */
+export async function createTute(
+  client: pg.Client,
+  classId: string,
+  name: string,
+  months: string[],
+  code = "",
+): Promise<string> {
+  const { rows } = await client.query("select public.tute_save(null, $1, $2) as id", [name, code]);
+  for (const month of months) {
+    await client.query(`select public.class_month_tute_attach($1, ${month}, $2)`, [classId, rows[0].id]);
+  }
+  return rows[0].id;
+}
