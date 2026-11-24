@@ -115,3 +115,77 @@ describe("mode decides Online and Physical", () => {
     expect(keys).not.toContain(`ph-a-${stamp}`);
   });
 });
+
+describe("polish RPCs: undo, copy month, dedupe attach, and stock alert triggers", () => {
+  test("undoing a recent typed paid count restores the previous value and rejects viewers", async () => {
+    await actAs(db, classEditor);
+    const cls = (await q("select public.fee_class_save(null, $1, $2, true, 'physical') as id", [batch, `Undo ${stamp}`]))[0].id;
+    await q("select public.class_paid_count_save($1, 40)", [cls]);
+    await q("select public.class_paid_count_save($1, 400)", [cls]);
+
+    await actAs(db, classViewer);
+    expect(await outcome(db, "select public.class_paid_count_undo($1)", [cls])).toBe("42501");
+
+    await actAs(db, classEditor);
+    expect((await q("select public.class_paid_count_undo($1) as undone", [cls]))[0].undone).toBe(400);
+    await asOwner(db);
+    expect((await q(`select public.class_paid_count($1, ${THIS_MONTH}) as n`, [cls]))[0].n).toBe(40);
+  });
+
+  test("copying a class tute plan copies once, skips duplicates, and blocks same-month copy", async () => {
+    const NEXT_MONTH = `(date_trunc('month', now() at time zone 'Asia/Colombo') + interval '1 month')::date`;
+    await actAs(db, admin);
+    const cls = (await q("select public.fee_class_save(null, $1, $2, true, 'both') as id", [batch, `Copy ${stamp}`]))[0].id;
+    const t1 = await createTute(db, cls, `Copy Tute A ${stamp}`, [THIS_MONTH]);
+    const t2 = await createTute(db, cls, `Copy Tute B ${stamp}`, [THIS_MONTH]);
+
+    // Attaching an already-scheduled pair with no note does not duplicate activity logs.
+    await actAs(db, classEditor);
+    await asOwner(db);
+    const beforeLogs = (
+      await q("select count(*)::int as n from public.activity_log where action = 'fee.tute_assigned' and entity_id = $1", [cls])
+    )[0].n;
+    await actAs(db, classEditor);
+    await q(`select public.class_month_tute_attach($1, ${THIS_MONTH}, $2)`, [cls, t1]);
+    await asOwner(db);
+    const afterLogs = (
+      await q("select count(*)::int as n from public.activity_log where action = 'fee.tute_assigned' and entity_id = $1", [cls])
+    )[0].n;
+    expect(afterLogs).toBe(beforeLogs);
+
+    // Same-month copy rejected.
+    await actAs(db, classEditor);
+    expect(await outcome(db, `select public.class_month_tutes_copy($1, ${THIS_MONTH}, ${THIS_MONTH})`, [cls])).toBe("P0001");
+
+    // Viewer blocked.
+    await actAs(db, classViewer);
+    expect(await outcome(db, `select public.class_month_tutes_copy($1, ${THIS_MONTH}, ${NEXT_MONTH})`, [cls])).toBe("42501");
+
+    // Copy THIS_MONTH -> NEXT_MONTH adds both tutes; running again adds 0.
+    await actAs(db, classEditor);
+    expect((await q(`select public.class_month_tutes_copy($1, ${THIS_MONTH}, ${NEXT_MONTH}) as n`, [cls]))[0].n).toBe(2);
+    expect((await q(`select public.class_month_tutes_copy($1, ${THIS_MONTH}, ${NEXT_MONTH}) as n`, [cls]))[0].n).toBe(0);
+    expect(t2).toBeTruthy();
+  });
+
+  test("typing a higher paid count triggers stock alerts for scheduled tutes", async () => {
+    const tuteViewer = { kind: "user" as const, id: await createPerson(db, { pageAccess: { tutes: "view" } }), aal: "aal2" as const };
+    await actAs(db, admin);
+    const cls = (await q("select public.fee_class_save(null, $1, $2, true, 'physical') as id", [batch, `Surge ${stamp}`]))[0].id;
+    const tuteName = `Surge Tute ${stamp}`;
+    const tute = await createTute(db, cls, tuteName, [THIS_MONTH]);
+    // Give the tute 50 copies on hand so it starts OK.
+    await q("select public.tute_stock_count($1, 50)", [tute]);
+
+    // Class editor (without tutes page access!) types 120 paid -> pushes tute into low/out and fires alert.
+    await actAs(db, classEditor);
+    await q("select public.class_paid_count_save($1, 120)", [cls]);
+
+    await asOwner(db);
+    const alerts = await q(
+      "select kind from public.notifications where user_id = $1 and title like $2",
+      [tuteViewer.id, `%${tuteName}%`],
+    );
+    expect(alerts.length).toBeGreaterThanOrEqual(1);
+  });
+});
