@@ -2,7 +2,7 @@
 
 **Where:** Manage → Students → **Tute stock** (`/admin/tutes`). Admins have it; give a member (e.g. the Physical Coordinator) access in Members → Edit → page access → *Tute stock*.
 
-**Tutes are created here.** Press **New tute** (name, short code, pages, optional opening copies, print batch, Paper Library PDF, and optionally tick this month's classes if you also have Fee reminders). Schedule future months any time on **Fee reminders → Tutes** — that is what puts it in the WhatsApp messages and tells Tute stock how many copies are needed. Rename, archive or link the PDF later with ⋯ → **Edit tute**.
+**Tutes are created here.** Press **New tute** (name, short code, pages, optional opening copies, print batch, Paper Library PDF, and optionally tick this month's classes). Schedule months any time on **Classes → Tute plan** — that is what puts it in the WhatsApp messages and tells Tute stock how many copies are needed. Rename, archive or link the PDF later with ⋯ → **Edit tute**.
 
 **One shelf for every batch.** A tute isn't tied to a batch: schedule the same tute for classes in any batch, and its need is the sum of all of them. Names and codes are unique on the shelf. The **Code** column shows each tute's code. In **Papers**, a Type **Tute** item needs no batch, and the Paper Library lists tutes under “Tutes”.
 
@@ -42,7 +42,9 @@ Until a month's paid list is uploaded, its students are a **forecast** (shown wi
 
 **Spare copies** = safety copies (bigger when the forecast is less sure, at least 5% and at least 5) + the usual loss (damaged and counted-short copies over the last 6 months, per copy given out).
 
-**Mid-month forecast:** if you upload the paid list a few times a month, Tute stock learns how payments usually come in (each batch learns its own). After 4 past months in a batch it scales an early upload up to a month-end estimate (shown as "~160, 120 paid so far at the usual pace"). The Print plan shows the batch that has learned least.
+**Paid so far:** a class's count is the newest of its uploaded paid list (Fee reminders) and a count typed on **Classes** (type it each day if you like). A class's **mode** on Classes decides the Online / Hall split: *Online* classes send every copy by Speed Post, *Physical* none, *Physical + Online* splits by the paid list's Institute column.
+
+**Mid-month forecast:** if you upload the paid list or type a count a few times a month, Tute stock learns how payments usually come in (each batch learns its own). After 4 past months in a batch it scales an early upload up to a month-end estimate (shown as "~160, 120 paid so far at the usual pace"). The Print plan shows the batch that has learned least.
 
 ## Odd numbers
 

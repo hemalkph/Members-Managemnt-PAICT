@@ -28,10 +28,21 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { deleteFeeClassAction, saveFeeClassAction } from "@/lib/actions/fees";
-import type { FeeClassItem } from "@/lib/fees/queries";
+import { Switch } from "@/components/ui/switch";
+import { deleteClassAction, saveClassAction } from "@/lib/actions/class-ops";
+import type { ClassMode } from "@/lib/supabase/database.types";
 
-export function FeeClassDialog({
+export type ClassItem = { id: string; batchId: string; name: string; mode: ClassMode; isActive: boolean };
+
+export const MODE_LABEL: Record<ClassMode, string> = { physical: "Physical", online: "Online", both: "Physical + Online" };
+
+const MODE_HINT: Record<ClassMode, string> = {
+  physical: "Everyone comes to the hall; no Speed Post.",
+  online: "Everyone gets tutes by Speed Post.",
+  both: "Split by the paid list's Institute column (\u201cOnline\u201d goes by Speed Post).",
+};
+
+export function ClassDialog({
   batches,
   defaultBatchId,
   editing,
@@ -40,7 +51,7 @@ export function FeeClassDialog({
 }: {
   batches: { id: string; name: string; isActive: boolean }[];
   defaultBatchId: string;
-  editing?: FeeClassItem;
+  editing?: ClassItem;
   onSaved?: (classId: string, batchId: string) => void;
   children?: React.ReactNode;
 }) {
@@ -48,6 +59,8 @@ export function FeeClassDialog({
   const [open, setOpen] = useState(false);
   const [batchId, setBatchId] = useState(editing?.batchId ?? defaultBatchId);
   const [name, setName] = useState(editing?.name ?? "");
+  const [mode, setMode] = useState<ClassMode>(editing?.mode ?? "both");
+  const [active, setActive] = useState(editing?.isActive ?? true);
   const [pending, startTransition] = useTransition();
 
   const handleOpenChange = (next: boolean) => {
@@ -55,17 +68,20 @@ export function FeeClassDialog({
     if (next) {
       setBatchId(editing?.batchId ?? defaultBatchId);
       setName(editing?.name ?? "");
+      setMode(editing?.mode ?? "both");
+      setActive(editing?.isActive ?? true);
     }
   };
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     startTransition(async () => {
-      const res = await saveFeeClassAction({
+      const res = await saveClassAction({
         id: editing?.id,
         batch_id: batchId,
         name: name.trim(),
-        is_active: true,
+        is_active: active,
+        mode,
       });
       if (!res.ok) {
         toast.error(res.error);
@@ -81,14 +97,13 @@ export function FeeClassDialog({
   const remove = () => {
     if (!editing) return;
     startTransition(async () => {
-      const res = await deleteFeeClassAction(editing.id);
+      const res = await deleteClassAction(editing.id);
       if (!res.ok) {
         toast.error(res.error);
         return;
       }
       toast.success(res.message);
       setOpen(false);
-      router.push("/admin/fee-reminders");
       router.refresh();
     });
   };
@@ -106,14 +121,14 @@ export function FeeClassDialog({
         <DialogHeader>
           <DialogTitle>{editing ? "Edit class" : "Add class"}</DialogTitle>
           <DialogDescription>
-            Each class inside a batch keeps its own separate monthly paid lists so classes never overlap.
+            A batch can have many classes. Fee reminders, Tute stock and Speed Post all use these classes.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="fee-class-batch">Batch</Label>
+            <Label htmlFor="class-batch">Batch</Label>
             <Select value={batchId} onValueChange={setBatchId}>
-              <SelectTrigger id="fee-class-batch">
+              <SelectTrigger id="class-batch">
                 <SelectValue placeholder="Choose a batch" />
               </SelectTrigger>
               <SelectContent>
@@ -127,9 +142,9 @@ export function FeeClassDialog({
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="fee-class-name">Class name</Label>
+            <Label htmlFor="class-name">Class name</Label>
             <Input
-              id="fee-class-name"
+              id="class-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. 2027 Grand Revision, 2027 Theory"
@@ -140,6 +155,28 @@ export function FeeClassDialog({
               Use the base class name without the month (e.g. &ldquo;2027 Grand Revision&rdquo;).
             </p>
           </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="class-mode">Students</Label>
+            <Select value={mode} onValueChange={(v) => setMode(v as ClassMode)}>
+              <SelectTrigger id="class-mode">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(MODE_LABEL) as ClassMode[]).map((m) => (
+                  <SelectItem key={m} value={m}>
+                    {MODE_LABEL[m]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-muted-foreground text-xs">{MODE_HINT[mode]}</p>
+          </div>
+          {editing && (
+            <div className="flex items-center gap-2">
+              <Switch id="class-active" checked={active} onCheckedChange={setActive} />
+              <Label htmlFor="class-active">In use (untick to archive)</Label>
+            </div>
+          )}
 
           <DialogFooter className="flex-row items-center justify-between gap-2 sm:justify-between">
             {editing ? (

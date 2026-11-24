@@ -18,6 +18,7 @@ export type PageKey =
   | "students"
   | "student_results"
   | "fee_reminders"
+  | "class_ops"
   | "tutes"
   | "post"
   | "structure"
@@ -57,6 +58,8 @@ export const PAGES: PageInfo[] = [
   { key: "student_results", title: "Student results", href: "/admin/student-results", forMembers: true },
   // Monthly paid-class comparison & WhatsApp due reminders.
   { key: "fee_reminders", title: "Fee reminders", href: "/admin/fee-reminders", forMembers: true },
+  // Classes in each batch (Physical / Online), their month-by-month tutes and daily paid counts.
+  { key: "class_ops", title: "Classes", href: "/admin/class-ops", forMembers: true },
   // Tute stock and print jobs (no student details), e.g. for the Physical Coordinator.
   { key: "tutes", title: "Tute stock", href: "/admin/tutes", forMembers: true },
   // Postal addresses of Online students: give it only to staff who post the tutes.
