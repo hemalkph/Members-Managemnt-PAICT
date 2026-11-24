@@ -273,7 +273,6 @@ export function FeeWorkspace({
   const currMonthLabelStr = currMonth ? monthLabel(currMonth) : "Current Month";
   const prevMonthLabelStr = prevMonth ? monthLabel(prevMonth) : "Previous Month";
   const activeClassName = selectedClass?.name ?? "Class";
-  const selectedBatchName = batches.find((b) => b.id === selectedBatchId)?.name ?? "";
 
   const activeTuteMonth = currMonth ?? defaultUploadMonth;
   const currMonthTutes = useMemo(
@@ -1049,8 +1048,6 @@ export function FeeWorkspace({
                 />
               ) : (
                 <TutesManager
-                  batchId={selectedBatchId}
-                  batchName={selectedBatchName}
                   classId={selectedClass.id}
                   className={selectedClass.name}
                   defaultMonth={activeTuteMonth}

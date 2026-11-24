@@ -78,7 +78,7 @@ People should be able to use it without training:
 - **A count next to "Tutes" in the sidebar** for tutes low or out, like the Work review badge.
 - **Stock shows where people already work.** The Fee reminders → Tutes tab shows a small stock chip next to each scheduled tute ("180 ready", "12 left", "100 printing"). Paper Library tute cards show the same chip with an **Order print** shortcut, and `/admin/tutes` shows a **"PDF ready"** badge on any linked tute (`paper_id`) that has finished Paper Library review with 0 stock and 0 print jobs.
 - **Same alerts they already get.** The usual bell and phone push, one alert per change, never a daily nag.
-- **Same access rules.** Members see the page only if given `tutes` access. Admins see everything. Catalog editing stays on Fee reminders → Tutes (one place, no duplicate screen).
+- **Same access rules.** Members see the page only if given `tutes` access. Admins see everything. Tutes are created and edited on Tute stock (migration 067); Fee reminders only picks them for each class and month.
 - **A short guide** (`docs/TUTE_INVENTORY_GUIDE.md`, like the Fee reminders guide) and an entry in the welcome guide.
 
 ---

@@ -1,56 +1,18 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
-import {
-  ArrowDownIcon,
-  ArrowUpIcon,
-  BookOpenIcon,
-  CalendarPlusIcon,
-  Link2Icon,
-  Loader2Icon,
-  PencilIcon,
-  PlusIcon,
-  Trash2Icon,
-  XIcon,
-} from "lucide-react";
+import { ArrowDownIcon, ArrowUpIcon, BookCopyIcon, BookOpenIcon, CalendarPlusIcon, Loader2Icon, PlusIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  attachClassMonthTuteAction,
-  createAndAssignClassTuteAction,
-  deleteClassTuteAction,
-  removeClassMonthTuteAction,
-  reorderClassMonthTutesAction,
-  updateClassTuteAction,
-} from "@/lib/actions/fees";
+import { attachClassMonthTuteAction, removeClassMonthTuteAction, reorderClassMonthTutesAction } from "@/lib/actions/fees";
 import { monthLabel, shiftMonth } from "@/lib/core/month";
 import type { ClassTuteCatalogItem, ScheduledMonthTute } from "@/lib/fees/queries";
-import { cn } from "@/lib/utils";
 
 function buildPlanMonths(baseMonth: string, existingMonths: string[]): string[] {
   const set = new Set<string>(existingMonths);
@@ -62,8 +24,6 @@ function buildPlanMonths(baseMonth: string, existingMonths: string[]): string[] 
 }
 
 export function TutesManager({
-  batchId,
-  batchName,
   classId,
   className,
   defaultMonth,
@@ -72,8 +32,6 @@ export function TutesManager({
   stock,
   canEdit,
 }: {
-  batchId: string;
-  batchName: string;
   classId: string;
   className: string;
   defaultMonth: string;
@@ -91,19 +49,8 @@ export function TutesManager({
     setSelectedMonth(defaultMonth);
   }
 
-  // New tute form state
-  const [newName, setNewName] = useState("");
-  const [newCode, setNewCode] = useState("");
-  const [newNote, setNewNote] = useState("");
-  const [extraMonths, setExtraMonths] = useState<string[]>([]);
-
   // Attach existing catalog tute
   const [attachTuteId, setAttachTuteId] = useState("");
-
-  // Edit catalog tute dialog
-  const [editing, setEditing] = useState<ClassTuteCatalogItem | null>(null);
-  const [editName, setEditName] = useState("");
-  const [editCode, setEditCode] = useState("");
 
   const [pending, startTransition] = useTransition();
 
@@ -123,12 +70,6 @@ export function TutesManager({
         scheduledMonthsSummary.map(([m]) => m),
       ),
     [defaultMonth, scheduledMonthsSummary],
-  );
-
-  // Quick upcoming future-month chips (+1, +2, +3, +4 months from selectedMonth).
-  const upcomingMonthChoices = useMemo(
-    () => [1, 2, 3, 4].map((d) => shiftMonth(selectedMonth, d)),
-    [selectedMonth],
   );
 
   const monthTutes = useMemo(
@@ -153,35 +94,6 @@ export function TutesManager({
     }
     return map;
   }, [scheduled]);
-
-  const toggleExtraMonth = (m: string) => {
-    setExtraMonths((prev) => (prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m]));
-  };
-
-  const handleCreate = (e: React.FormEvent) => {
-    e.preventDefault();
-    const targetMonths = [...new Set([selectedMonth, ...extraMonths.filter((m) => m !== selectedMonth)])];
-    startTransition(async () => {
-      const res = await createAndAssignClassTuteAction({
-        batch_id: batchId,
-        class_id: classId,
-        name: newName.trim(),
-        code: newCode.trim(),
-        months: targetMonths,
-        note: newNote.trim(),
-      });
-      if (!res.ok) {
-        toast.error(res.error);
-        return;
-      }
-      toast.success(res.message);
-      setNewName("");
-      setNewCode("");
-      setNewNote("");
-      setExtraMonths([]);
-      router.refresh();
-    });
-  };
 
   const handleAttach = () => {
     if (!attachTuteId) return;
@@ -233,44 +145,6 @@ export function TutesManager({
     });
   };
 
-  const openEdit = (t: ClassTuteCatalogItem) => {
-    setEditing(t);
-    setEditName(t.name);
-    setEditCode(t.code);
-  };
-
-  const handleSaveEdit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editing) return;
-    startTransition(async () => {
-      const res = await updateClassTuteAction({
-        id: editing.id,
-        name: editName.trim(),
-        code: editCode.trim(),
-        is_active: true,
-      });
-      if (!res.ok) {
-        toast.error(res.error);
-        return;
-      }
-      toast.success(res.message);
-      setEditing(null);
-      router.refresh();
-    });
-  };
-
-  const handleDeleteCatalogTute = (id: string) => {
-    startTransition(async () => {
-      const res = await deleteClassTuteAction(id);
-      if (!res.ok) {
-        toast.error(res.error);
-        return;
-      }
-      toast.success(res.message);
-      router.refresh();
-    });
-  };
-
   const isFutureMonth = selectedMonth > defaultMonth;
 
   return (
@@ -297,10 +171,7 @@ export function TutesManager({
               </Label>
               <Select
                 value={selectedMonth}
-                onValueChange={(m) => {
-                  setSelectedMonth(m);
-                  setExtraMonths([]);
-                }}
+                onValueChange={setSelectedMonth}
               >
                 <SelectTrigger id="tute-month-select" className="h-8 w-[175px] text-xs">
                   <SelectValue />
@@ -328,10 +199,7 @@ export function TutesManager({
                   size="sm"
                   variant={selectedMonth === m ? "default" : "outline"}
                   className="h-7 gap-1 px-2 text-xs"
-                  onClick={() => {
-                    setSelectedMonth(m);
-                    setExtraMonths([]);
-                  }}
+                  onClick={() => setSelectedMonth(m)}
                 >
                   {monthLabel(m, "short")}
                   <Badge
@@ -366,13 +234,12 @@ export function TutesManager({
               <div className="bg-muted/35 rounded-xl border border-dashed p-6 text-center">
                 <p className="text-sm font-medium">No tutes scheduled for {monthLabel(selectedMonth)} yet</p>
                 <p className="text-muted-foreground mt-1 text-xs">
-                  Add a new tute on the right or reuse an existing tute from the {batchName} catalog.
+                  Pick a tute on the right, or create one on Tute stock.
                 </p>
               </div>
             ) : (
               <ul className="space-y-2">
                 {monthTutes.map((item, idx) => {
-                  const catalogItem = catalog.find((c) => c.id === item.tuteId);
                   return (
                     <li
                       key={item.id}
@@ -421,19 +288,6 @@ export function TutesManager({
                           >
                             <ArrowDownIcon className="size-3.5" />
                           </Button>
-                          {catalogItem && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="size-7"
-                              aria-label={`Rename ${item.tuteName}`}
-                              disabled={pending}
-                              onClick={() => openEdit(catalogItem)}
-                            >
-                              <PencilIcon className="size-3.5" />
-                            </Button>
-                          )}
                           <Button
                             type="button"
                             variant="ghost"
@@ -468,109 +322,24 @@ export function TutesManager({
           </CardContent>
         </Card>
 
-        {/* Right: Add new tute + Reuse from catalog */}
+        {/* Right: pick tutes from the batch catalog (tutes are created on Tute stock) */}
         {canEdit && (
-          <div className="space-y-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <CalendarPlusIcon className="size-4" /> Add new tute
-                </CardTitle>
-                <CardDescription>
-                  Supports English &amp; Helakuru Sinhala. Assign to {monthLabel(selectedMonth)} and optionally future
-                  months too.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleCreate} className="space-y-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="tute-name">Tute name</Label>
-                    <Input
-                      id="tute-name"
-                      value={newName}
-                      onChange={(e) => setNewName(e.target.value)}
-                      placeholder="e.g. Unit 07 - Database Systems / ඒකකය 07 නිබන්ධනය"
-                      spellCheck={false}
-                      maxLength={150}
-                      required
-                    />
-                  </div>
-
-                  <div className="grid gap-2.5 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="tute-code">Short code (optional)</Label>
-                      <Input
-                        id="tute-code"
-                        value={newCode}
-                        onChange={(e) => setNewCode(e.target.value)}
-                        placeholder="e.g. T-07, GR-U04"
-                        maxLength={30}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="tute-note">Note (optional)</Label>
-                      <Input
-                        id="tute-note"
-                        value={newNote}
-                        onChange={(e) => setNewNote(e.target.value)}
-                        placeholder="e.g. Part 1, Speed Post"
-                        maxLength={200}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <p className="text-muted-foreground text-xs">
-                      Also add to future months (optional):
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      <Badge variant="default" className="py-1 text-xs">
-                        {monthLabel(selectedMonth, "short")} ✓
-                      </Badge>
-                      {upcomingMonthChoices.map((m) => {
-                        const checked = extraMonths.includes(m);
-                        return (
-                          <button
-                            key={m}
-                            type="button"
-                            onClick={() => toggleExtraMonth(m)}
-                            className={cn(
-                              "rounded-md border px-2 py-0.5 text-xs transition-colors",
-                              checked
-                                ? "border-primary bg-primary/10 text-primary font-medium"
-                                : "bg-muted/50 hover:bg-accent text-muted-foreground",
-                            )}
-                          >
-                            {checked ? `+ ${monthLabel(m, "short")} ✓` : `+ ${monthLabel(m, "short")}`}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <Button type="submit" size="sm" className="w-full" disabled={pending || newName.trim().length < 2}>
-                    {pending ? <Loader2Icon className="animate-spin" /> : <PlusIcon />}
-                    Add to {monthLabel(selectedMonth, "short")}
-                    {extraMonths.length > 0 ? ` + ${extraMonths.length} future month${extraMonths.length === 1 ? "" : "s"}` : ""}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-
-            {attachableCatalog.length > 0 && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Link2Icon className="size-4" /> Reuse existing tute ({batchName})
-                  </CardTitle>
-                  <CardDescription>
-                    Attach a tute already in this batch&apos;s catalog to {monthLabel(selectedMonth)} without re-typing.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-wrap gap-2">
+          <Card className="h-fit">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <CalendarPlusIcon className="size-4" /> Add a tute to {monthLabel(selectedMonth, "short")}
+              </CardTitle>
+              <CardDescription>
+                Pick tutes one by one. They show in <code className="text-[11px]">{"{tutes_list}"}</code> in the
+                order on the left. New tutes are created on Tute stock.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {attachableCatalog.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
                   <Select value={attachTuteId} onValueChange={setAttachTuteId}>
                     <SelectTrigger className="h-8 min-w-[200px] flex-1 text-xs">
-                      <SelectValue placeholder="Choose from catalog..." />
+                      <SelectValue placeholder="Choose a tute..." />
                     </SelectTrigger>
                     <SelectContent>
                       {attachableCatalog.map((t) => (
@@ -581,13 +350,24 @@ export function TutesManager({
                       ))}
                     </SelectContent>
                   </Select>
-                  <Button type="button" size="sm" variant="outline" disabled={pending || !attachTuteId} onClick={handleAttach}>
-                    Attach
+                  <Button type="button" size="sm" disabled={pending || !attachTuteId} onClick={handleAttach}>
+                    {pending ? <Loader2Icon className="animate-spin" /> : <PlusIcon />} Add
                   </Button>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-sm">
+                  {catalog.some((t) => t.isActive)
+                    ? `Every tute is already in ${monthLabel(selectedMonth, "short")}.`
+                    : "No tutes on the shelf yet."}
+                </p>
+              )}
+              <Button asChild size="sm" variant="outline" className="w-full">
+                <Link href="/admin/tutes">
+                  <BookCopyIcon /> Create or edit tutes on Tute stock
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
         )}
       </div>
 
@@ -596,10 +376,10 @@ export function TutesManager({
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">
-              {batchName} Tute Catalog ({catalog.length})
+              Tute shelf ({catalog.length})
             </CardTitle>
             <CardDescription>
-              Shared catalog for this batch — reusable across months and classes. Stock is kept per tute on Tute stock.
+              Tutes of this batch. Add, rename or archive them on Tute stock.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -626,51 +406,6 @@ export function TutesManager({
                           : `Not scheduled in ${className} yet`}
                       </p>
                     </div>
-                    {canEdit && (
-                      <div className="flex shrink-0 items-center gap-0.5">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="size-7"
-                          aria-label={`Edit ${t.name}`}
-                          onClick={() => openEdit(t)}
-                        >
-                          <PencilIcon className="size-3.5" />
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="text-destructive hover:text-destructive size-7"
-                              aria-label={`Delete ${t.name}`}
-                            >
-                              <Trash2Icon className="size-3.5" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete &ldquo;{t.name}&rdquo; from catalog?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This removes the tute from the catalog and unlinks it from all scheduled months. A tute
-                                with stock or print history can&apos;t be deleted.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDeleteCatalogTute(t.id)}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              >
-                                Delete tute
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    )}
                   </div>
                 );
               })}
@@ -679,46 +414,6 @@ export function TutesManager({
         </Card>
       )}
 
-      {/* Edit Catalog Tute Dialog */}
-      <Dialog open={Boolean(editing)} onOpenChange={(v) => !v && setEditing(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit tute</DialogTitle>
-            <DialogDescription>Renaming updates this tute across every month it is scheduled in.</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSaveEdit} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-tute-name">Tute name</Label>
-              <Input
-                id="edit-tute-name"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                spellCheck={false}
-                maxLength={150}
-                required
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-tute-code">Short code (optional)</Label>
-              <Input
-                id="edit-tute-code"
-                value={editCode}
-                onChange={(e) => setEditCode(e.target.value)}
-                maxLength={30}
-              />
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setEditing(null)} disabled={pending}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={pending || editName.trim().length < 2}>
-                {pending && <Loader2Icon className="animate-spin" />}
-                Save changes
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

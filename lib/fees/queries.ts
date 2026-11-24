@@ -35,7 +35,6 @@ export type FeeTemplateItem = {
 
 export type ClassTuteCatalogItem = {
   id: string;
-  batchId: string;
   classId: string | null;
   code: string;
   name: string;
@@ -225,8 +224,7 @@ export async function getClassTutesData(
   const [{ data: catalogRows }, { data: monthRows }] = await Promise.all([
     supabase
       .from("class_tutes")
-      .select("id, batch_id, class_id, code, name, is_active")
-      .eq("batch_id", batchId)
+      .select("id, class_id, code, name, is_active")
       .order("name"),
     classId
       ? supabase
@@ -241,7 +239,6 @@ export async function getClassTutesData(
 
   const catalog: ClassTuteCatalogItem[] = (catalogRows ?? []).map((t) => ({
     id: t.id,
-    batchId: t.batch_id,
     classId: t.class_id,
     code: t.code,
     name: t.name,

@@ -198,23 +198,30 @@ describe("class isolation, re-uploads, follow-ups, and templates", () => {
     expect(await q("select 1 from public.activity_log where action = 'fee.imported'")).toHaveLength(2);
   });
 
-  test("manages month-specific & future-month class tutes with batch catalog reuse and isolation", async () => {
+  test("manages month-specific & future-month class tutes from one shared shelf", async () => {
     const otherBatch = await createBatch(db);
-    await actAs(db, memberEditor);
 
-    // Create a Helakuru Sinhala tute assigned to BOTH current month and a future month (2027-02-01).
-    const t1 = (
-      await q(
-        "select public.class_tute_create_and_assign($1, $2, $3, 'T-07', array['2026-11-01'::date, '2027-02-01'::date], 'Speed Post') as id",
-        [batch, revisionId, "ඒකකය 07 - දත්ත සමුදාය ප්‍රශ්න"],
-      )
-    )[0].id;
-    const t2 = (
-      await q(
-        "select public.class_tute_create_and_assign($1, $2, 'SQL Practice Workbook', 'T-08', array['2026-11-01'::date], '') as id",
-        [batch, revisionId],
-      )
-    )[0].id;
+    // Tutes are created on Tute stock; Fee reminders can't create, rename or delete them.
+    await actAs(db, memberEditor);
+    expect(await outcome(db, "select public.tute_save(null, 'Blocked', '')")).toBe("42501");
+    const stockKeeper: Actor = {
+      kind: "user",
+      id: await createPerson(db, { pageAccess: { tutes: "edit" } }),
+      aal: "aal2",
+    };
+    await actAs(db, stockKeeper);
+    const t1 = (await q("select public.tute_save(null, $1, 'T-07') as id", ["ඒකකය 07 - දත්ත සමුදාය ප්‍රශ්න"]))[0].id;
+    const t2 = (await q("select public.tute_save(null, 'SQL Practice Workbook', 'T-08') as id"))[0].id;
+    // Names and codes are unique on the whole shelf.
+    expect(await outcome(db, "select public.tute_save(null, 'sql practice workbook', '')")).toBe("P0001");
+    expect(await outcome(db, "select public.tute_save(null, 'Another workbook', 't-08')")).toBe("P0001");
+
+    // Fee reminders picks them one by one for each month: Nov and future Feb 2027 for t1, Nov for t2.
+    await actAs(db, memberEditor);
+    expect(await outcome(db, "select public.class_tute_delete($1)", [t2])).toBe("42501");
+    await q("select public.class_month_tute_attach($1, '2026-11-01', $2, 'Speed Post')", [revisionId, t1]);
+    await q("select public.class_month_tute_attach($1, '2027-02-01', $2, '')", [revisionId, t1]);
+    await q("select public.class_month_tute_attach($1, '2026-11-01', $2, '')", [revisionId, t2]);
 
     // Scheduled in Nov (2 tutes) and future Feb 2027 (1 tute).
     const novLinks = await q(
@@ -244,11 +251,10 @@ describe("class isolation, re-uploads, follow-ups, and templates", () => {
       await q("select 1 from public.class_month_tutes where class_id = $1 and month = '2027-03-01'", [theoryId]),
     ).toHaveLength(1);
 
-    // Cross-batch attach is rejected!
+    // A class in another batch can take the same tute (one shelf for every batch).
     const otherClassId = (await q("select public.fee_class_save(null, $1, $2, true) as id", [otherBatch, `Other ${stamp}`]))[0].id;
-    expect(
-      await outcome(db, "select public.class_month_tute_attach($1, '2026-11-01', $2, '')", [otherClassId, t1]),
-    ).toBe("P0001");
+    await q("select public.class_month_tute_attach($1, '2026-11-01', $2, '')", [otherClassId, t1]);
+    expect(await q("select 1 from public.class_month_tutes where class_id = $1 and tute_id = $2", [otherClassId, t1])).toHaveLength(1);
 
     // Removing from Nov unlinks only Nov (catalog & Feb 2027 stay intact).
     await q("select public.class_month_tute_remove($1)", [novLinks[0].id]);
@@ -260,7 +266,7 @@ describe("class isolation, re-uploads, follow-ups, and templates", () => {
     await actAs(db, memberViewer);
     expect(await q("select id from public.class_tutes where id = $1", [t1])).toHaveLength(1);
     expect(
-      await outcome(db, "select public.class_tute_update($1, 'Blocked', '', true)", [t1]),
+      await outcome(db, "select public.tute_save($1, 'Blocked', '')", [t1]),
     ).toBe("42501");
   });
 });

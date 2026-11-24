@@ -2,12 +2,14 @@
 
 **Where:** Manage → Students → **Tute stock** (`/admin/tutes`). Admins have it; give a member (e.g. the Physical Coordinator) access in Members → Edit → page access → *Tute stock*.
 
-Tutes themselves are still added and scheduled on **Fee reminders → Tutes**. Tute stock only keeps their copies.
+**Tutes are created here.** Press **New tute** (name, short code, pages, optional opening copies, print batch, Paper Library PDF, and optionally tick this month's classes if you also have Fee reminders). Schedule future months any time on **Fee reminders → Tutes** — that is what puts it in the WhatsApp messages and tells Tute stock how many copies are needed. Rename, archive or link the PDF later with ⋯ → **Edit tute**.
+
+**One shelf for every batch.** A tute isn't tied to a batch: schedule the same tute for classes in any batch, and its need is the sum of all of them. Names and codes are unique on the shelf. The **Code** column shows each tute's code. In **Papers**, a Type **Tute** item needs no batch, and the Paper Library lists tutes under “Tutes”.
 
 ## First day
 
-1. Pick the batch and month at the top.
-2. For every tute on the shelf, press **Count** and type how many copies there are. The first count is saved as the tute's opening stock.
+1. Pick the month at the top.
+2. Press **Count all** and type how many copies of each tute are on the shelf (0 if there are none). Blank boxes are skipped. The first count is saved as the tute's opening stock. Until a tute is counted it shows *Not counted*, not *Out*.
 3. Add your printer(s) on **Print jobs → Add printer**, with how many days they usually take.
 
 ## Every month
@@ -16,9 +18,13 @@ Tutes themselves are still added and scheduled on **Fee reminders → Tutes**. T
 | --- | --- | --- |
 | Sent a tute for printing | ⋯ → **New print job** (or Print jobs → New print job) | The copies show as *Printing*. The copy number is filled in from the Print plan (see below). |
 | Printed copies arrived | **Received** on the print job (or ⋯ → Received printed copies) | Copies are added to stock. Part deliveries are fine; the job closes when all copies are in. |
-| Gave copies out in class | **Give out** → pick the class | Copies leave stock and count toward that class's month. |
+| Gave copies out in class | **Hand out** → pick the class (all its tutes at once), or **Give out** on one tute | Copies leave stock and count toward that class's month. Hand out fills in the Hall copies still to give. |
 | Copies were spoiled | ⋯ → **Mark damaged** | Copies leave stock. |
-| Checked the shelf | **Count** | The difference is saved as a count fix. |
+| Checked the shelf | **Count all**, or **Count** on one tute | The difference is saved as a count fix. |
+
+**Where the numbers come from:** click a tute. Each class shows its expected students and where that number comes from (the paid list, a forecast, or the month-end estimate, with how many have paid so far). When there is something to print, **Order** shows the sum, for example “143 still to give + 8 spare = 151”.
+
+Each row's main button follows its status: **Count** when not counted, **Order print** (or **Received** when a print job is open) when Out or Low, otherwise **Give out**. Everything else is under ⋯.
 
 Nothing is ever overwritten: every change is a line in **History**, with who did it. A mistake is fixed by counting again.
 
@@ -36,7 +42,7 @@ Until a month's paid list is uploaded, its students are a **forecast** (shown wi
 
 **Spare copies** = safety copies (bigger when the forecast is less sure, at least 5% and at least 5) + the usual loss (damaged and counted-short copies over the last 6 months, per copy given out).
 
-**Mid-month forecast:** if you upload the paid list a few times a month, Tute stock learns how payments usually come in (per batch). After 4 past months it scales an early upload up to a month-end estimate (shown as "~160, 120 paid so far at the usual pace"). The Print plan says whether it is on yet.
+**Mid-month forecast:** if you upload the paid list a few times a month, Tute stock learns how payments usually come in (each batch learns its own). After 4 past months in a batch it scales an early upload up to a month-end estimate (shown as "~160, 120 paid so far at the usual pace"). The Print plan shows the batch that has learned least.
 
 ## Odd numbers
 
@@ -44,11 +50,11 @@ A count that's far off this tute's usual count fixes, or more copies given to a 
 
 ## What the columns mean
 
-- **On hand** — copies on the shelf now.
+- **On hand** — copies on the shelf now. Tap it to open **History** filtered to that tute.
 - **Printing** — copies in open print jobs that haven't arrived yet.
-- **Still to give** — students who paid that month (or the forecast while its paid list isn't in, whichever is higher), minus copies already given. Hover it to see each class.
+- **Still to give** — students who paid that month (or the forecast while its paid list isn't in, whichever is higher), minus copies already given. Tap it to see each class.
 - **Needed next month** — the same for next month.
-- **Status** — *Out* (none left and still needed), *Low* (on hand + printing doesn't cover this month, next month and the spare copies, or below the "always keep at least" setting), *OK*, or *Not scheduled*.
+- **Status** — *Not counted* (no count, stock or print job yet: count it first), *Out* (none left and still needed), *Low* (on hand + printing doesn't cover this month, next month and the spare copies, or below the "always keep at least" setting), *OK*, or *Not scheduled*.
 
 ## Alerts
 
@@ -63,13 +69,13 @@ They are checked every day at 9:00, after every stock change, and when someone o
 
 Every **Monday at 9:00** there is also one short summary: tutes low or out, print jobs late or due, and (for Speed Post people) parcels to pack, posted and returned last week.
 
-## Settings per tute (⋯ → Settings)
+## Settings per tute (⋯ → Edit tute)
 
 - **Pages** — for later postage and paper estimates.
 - **Print in batches of** — suggested print numbers are rounded up to this.
 - **Always keep at least** — optional minimum; leave empty to warn only when this month and next aren't covered.
 
-A tute with stock or print history can't be deleted from the catalog; remove it from its months instead.
+⋯ → **Delete tute** works only for a tute that was never counted, printed or posted. Otherwise edit it and untick **In use** to archive it (**Show archived** brings it back into view).
 
 ---
 

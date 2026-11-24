@@ -673,6 +673,7 @@ export type Database = {
           created_at: string;
           updated_at: string;
           completed_at: string | null;
+          /** Tutes: the batch it is for (papers take their batch from the exam). */
         };
         Insert: { [_ in never]: never };
         /** Only the service role (file clean-up) updates papers directly. */
@@ -1649,7 +1650,8 @@ export type Database = {
       class_tutes: {
         Row: {
           id: string;
-          batch_id: string;
+          /** Not used since 073 (one shelf for every batch); always null. */
+          batch_id: string | null;
           class_id: string | null;
           code: string;
           name: string;
@@ -1660,10 +1662,14 @@ export type Database = {
           pages: number | null;
           reorder_level: number | null;
           print_batch: number;
+          /** Last shelf count (a count of 0 saves no stock move). */
+          counted_at: string | null;
+          /** Cover thumbnail path in the private "tute-covers" bucket. */
+          cover_path: string | null;
         };
         Insert: {
           id?: string;
-          batch_id: string;
+          batch_id?: string | null;
           class_id?: string | null;
           code?: string;
           name: string;
@@ -1677,7 +1683,7 @@ export type Database = {
         };
         Update: {
           id?: string;
-          batch_id?: string;
+          batch_id?: string | null;
           class_id?: string | null;
           code?: string;
           name?: string;
@@ -2165,21 +2171,6 @@ export type Database = {
         Args: { p_batch_id: string };
         Returns: { full_name: string; card_type: ConcessionCard; status: ConcessionStatus; phones: string[] }[];
       };
-      class_tute_create_and_assign: {
-        Args: {
-          p_batch_id: string;
-          p_class_id: string | null;
-          p_name: string;
-          p_code?: string;
-          p_months?: string[];
-          p_note?: string;
-        };
-        Returns: string;
-      };
-      class_tute_update: {
-        Args: { p_id: string; p_name: string; p_code?: string; p_is_active?: boolean };
-        Returns: undefined;
-      };
       class_tute_delete: { Args: { p_id: string }; Returns: undefined };
       class_month_tute_attach: {
         Args: { p_class_id: string; p_month: string; p_tute_id: string; p_note?: string };
@@ -2187,12 +2178,12 @@ export type Database = {
       };
       class_month_tute_remove: { Args: { p_id: string }; Returns: undefined };
       class_month_tute_reorder: { Args: { p_class_id: string; p_month: string; p_ids: string[] }; Returns: undefined };
-      tute_stock_summary: { Args: { p_batch: string; p_month: string | null }; Returns: TuteStockRow[] };
+      tute_stock_summary: { Args: { p_month: string | null }; Returns: TuteStockRow[] };
       tute_stock_levels: {
         Args: { p_tute_ids?: string[] | null; p_paper_ids?: string[] | null };
         Returns: {
           tute_id: string;
-          batch_id: string;
+          batch_id: string | null;
           paper_id: string | null;
           name: string;
           on_hand: number;
@@ -2232,11 +2223,11 @@ export type Database = {
         Returns: undefined;
       };
       post_parcel_whatsapp_sent: { Args: { p_parcel: string }; Returns: undefined };
-      tute_pace_status: { Args: { p_batch: string }; Returns: { samples: number; needed: number }[] };
+      tute_pace_status: { Args: Record<string, never>; Returns: { samples: number; needed: number }[] };
       post_risk_learning: { Args: Record<string, never>; Returns: { resolved: number; returned: number; needed: number }[] };
       post_round_risks: { Args: { p_round: string }; Returns: { parcel_id: string; risk: number; reason: string }[] };
       tute_forecast_report: {
-        Args: { p_batch: string };
+        Args: { p_batch: string | null };
         Returns: {
           class_id: string;
           class_name: string;
@@ -2248,6 +2239,21 @@ export type Database = {
       };
       tute_today: { Args: Record<string, never>; Returns: { low: number; out: number; late: number; due_soon: number } };
       send_tute_stock_alerts: { Args: { p_tute?: string | null }; Returns: number };
+      tute_save: {
+        Args: {
+          p_id: string | null;
+          p_name: string;
+          p_code?: string;
+          p_is_active?: boolean;
+          p_pages?: number | null;
+          p_reorder_level?: number | null;
+          p_print_batch?: number;
+          p_paper_id?: string | null;
+          p_opening_stock?: number | null;
+        };
+        Returns: string;
+      };
+      tute_paper_options: { Args: Record<string, never>; Returns: { id: string; title: string; medium: string }[] };
       tute_settings_save: {
         Args: { p_tute: string; p_pages: number | null; p_reorder_level: number | null; p_print_batch: number };
         Returns: undefined;
@@ -2274,8 +2280,19 @@ export type Database = {
         };
         Returns: string;
       };
+      tute_print_job_update: {
+        Args: {
+          p_id: string;
+          p_qty: number;
+          p_printer?: string | null;
+          p_due_date?: string | null;
+          p_cost?: number | null;
+          p_note?: string;
+        };
+        Returns: undefined;
+      };
       tute_print_job_set_status: { Args: { p_id: string; p_status: "printing" | "cancelled" }; Returns: undefined };
-      tute_print_job_receive: { Args: { p_id: string; p_qty: number }; Returns: number };
+      tute_print_job_receive: { Args: { p_id: string; p_qty: number; p_cost?: number | null }; Returns: number };
       tute_stock_issue: {
         Args: {
           p_tute: string;
@@ -2288,6 +2305,7 @@ export type Database = {
         Returns: number;
       };
       tute_stock_count: { Args: { p_tute: string; p_counted: number; p_note?: string }; Returns: number };
+      tute_set_cover: { Args: { p_id: string; p_path?: string | null }; Returns: string | null };
     };
     Enums: {
       submission_status: SubmissionStatus;
@@ -2309,7 +2327,8 @@ export type TuteMoveKind =
   | "return_in"
   | "damaged"
   | "count_fix";
-export type TuteStockStatus = "ok" | "low" | "out" | "not_scheduled";
+/** not_counted = no count, stock move or print job yet. */
+export type TuteStockStatus = "ok" | "low" | "out" | "not_scheduled" | "not_counted";
 export type TuteStockRow = {
   tute_id: string;
   code: string;
@@ -2342,6 +2361,8 @@ export type TuteForecastMethod = "last_month" | "avg3" | "smooth" | "trend" | "s
 export type TuteClassNeed = {
   id: string;
   name: string;
+  /** The class's batch name. */
+  batch?: string;
   expected: number;
   online: number;
   uploaded: boolean;
@@ -2353,6 +2374,8 @@ export type TuteClassNeed = {
   high: number;
   method: TuteForecastMethod;
   given: number;
+  /** Copies handed out in class only (class_issue, excluding Speed Post post_out). */
+  hall_given?: number;
 };
 
 type PublicSchema = Database["public"];

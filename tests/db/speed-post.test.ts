@@ -2,7 +2,7 @@
 // parcel per home, never twice, handover posts stock out once, returns.
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import type pg from "pg";
-import { actAs, asOwner, createBatch, createPerson, outcome, session, type Actor } from "./helpers";
+import { actAs, asOwner, createBatch, createPerson, createTute, outcome, session, type Actor } from "./helpers";
 
 let db: pg.Client;
 let poster: Actor;
@@ -35,9 +35,7 @@ beforeAll(async () => {
 
   await actAs(db, stocker);
   classId = (await q("select public.fee_class_save(null, $1, $2, true) as id", [batch, `Revision ${stamp}`]))[0].id;
-  tuteId = (
-    await q(`select public.class_tute_create_and_assign($1, $2, $3, '', array[${MONTH}]) as id`, [batch, classId, `Unit 12 ${stamp}`])
-  )[0].id;
+  tuteId = await createTute(db, classId, `Unit 12 ${stamp}`, [MONTH]);
 
   await asOwner(db);
   await q(`insert into public.fee_month_imports (class_id, month, unique_student_count) values ($1, ${MONTH}, 4)`, [classId]);
@@ -119,6 +117,14 @@ describe("rounds", () => {
     expect(await onHand()).toBe(10);
     await asOwner(db);
     expect((await q("select public.tute_available($1) as n", [tuteId]))[0].n).toBe(8);
+
+    // Hall handouts can't steal the 2 copies reserved for this Speed Post round.
+    await actAs(db, stocker);
+    const err = await db
+      .query(`select public.tute_stock_issue($1, 9, 'class_issue', $2, ${MONTH})`, [tuteId, classId])
+      .catch((e) => e);
+    expect(err.code).toBe("P0001");
+    expect(err.message).toMatch(/held for Speed Post/);
   });
 
   test("nobody gets the same tute twice; a top-up round picks up newly confirmed students", async () => {
@@ -148,6 +154,12 @@ describe("rounds", () => {
     expect((await q("select public.post_round_handover($1, 450) as n", [mainRound]))[0].n).toBe(1);
     expect((await q("select public.post_round_handover($1, 450) as n", [mainRound]))[0].n).toBe(0);
     expect(await onHand()).toBe(8);
+
+    // Posted copies count toward total given, while hall_given tracks only class_issue.
+    await actAs(db, stocker);
+    const [sum] = await q(`select classes from public.tute_stock_summary(${MONTH}) where tute_id = $1`, [tuteId]);
+    expect(sum.classes[0]).toMatchObject({ given: 2, hall_given: 0 });
+
     await asOwner(db);
     const status = await q("select status from public.tute_stock_reservations where round_id = $1", [mainRound]);
     expect(status).toEqual([{ status: "committed" }]);
