@@ -19,7 +19,7 @@ The **Fee reminders** page (`/admin/fee-reminders`) compares your **previous mon
 Each A/L batch (from **Batches & exams**, e.g. `2027 A/L`) can hold **multiple separate classes** (e.g. `2027 Grand Revision`, `2027 Theory`, `2027 Paper Class`).
 
 - Every class stores its own **isolated monthly paid lists** — uploading one class never overlaps or overwrites another class in the same batch.
-- You can create classes manually with **`+ Add class`**, or let the uploader **auto-detect and create them** directly from the `Classes` column of your Excel/CSV file.
+- Classes are managed on the **Classes** page (Manage → Students → **Classes**, or **Manage classes** here): name, batch, and whether its students are **Physical**, **Online** or **both**. The uploader can still **auto-detect and create** a class from the `Classes` column of your Excel/CSV file (as "both"); set its mode on Classes afterwards.
 
 ---
 
@@ -118,15 +118,11 @@ Tap any chip below the editor to insert it at your cursor:
 
 ## 5B. Managing Monthly & Future-Month Tutes
 
-Tutes are **created on Tute stock** (Manage → Students → Tute stock → **New tute**), where their copies are kept too. Fee reminders only picks them.
+Tutes are **created on Tute stock** (Manage → Students → Tute stock → **New tute**), where their copies are kept too.
 
-Open the **`Tutes`** tab for any selected Batch and Class:
+Which tutes each class gets in each month is planned on **Classes → Tute plan** (this month and the next two). **Add tutes** schedules several tutes for several classes at once, in any batch; **×** on a tute takes it off that class's month (its stock on Tute stock is kept). The order they were added is the order shown in `{tutes_list}`.
 
-- **Different tutes per month:** Choose any month in **Schedule month** (past, current, or **up to 12 future months ahead**) to arrange that month's tutes — even before student paid lists are uploaded.
-- **Pick tutes one by one:** In **Add a tute to …**, choose a tute of the batch and press **Add**. Repeat for each tute, and for each month or class that uses it.
-- **No tute in the list?** Press **Create or edit tutes on Tute stock**, add it there, and come back.
-- **Reorder or remove:** Use ↑ / ↓ arrows to control the exact order shown in `{tutes_list}`, or click **×** to unlink a tute from a single month while keeping it in the catalog (its stock on Tute stock is kept).
-- **Missing-tutes guard:** If your selected WhatsApp template uses `{tutes}` or `{tutes_list}` while the current month has 0 tutes added yet, a yellow banner alerts you right above the Due table and inside the WhatsApp Queue.
+- **Missing-tutes guard:** If your selected WhatsApp template uses `{tutes}` or `{tutes_list}` while the current month has 0 tutes added yet, a yellow banner alerts you right above the Due table and inside the WhatsApp Queue. Its **+ Add tutes** button opens the Tute plan.
 
 ### Using Helakuru for Sinhala Templates
 - Always type or paste using **Helakuru Unicode mode** (the default in Helakuru Mobile, Helakuru Web, and Helakuru Desktop Unicode mode — the same mode used in WhatsApp).

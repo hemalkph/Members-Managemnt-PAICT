@@ -790,11 +790,15 @@ export const paymentsImportSchema = z.object({
 export type PaymentsImportInput = z.input<typeof paymentsImportSchema>;
 
 // ---------------------------------------------------------------- fee reminders (monthly paid lists + WhatsApp)
+export const CLASS_MODES = ["physical", "online", "both"] as const;
+export type ClassMode = (typeof CLASS_MODES)[number];
+
 export const feeClassSchema = z.object({
   id: uuid.optional(),
   batch_id: z.uuid("Choose a batch"),
   name: trimmed(2, 120, "Class name"),
   is_active: z.boolean().default(true),
+  mode: z.enum(CLASS_MODES, "Choose Physical, Online or Both").default("both"),
 });
 export type FeeClassInput = z.input<typeof feeClassSchema>;
 
@@ -880,20 +884,6 @@ export const feeTemplateSchema = z.object({
 export type FeeTemplateInput = z.input<typeof feeTemplateSchema>;
 
 // ---------------------------------------------------------------- monthly & future-month class tutes
-export const classMonthTuteAttachSchema = z.object({
-  class_id: uuid,
-  month: monthKey,
-  tute_id: uuid,
-  note: optionalText(200, "Note").default(""),
-});
-export type ClassMonthTuteAttachInput = z.input<typeof classMonthTuteAttachSchema>;
-
-export const classMonthTuteReorderSchema = z.object({
-  class_id: uuid,
-  month: monthKey,
-  ids: z.array(uuid).min(1).max(100),
-});
-export type ClassMonthTuteReorderInput = z.input<typeof classMonthTuteReorderSchema>;
 
 // ---------------------------------------------------------------------------
 // Tute stock (Phase 1)
@@ -1032,3 +1022,18 @@ export const postParcelStatusSchema = z.object({
   copies_ok: z.boolean().default(true),
 });
 export type PostParcelStatusInput = z.input<typeof postParcelStatusSchema>;
+
+// ---------------------------------------------------------------------------
+// Classes page
+// ---------------------------------------------------------------------------
+/** Today's "paid so far" for a class (this month). */
+export const classPaidCountSchema = z.object({ class_id: uuid, count: copies("Paid students", 0) });
+export type ClassPaidCountInput = z.input<typeof classPaidCountSchema>;
+
+/** Schedule several tutes for several classes in one month. */
+export const classTutesAssignSchema = z.object({
+  month: monthKey,
+  class_ids: z.array(uuid).min(1, "Pick at least one class").max(100),
+  tute_ids: z.array(uuid).min(1, "Pick at least one tute").max(100),
+});
+export type ClassTutesAssignInput = z.input<typeof classTutesAssignSchema>;

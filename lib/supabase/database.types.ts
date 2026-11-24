@@ -1400,12 +1400,15 @@ export type Database = {
           is_active: boolean;
           created_by: string | null;
           created_at: string;
+          /** Physical, Online or Both (Both splits by the paid list's Institute column). */
+          mode: ClassMode;
         };
         Insert: {
           id?: string;
           batch_id: string;
           name: string;
           is_active?: boolean;
+          mode?: ClassMode;
           created_by?: string | null;
           created_at?: string;
         };
@@ -1416,6 +1419,7 @@ export type Database = {
           is_active?: boolean;
           created_by?: string | null;
           created_at?: string;
+          mode?: ClassMode;
         };
         Relationships: [
           {
@@ -2130,8 +2134,29 @@ export type Database = {
         Returns: number;
       };
       fee_class_save: {
-        Args: { p_id: string | null; p_batch_id: string; p_name: string; p_is_active?: boolean };
+        Args: { p_id: string | null; p_batch_id: string; p_name: string; p_is_active?: boolean; p_mode?: ClassMode | null };
         Returns: string;
+      };
+      class_paid_count_save: { Args: { p_class: string; p_count: number }; Returns: undefined };
+      class_ops_overview: {
+        Args: { p_month: string };
+        Returns: {
+          class_id: string;
+          batch_id: string;
+          batch_name: string;
+          name: string;
+          mode: ClassMode;
+          is_active: boolean;
+          /** Newest paid count this month (uploaded list or typed), null before the first. */
+          paid: number | null;
+          paid_at: string | null;
+          paid_source: "upload" | "typed" | null;
+          last_month: number | null;
+          /** Students the tutes are planned for (paid list, forecast or month-end estimate). */
+          expected: number;
+          tutes_this: number;
+          tutes_next: number;
+        }[];
       };
       fee_class_delete: { Args: { p_id: string }; Returns: undefined };
       fee_month_replace_import: {
@@ -2358,6 +2383,8 @@ export type TuteStockRow = {
   classes_next: TuteClassNeed[];
 };
 export type TuteForecastMethod = "last_month" | "avg3" | "smooth" | "trend" | "start_rule" | "none";
+export type ClassMode = "physical" | "online" | "both";
+
 export type TuteClassNeed = {
   id: string;
   name: string;

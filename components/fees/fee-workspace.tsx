@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useMemo, useState, useTransition } from "react";
 import {
@@ -13,6 +14,7 @@ import {
   Loader2Icon,
   MessageCircleIcon,
   PencilIcon,
+  SchoolIcon,
   PhoneOffIcon,
   SearchIcon,
   SparklesIcon,
@@ -22,10 +24,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/empty-state";
-import { FeeClassDialog } from "@/components/fees/class-dialog";
 import { FollowupDialog } from "@/components/fees/followup-dialog";
 import { TemplateEditor } from "@/components/fees/template-editor";
-import { TutesManager } from "@/components/fees/tutes-manager";
 import { UploadMonthDialog } from "@/components/fees/upload-month-dialog";
 import { WhatsAppQueueDialog } from "@/components/fees/whatsapp-queue-dialog";
 import { PageHeader } from "@/components/page-header";
@@ -58,7 +58,7 @@ import {
   type FeeComparisonSummary,
 } from "@/lib/fees/compare";
 import { formatPhoneDisplay } from "@/lib/fees/phone";
-import type { ClassTuteCatalogItem, FeeClassItem, FeeTemplateItem, ScheduledMonthTute } from "@/lib/fees/queries";
+import type { FeeClassItem, FeeTemplateItem, ScheduledMonthTute } from "@/lib/fees/queries";
 import { feeWhatsAppUrl, renderFeeMessage, templateUsesTutes } from "@/lib/fees/templates";
 import type { FeeFollowupStatus } from "@/lib/supabase/database.types";
 import { cn } from "@/lib/utils";
@@ -79,9 +79,7 @@ export function FeeWorkspace({
   batches,
   classes,
   templates,
-  tuteCatalog,
   scheduledTutes,
-  tuteStock,
   selectedBatchId,
   selectedClassId,
   prevMonth,
@@ -94,9 +92,7 @@ export function FeeWorkspace({
   batches: { id: string; name: string; isActive: boolean }[];
   classes: FeeClassItem[];
   templates: FeeTemplateItem[];
-  tuteCatalog: ClassTuteCatalogItem[];
   scheduledTutes: ScheduledMonthTute[];
-  tuteStock: Record<string, { onHand: number; inPrint: number }>;
   selectedBatchId: string;
   selectedClassId: string | null;
   prevMonth: string | null;
@@ -398,11 +394,11 @@ export function FeeWorkspace({
         actions={
           canEdit && batches.length > 0 ? (
             <>
-              <FeeClassDialog
-                batches={batches}
-                defaultBatchId={selectedBatchId}
-                onSaved={(cid, bid) => navigate({ batch: bid, classId: cid, prev: null, curr: null })}
-              />
+              <Button asChild variant="outline" size="sm">
+                <Link href="/admin/class-ops">
+                  <SchoolIcon /> Manage classes
+                </Link>
+              </Button>
               <UploadMonthDialog
                 batches={batches}
                 classes={classes}
@@ -458,21 +454,12 @@ export function FeeWorkspace({
                   <label htmlFor="sel-class" className="text-muted-foreground text-xs font-medium">
                     Class ({batchClasses.length} in batch)
                   </label>
-                  {canEdit && selectedClass && (
-                    <FeeClassDialog
-                      batches={batches}
-                      defaultBatchId={selectedBatchId}
-                      editing={selectedClass}
-                      onSaved={(cid, bid) => navigate({ batch: bid, classId: cid })}
-                    >
-                      <button
-                        type="button"
-                        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-[11px]"
-                      >
-                        <PencilIcon className="size-3" /> Edit
-                      </button>
-                    </FeeClassDialog>
-                  )}
+                  <Link
+                    href="/admin/class-ops"
+                    className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-[11px]"
+                  >
+                    <PencilIcon className="size-3" /> Classes
+                  </Link>
                 </div>
                 <Select
                   value={selectedClassId ?? ""}
@@ -592,9 +579,6 @@ export function FeeWorkspace({
                     {counts.duePending}
                   </Badge>
                 )}
-              </TabsTrigger>
-              <TabsTrigger value="tutes">
-                <BookOpenIcon className="size-3.5" /> Tutes ({currMonthTutes.length})
               </TabsTrigger>
               <TabsTrigger value="templates">
                 <SparklesIcon className="size-3.5" /> WhatsApp Templates ({templates.length})
@@ -717,14 +701,10 @@ export function FeeWorkspace({
                         </span>
                       )}
                     </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-7 px-2.5 text-xs"
-                      onClick={() => setActiveTab("tutes")}
-                    >
-                      {currMonthTutes.length > 0 ? "Manage tutes" : "+ Add tutes"}
+                    <Button asChild variant="outline" size="sm" className="h-7 px-2.5 text-xs">
+                      <Link href="/admin/class-ops?tab=plan">
+                        {currMonthTutes.length > 0 ? "Manage tutes" : "+ Add tutes"}
+                      </Link>
                     </Button>
                   </div>
 
@@ -1035,27 +1015,6 @@ export function FeeWorkspace({
                     </Card>
                   )}
                 </>
-              )}
-            </TabsContent>
-
-            {/* TAB 2: Monthly & Future-Month Tutes */}
-            <TabsContent value="tutes">
-              {!selectedClass ? (
-                <EmptyState
-                  icon={BookOpenIcon}
-                  title="Choose or create a class first"
-                  description="Add a class (or upload your first monthly Excel/CSV sheet) before scheduling monthly and future tutes."
-                />
-              ) : (
-                <TutesManager
-                  classId={selectedClass.id}
-                  className={selectedClass.name}
-                  defaultMonth={activeTuteMonth}
-                  catalog={tuteCatalog}
-                  scheduled={scheduledTutes}
-                  stock={tuteStock}
-                  canEdit={canEdit}
-                />
               )}
             </TabsContent>
 

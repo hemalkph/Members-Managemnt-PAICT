@@ -450,7 +450,7 @@ export function TuteDialog({
           {state.kind === "issue" &&
             (state.row.classes.length === 0 ? (
               <p className="text-muted-foreground text-sm">
-                This tute isn&apos;t scheduled for any class in {monthLabel(month)}. Schedule it on Fee reminders → Tutes first.
+                This tute isn&apos;t scheduled for any class in {monthLabel(month)}. Schedule it on Classes → Tute plan first.
               </p>
             ) : (
               <>
@@ -662,7 +662,7 @@ export function TuteDialog({
                     })}
                   </div>
                   <p className="text-muted-foreground text-xs">
-                    You can also schedule future months any time on Fee reminders → Tutes.
+                    You can also schedule future months any time on Classes → Tute plan.
                   </p>
                 </div>
               )}

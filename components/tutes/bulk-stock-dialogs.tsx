@@ -166,8 +166,7 @@ export function HandOutDialog({
         {classes.length === 0 ? (
           <>
             <p className="text-muted-foreground text-sm">
-              No tutes are scheduled for a class in {monthLabel(month)}. Add them to the month&apos;s messages on Fee
-              reminders → Tutes first.
+              No tutes are scheduled for a class in {monthLabel(month)}. Plan them on Classes → Tute plan first.
             </p>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={onClose}>

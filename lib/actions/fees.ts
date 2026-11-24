@@ -5,18 +5,12 @@ import { getActionContext, NOT_ALLOWED } from "@/lib/auth";
 import { friendlyDbError, type ActionResult } from "@/lib/core/action-result";
 import { monthKeyToDate } from "@/lib/core/month";
 import {
-  classMonthTuteAttachSchema,
-  classMonthTuteReorderSchema,
-  feeClassSchema,
   feeFollowupSchema,
   feeMonthDeleteSchema,
   feeMonthImportSchema,
   feeTemplateSchema,
   firstError,
   idSchema,
-  type ClassMonthTuteAttachInput,
-  type ClassMonthTuteReorderInput,
-  type FeeClassInput,
   type FeeFollowupInput,
   type FeeMonthImportInput,
   type FeeTemplateInput,
@@ -26,41 +20,6 @@ const editor = () => getActionContext({ page: "fee_reminders", edit: true });
 
 function revalidate() {
   revalidatePath("/admin/fee-reminders");
-}
-
-/** Add or edit a class inside a batch. */
-export async function saveFeeClassAction(input: FeeClassInput): Promise<ActionResult<{ id: string }>> {
-  const ctx = await editor();
-  if (!ctx) return { ok: false, error: NOT_ALLOWED };
-  const parsed = feeClassSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
-
-  const { data: id, error } = await ctx.supabase.rpc("fee_class_save", {
-    p_id: parsed.data.id ?? null,
-    p_batch_id: parsed.data.batch_id,
-    p_name: parsed.data.name,
-    p_is_active: parsed.data.is_active,
-  });
-  if (error) return { ok: false, error: friendlyDbError(error) };
-  revalidate();
-  return {
-    ok: true,
-    message: parsed.data.id ? `Updated class "${parsed.data.name}"` : `Added class "${parsed.data.name}"`,
-    data: { id },
-  };
-}
-
-/** Delete a fee tracking class and its uploaded monthly snapshots. */
-export async function deleteFeeClassAction(id: string): Promise<ActionResult> {
-  const ctx = await editor();
-  if (!ctx) return { ok: false, error: NOT_ALLOWED };
-  const parsed = idSchema.safeParse({ id });
-  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
-
-  const { error } = await ctx.supabase.rpc("fee_class_delete", { p_id: parsed.data.id });
-  if (error) return { ok: false, error: friendlyDbError(error) };
-  revalidate();
-  return { ok: true, message: "Class removed" };
 }
 
 /**
@@ -93,9 +52,11 @@ export async function importFeeMonthAction(
   // Load existing classes in this batch so creating a new class by an existing name reuses or flags cleanly.
   const { data: existingClasses } = await ctx.supabase
     .from("fee_classes")
-    .select("id, name")
+    .select("id, name, mode")
     .eq("batch_id", batch_id);
   const existingByLower = new Map((existingClasses ?? []).map((c) => [c.name.trim().toLowerCase(), c.id]));
+  // New classes made by an upload are "both" (split by the Institute column).
+  const modeById = new Map((existingClasses ?? []).map((c) => [c.id, c.mode]));
 
   const monthDate = monthKeyToDate(month);
   const importedClasses: { id: string; count: number }[] = [];
@@ -146,8 +107,9 @@ export async function importFeeMonthAction(
     importedClasses.push({ id: targetClassId, count });
 
     // Postal addresses of Online students go to the private Speed Post table.
+    const mode = modeById.get(targetClassId) ?? "both";
     const addresses = group.rows
-      .filter((r) => r.address && /online/i.test(r.institute))
+      .filter((r) => r.address && (mode === "online" || (mode === "both" && /online/i.test(r.institute))))
       .map((r) => ({
         student_key: r.student_key,
         full_name: r.full_name,
@@ -257,54 +219,4 @@ export async function deleteFeeTemplateAction(id: string): Promise<ActionResult>
   if (error) return { ok: false, error: friendlyDbError(error) };
   revalidate();
   return { ok: true, message: "Template deleted" };
-}
-
-/** Attach an existing catalog tute to a (class, month) — works for current & future months. */
-export async function attachClassMonthTuteAction(
-  input: ClassMonthTuteAttachInput,
-): Promise<ActionResult<{ id: string }>> {
-  const ctx = await editor();
-  if (!ctx) return { ok: false, error: NOT_ALLOWED };
-  const parsed = classMonthTuteAttachSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
-
-  const { data: id, error } = await ctx.supabase.rpc("class_month_tute_attach", {
-    p_class_id: parsed.data.class_id,
-    p_month: monthKeyToDate(parsed.data.month),
-    p_tute_id: parsed.data.tute_id,
-    p_note: parsed.data.note,
-  });
-  if (error) return { ok: false, error: friendlyDbError(error) };
-  revalidate();
-  return { ok: true, message: "Tute added to month", data: { id } };
-}
-
-/** Unlink a scheduled tute from a single month (catalog entry and other months stay intact). */
-export async function removeClassMonthTuteAction(id: string): Promise<ActionResult> {
-  const ctx = await editor();
-  if (!ctx) return { ok: false, error: NOT_ALLOWED };
-  const parsed = idSchema.safeParse({ id });
-  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
-
-  const { error } = await ctx.supabase.rpc("class_month_tute_remove", { p_id: parsed.data.id });
-  if (error) return { ok: false, error: friendlyDbError(error) };
-  revalidate();
-  return { ok: true, message: "Removed tute from this month" };
-}
-
-/** Reorder tutes for a (class, month). */
-export async function reorderClassMonthTutesAction(input: ClassMonthTuteReorderInput): Promise<ActionResult> {
-  const ctx = await editor();
-  if (!ctx) return { ok: false, error: NOT_ALLOWED };
-  const parsed = classMonthTuteReorderSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
-
-  const { error } = await ctx.supabase.rpc("class_month_tute_reorder", {
-    p_class_id: parsed.data.class_id,
-    p_month: monthKeyToDate(parsed.data.month),
-    p_ids: parsed.data.ids,
-  });
-  if (error) return { ok: false, error: friendlyDbError(error) };
-  revalidate();
-  return { ok: true };
 }

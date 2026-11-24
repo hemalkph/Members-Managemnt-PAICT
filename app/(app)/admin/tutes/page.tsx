@@ -20,7 +20,7 @@ function param(value: string | string[] | undefined) {
 
 export default async function TutesPage({ searchParams }: PageProps<"/admin/tutes">) {
   const { profile, canEdit } = await requirePage("tutes");
-  const canSchedule = pageAccess(profile, "fee_reminders") === "edit";
+  const canSchedule = pageAccess(profile, "class_ops") === "edit" || pageAccess(profile, "fee_reminders") === "edit";
   const sp = await searchParams;
   const supabase = await createClient();
   // Backup for the 9:00 job: catch up on stock alerts after the page is sent.
