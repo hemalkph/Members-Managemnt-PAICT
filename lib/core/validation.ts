@@ -1037,3 +1037,12 @@ export const classTutesAssignSchema = z.object({
   tute_ids: z.array(uuid).min(1, "Pick at least one tute").max(100),
 });
 export type ClassTutesAssignInput = z.input<typeof classTutesAssignSchema>;
+
+export const classTutesCopySchema = z
+  .object({
+    class_id: uuid,
+    from_month: monthKey,
+    to_month: monthKey,
+  })
+  .refine((v) => v.from_month !== v.to_month, { message: "Choose two different months" });
+export type ClassTutesCopyInput = z.input<typeof classTutesCopySchema>;

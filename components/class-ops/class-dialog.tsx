@@ -190,7 +190,9 @@ export function ClassDialog({
                   <AlertDialogHeader>
                     <AlertDialogTitle>Delete &ldquo;{editing.name}&rdquo;?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This permanently removes all uploaded monthly paid lists and follow-up records for this class.
+                      This permanently removes all uploaded monthly paid lists, typed paid counts, follow-up records,
+                      and monthly tute schedules for this class. If the class has past history, untick &ldquo;In
+                      use&rdquo; to archive it instead.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>

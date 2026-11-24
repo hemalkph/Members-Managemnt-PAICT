@@ -2138,6 +2138,8 @@ export type Database = {
         Returns: string;
       };
       class_paid_count_save: { Args: { p_class: string; p_count: number }; Returns: undefined };
+      class_paid_count_undo: { Args: { p_class: string }; Returns: number };
+      class_month_tutes_copy: { Args: { p_class: string; p_from_month: string; p_to_month: string }; Returns: number };
       class_ops_overview: {
         Args: { p_month: string };
         Returns: {
