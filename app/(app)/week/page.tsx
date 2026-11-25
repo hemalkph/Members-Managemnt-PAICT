@@ -21,6 +21,10 @@ import { todayISO } from "@/lib/core/month";
 import { addDays, STAGE_LABEL } from "@/lib/papers";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
+import { DaysOffCard } from "@/components/team/days-off-card";
+import { getTeamDirectory } from "@/lib/members/team-directory";
+import { awayOn } from "@/lib/team/availability";
+import { getTeamDaysOff } from "@/lib/team/days-off-queries";
 
 export const metadata: Metadata = { title: "My week" };
 
@@ -89,7 +93,7 @@ export default async function MyWeekPage() {
   const days = Array.from({ length: 7 }, (_, i) => addDays(today, i));
   const end = days[6];
 
-  const [{ data: stages }, { data: tasks }] = await Promise.all([
+  const [{ data: stages }, { data: tasks }, daysOff, team] = await Promise.all([
     supabase
       .from("paper_stages")
       .select("id, stage, status, start_date, due_date, paper:papers(id, title, status)")
@@ -101,6 +105,8 @@ export default async function MyWeekPage() {
       .eq("assignee_id", profile.id)
       .eq("status", "open")
       .is("paper_stage_id", null),
+    getTeamDaysOff(supabase, today, addDays(today, 120)),
+    profile.is_admin ? getTeamDirectory(supabase) : Promise.resolve([]),
   ]);
 
   const items: Item[] = [
@@ -203,7 +209,9 @@ export default async function MyWeekPage() {
                   <p className="text-muted-foreground text-xs">{formatDay(day)}</p>
                 </div>
                 {dayItems.length === 0 ? (
-                  <p className="text-muted-foreground self-center text-sm">Free</p>
+                  <p className="text-muted-foreground self-center text-sm">
+                    {awayOn(daysOff, profile.id, day) ? "Day off" : "Free"}
+                  </p>
                 ) : (
                   <div className="grid min-w-0 gap-2">
                     {dayItems.map((i) => (
@@ -237,6 +245,13 @@ export default async function MyWeekPage() {
           )}
         </>
       )}
+      <DaysOffCard
+        daysOff={daysOff}
+        me={profile.id}
+        isAdmin={profile.is_admin}
+        team={team.filter((p) => p.isActive).map((p) => ({ id: p.id, name: p.name }))}
+        today={today}
+      />
     </div>
   );
 }

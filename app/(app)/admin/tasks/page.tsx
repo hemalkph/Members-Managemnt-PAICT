@@ -1,3 +1,5 @@
+import { addDaysISO } from "@/lib/team/availability";
+import { getTeamDaysOff } from "@/lib/team/days-off-queries";
 import type { Metadata } from "next";
 import { waNumber } from "@/components/papers/review-contacts";
 import { AdminTaskBoard } from "@/components/tasks/admin-task-board";
@@ -80,10 +82,15 @@ export default async function AdminTasksPage({ searchParams }: PageProps<"/admin
     countStatus(["open", "waiting"]),
     countStatus(["done"]),
     countStatus(["cancelled"]),
-    supabase.from("tasks").select("id", { count: "exact", head: true }).eq("status", "done").gte("completed_at", thirtyDaysAgo),
+    supabase
+      .from("tasks")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "done")
+      .gte("completed_at", thirtyDaysAgo),
   ]);
 
   const tags = activeOptions(classOptions);
+  const daysOff = await getTeamDaysOff(supabase, today, addDaysISO(today, 60));
   const weekAhead = new Date(Date.parse(`${today}T00:00:00Z`) + 7 * 86_400_000).toISOString().slice(0, 10);
   const overdue = openTasks.filter((t) => t.overdue).length;
   const dueThisWeek = openTasks.filter((t) => t.dueDate && t.dueDate >= today && t.dueDate <= weekAhead).length;
@@ -93,12 +100,14 @@ export default async function AdminTasksPage({ searchParams }: PageProps<"/admin
     members: activeMembers.map((p) => ({
       id: p.id,
       name: p.name,
+      open: openTasks.filter((t) => t.assigneeId === p.id).length,
       roleIds: (memberRoles ?? []).filter((r) => r.user_id === p.id).map((r) => r.role_id),
     })),
     roles: roles ?? [],
     exams: tags.exams.map((e) => ({ id: e.id, label: e.label })),
     centres: tags.centres.map((c) => ({ id: c.id, name: c.name })),
     types,
+    daysOff,
   };
 
   return (

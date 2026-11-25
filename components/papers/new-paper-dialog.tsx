@@ -17,6 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { awayBetween, shortRange, type DayOff } from "@/lib/team/availability";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
@@ -62,6 +63,7 @@ export function NewPaperDialog({
   today,
   nextExamDay,
   defaultOwners = {},
+  daysOff = [],
 }: {
   /** busy = due dates of the member's open and upcoming tasks (for the workload check). */
   members: { id: string; name: string; busy: string[] }[];
@@ -72,6 +74,8 @@ export function NewPaperDialog({
   nextExamDay?: string;
   /** The usual paper team (filled in on every new paper). */
   defaultOwners?: Owners;
+  /** Days off in the coming weeks (dates only): owners away during a stage's work days are flagged. */
+  daysOff?: DayOff[];
 }) {
   const router = useRouter();
   const startExamDay = () => exams.find((e) => e.id === defaultExam)?.examDate ?? nextExamDay ?? defaultExamDay(today);
@@ -413,6 +417,8 @@ export function NewPaperDialog({
                         <SelectItem value={NONE}>Choose later</SelectItem>
                         {members.map((m) => {
                           const busy = busyThisWeek(m.id);
+                          const from = st.start_date || st.due_date;
+                          const away = from && st.due_date ? awayBetween(daysOff, m.id, from, st.due_date) : [];
                           return (
                             <SelectItem
                               key={m.id}
@@ -421,12 +427,16 @@ export function NewPaperDialog({
                                 <span
                                   className={cn(
                                     "ml-auto pl-3 text-xs",
-                                    busy >= 3
+                                    busy >= 3 || away.length > 0
                                       ? "font-semibold text-amber-700 dark:text-warning"
                                       : "text-muted-foreground",
                                   )}
                                 >
-                                  {busy === 0 ? "free" : `${busy} that week`}
+                                  {away.length > 0
+                                    ? `away ${away.map((d) => shortRange(d.from, d.to)).join(", ")}`
+                                    : busy === 0
+                                      ? "free"
+                                      : `${busy} that week`}
                                 </span>
                               }
                             >
