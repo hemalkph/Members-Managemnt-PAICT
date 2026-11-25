@@ -234,10 +234,36 @@ export function nextExamDay(today: string, plannedExamDays: (string | null)[]): 
   return next > earliest ? next : earliest;
 }
 
-/** Default start and due date of every stage for an exam day. */
-export function defaultSchedule(examDay: string): Record<PaperStageName, { start: string; due: string }> {
+/** Admin-set start / due days (from the exam day) that replace a stage's defaults for new papers. */
+export type StageOffsets = Partial<Record<PaperStageName, { start: number; due: number }>>;
+
+/** The stages that must be done before the exam (the countdown judges only these). */
+export const PRE_EXAM_STAGES: PaperStageName[] = [
+  "create_si",
+  "typeset_si",
+  "convert",
+  "typeset_en",
+  "review_si",
+  "review_en",
+  "handover",
+];
+
+/** A stage's start / due days from the exam day, with any admin override. */
+export function stageOffsets(stage: PaperStageName, offsets: StageOffsets = {}): { start: number; due: number } {
+  const meta = STAGE_META[stage];
+  return offsets[stage] ?? { start: meta.startOffset, due: meta.dueOffset };
+}
+
+/** Default start and due date of every stage for an exam day (admin overrides first). */
+export function defaultSchedule(
+  examDay: string,
+  offsets: StageOffsets = {},
+): Record<PaperStageName, { start: string; due: string }> {
   return Object.fromEntries(
-    STAGES.map((s) => [s.stage, { start: addDays(examDay, s.startOffset), due: addDays(examDay, s.dueOffset) }]),
+    STAGES.map((s) => {
+      const o = stageOffsets(s.stage, offsets);
+      return [s.stage, { start: addDays(examDay, o.start), due: addDays(examDay, o.due) }];
+    }),
   ) as Record<PaperStageName, { start: string; due: string }>;
 }
 
@@ -260,6 +286,8 @@ export type StageView = {
   link: string | null;
   status: StageStatus;
   completedAt: string | null;
+  /** When the stage became the owner's turn. */
+  startedAt: string | null;
   overdue: boolean;
 };
 
