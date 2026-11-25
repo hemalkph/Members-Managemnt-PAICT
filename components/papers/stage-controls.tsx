@@ -28,6 +28,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DayOffWarning } from "@/components/team/day-off-warning";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
+import type { PaperStageName } from "@/lib/supabase/database.types";
+import { PRE_EXAM_STAGES } from "@/lib/papers";
+import { fromColomboISO, toColomboISO } from "@/lib/papers/times";
 import { awayOn, nextWorkingDay, type DayOff } from "@/lib/team/availability";
 import { setGroupLinksAction, setStageLinkAction, updatePaperStageAction } from "@/lib/actions/papers";
 import { setTaskStatusAction } from "@/lib/actions/tasks";
@@ -103,6 +107,9 @@ export function FinishStageButton({
 export function EditStageDialog({
   paperId,
   stageId,
+  stage,
+  startAt = null,
+  dueAt = null,
   label,
   ownerId,
   startDate,
@@ -113,6 +120,9 @@ export function EditStageDialog({
 }: {
   paperId: string;
   stageId: string;
+  stage: PaperStageName;
+  startAt?: string | null;
+  dueAt?: string | null;
   label: string;
   ownerId: string | null;
   startDate: string | null;
@@ -127,6 +137,11 @@ export function EditStageDialog({
   const [owner, setOwner] = useState(ownerId ?? "");
   const [start, setStart] = useState(startDate ?? "");
   const [due, setDue] = useState(dueDate ?? "");
+  // Pre-exam stages pick times on the calendar; untouched legacy stages keep "whole day".
+  const timed = PRE_EXAM_STAGES.includes(stage);
+  const [startIso, setStartIso] = useState(startAt ?? (startDate ? toColomboISO(startDate, "08:00") : ""));
+  const [dueIso, setDueIso] = useState(dueAt ?? (dueDate ? toColomboISO(dueDate, "18:00") : ""));
+  const [timesTouched, setTimesTouched] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const run = (action: "save" | "skip" | "done") =>
@@ -138,6 +153,7 @@ export function EditStageDialog({
         start_date: start,
         due_date: due,
         action,
+        ...(timed && timesTouched && startIso && dueIso ? { stage, start_at: startIso, due_at: dueIso } : {}),
       });
       if (!result.ok) {
         toast.error(result.error);
@@ -197,22 +213,52 @@ export function EditStageDialog({
               </SelectContent>
             </Select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-2">
-              <Label htmlFor={`start-${stageId}`}>Starts</Label>
-              <Input id={`start-${stageId}`} type="date" value={start} onChange={(e) => setStart(e.target.value)} />
+          {timed ? (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-2">
+                <Label>Starts</Label>
+                <DateTimePicker
+                  value={startIso}
+                  ariaLabel={`${label} start`}
+                  onChange={(iso) => {
+                    setTimesTouched(true);
+                    setStartIso(iso);
+                    setStart(fromColomboISO(iso).date);
+                  }}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>Due</Label>
+                <DateTimePicker
+                  value={dueIso}
+                  ariaLabel={`${label} due`}
+                  minDate={start || undefined}
+                  onChange={(iso) => {
+                    setTimesTouched(true);
+                    setDueIso(iso);
+                    setDue(fromColomboISO(iso).date);
+                  }}
+                />
+              </div>
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor={`due-${stageId}`}>Due</Label>
-              <Input
-                id={`due-${stageId}`}
-                type="date"
-                value={due}
-                min={start || undefined}
-                onChange={(e) => setDue(e.target.value)}
-              />
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-2">
+                <Label htmlFor={`start-${stageId}`}>Starts</Label>
+                <Input id={`start-${stageId}`} type="date" value={start} onChange={(e) => setStart(e.target.value)} />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor={`due-${stageId}`}>Due</Label>
+                <Input
+                  id={`due-${stageId}`}
+                  type="date"
+                  value={due}
+                  min={start || undefined}
+                  onChange={(e) => setDue(e.target.value)}
+                />
+              </div>
             </div>
-          </div>
+          )}
           {owner && due && awayOn(daysOff, owner, due) && (
             <DayOffWarning
               name={members.find((m) => m.id === owner)?.name ?? "The owner"}

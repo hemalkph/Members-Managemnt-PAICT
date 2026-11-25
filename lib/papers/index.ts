@@ -288,6 +288,9 @@ export type StageView = {
   completedAt: string | null;
   /** When the stage became the owner's turn. */
   startedAt: string | null;
+  /** Picked start / due times (null = whole day). */
+  startAt: string | null;
+  dueAt: string | null;
   overdue: boolean;
 };
 

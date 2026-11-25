@@ -117,6 +117,7 @@ function previewTask(p: {
     priority: p.high ? "high" : "normal",
     status: "open",
     paperId: null,
+    stageDueAt: null,
     workCount: 0,
     createdByName: null,
     completedAt: null,

@@ -5,6 +5,7 @@ import { formatDay } from "@/lib/core/format";
 import { PRE_EXAM_STAGES, STAGE_LABEL } from "@/lib/papers";
 import type { CountdownRow, PaperState } from "@/lib/papers/countdown";
 import { cn } from "@/lib/utils";
+import { StageCountdown } from "@/components/papers/stage-countdown";
 
 const STATE: Record<PaperState, { label: string; variant: "destructive" | "warning" | "secondary" | "success" }> = {
   late: { label: "Late", variant: "destructive" },
@@ -86,6 +87,13 @@ export function CountdownList({
                   </div>
                   <p className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
                     <span>{r.reason}</span>
+                    {r.state !== "ready" && r.blocking && (
+                      <StageCountdown
+                        dueAt={r.blocking.dueAt}
+                        dueDate={r.blocking.dueDate}
+                        status={r.blocking.status}
+                      />
+                    )}
                     {r.state !== "ready" && r.state !== "on_track" && r.blocking?.ownerName && (
                       <span>· {r.blocking.ownerName}</span>
                     )}

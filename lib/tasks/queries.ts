@@ -38,6 +38,8 @@ export type TaskView = {
   priority: "normal" | "high";
   status: TaskStatus;
   paperId: string | null;
+  /** Paper stage tasks: the stage's picked due time (null = end of the due day). */
+  stageDueAt: string | null;
   workCount: number;
   createdByName: string | null;
   createdAtLabel?: string | null;
@@ -59,7 +61,7 @@ export type TaskView = {
 };
 
 const SELECT =
-  "id, title, description, assignee_id, role_id, exam_id, centre_id, quantity, due_date, priority, status, created_at, completed_at, fix_note, sent_back_at, paper_stage_id, created_by, assignee:profiles!tasks_assignee_id_fkey(full_name, email), creator:profiles!tasks_created_by_fkey(full_name, email), roles(name), exam:exams(name, batch:batches(name)), centre:centres(name), stage:paper_stages(paper_id), submissions(count), task_files(id, kind, file_name, size_bytes, seen_at, created_at), type_id, details, task_types(name, icon, color, description)";
+  "id, title, description, assignee_id, role_id, exam_id, centre_id, quantity, due_date, priority, status, created_at, completed_at, fix_note, sent_back_at, paper_stage_id, created_by, assignee:profiles!tasks_assignee_id_fkey(full_name, email), creator:profiles!tasks_created_by_fkey(full_name, email), roles(name), exam:exams(name, batch:batches(name)), centre:centres(name), stage:paper_stages(paper_id, due_at), submissions(count), task_files(id, kind, file_name, size_bytes, seen_at, created_at), type_id, details, task_types(name, icon, color, description)";
 
 const DAY = 86_400_000;
 
@@ -100,7 +102,7 @@ type Row = {
   roles: { name: string } | null;
   exam: { name: string; batch: { name: string } | null } | null;
   centre: { name: string } | null;
-  stage: { paper_id: string } | null;
+  stage: { paper_id: string; due_at: string | null } | null;
   submissions: { count: number }[];
   task_files: { id: string; kind: "brief" | "work"; file_name: string; size_bytes: number; seen_at: string | null; created_at: string }[];
   type_id: string | null;
@@ -158,6 +160,7 @@ export async function getTasks(
     priority: t.priority,
     status: t.status,
     paperId: t.stage?.paper_id ?? null,
+    stageDueAt: t.stage?.due_at ?? null,
     workCount: t.submissions?.[0]?.count ?? 0,
     createdByName: t.creator ? t.creator.full_name || t.creator.email : ((t.created_by && names?.get(t.created_by)) ?? null),
     createdAtLabel: t.created_at ? formatDate(t.created_at) : null,

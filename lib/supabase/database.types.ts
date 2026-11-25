@@ -2174,6 +2174,8 @@ export type Database = {
       };
       class_paid_count_save: { Args: { p_class: string; p_count: number }; Returns: undefined };
       class_paid_count_undo: { Args: { p_class: string }; Returns: number };
+      // Stage times.
+      paper_stages_set_times: { Args: { p_paper: string; p_times: Json }; Returns: number };
       // Exam countdown (papers).
       paper_stage_offsets: { Args: Record<string, never>; Returns: Json };
       paper_stage_offsets_set: { Args: { p_offsets: Json }; Returns: undefined };

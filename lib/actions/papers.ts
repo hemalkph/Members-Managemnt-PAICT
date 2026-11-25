@@ -1,5 +1,6 @@
 "use server";
 
+import type { PaperStageName } from "@/lib/supabase/database.types";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { friendlyDbError, type ActionResult } from "@/lib/core/action-result";
@@ -55,6 +56,7 @@ export async function createPaperAction(input: PaperInput): Promise<ActionResult
       : [{ title: v.title, part: v.part, exam: v.exam_id, days: 0 }];
 
   const ids: string[] = [];
+  let timesFailed = false;
   for (const p of plan) {
     const { data, error } = await ctx.supabase.rpc("create_paper", {
       p_title: p.title,
@@ -85,8 +87,23 @@ export async function createPaperAction(input: PaperInput): Promise<ActionResult
       };
     }
     ids.push(data);
+
+    // Stage times from the work window (shifted with the paper for a split's second week).
+    const shiftAt = (iso: string) => new Date(Date.parse(iso) + p.days * 86_400_000).toISOString();
+    const times = Object.fromEntries(
+      v.stages
+        .filter((s) => !s.skip && s.start_at && s.due_at)
+        .map((s) => [s.stage, { start_at: shiftAt(s.start_at!), due_at: shiftAt(s.due_at!) }]),
+    );
+    if (Object.keys(times).length > 0) {
+      const { error: timesErr } = await ctx.supabase.rpc("paper_stages_set_times", { p_paper: data, p_times: times });
+      if (timesErr) timesFailed = true;
+    }
   }
   ids.forEach((id) => revalidatePapers(id));
+  if (timesFailed) {
+    return { ok: true, message: "Paper saved, but the stage times weren't. Set them on the paper page.", data: { id: ids[0] } };
+  }
   return {
     ok: true,
     message: ids.length > 1 ? "Two papers added (MCQ and SE & Essay) – the first stages have started" : "Paper added – the first stage has started",
@@ -143,6 +160,9 @@ export async function updatePaperStageAction(input: {
   due_date: string;
   action: "save" | "skip" | "done";
   paper_id: string;
+  stage?: PaperStageName;
+  start_at?: string;
+  due_at?: string;
 }): Promise<ActionResult> {
   const ctx = await getActionContext({ page: "papers", edit: true });
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
@@ -158,6 +178,13 @@ export async function updatePaperStageAction(input: {
     p_action: v.action,
   });
   if (error) return { ok: false, error: friendlyDbError(error) };
+  if (v.action === "save" && v.stage && v.start_at && v.due_at) {
+    const { error: timesErr } = await ctx.supabase.rpc("paper_stages_set_times", {
+      p_paper: input.paper_id,
+      p_times: { [v.stage]: { start_at: v.start_at, due_at: v.due_at } },
+    });
+    if (timesErr) return { ok: false, error: `Stage saved, but not its times: ${friendlyDbError(timesErr)}` };
+  }
   revalidatePapers(input.paper_id);
   return {
     ok: true,

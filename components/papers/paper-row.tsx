@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate, formatDay } from "@/lib/core/format";
 import { MEDIUM_LABEL, PART_LABEL, paperSteps, STAGE_LABEL, type PaperView } from "@/lib/papers";
 import { cn } from "@/lib/utils";
+import { StageCountdown } from "@/components/papers/stage-countdown";
 
 /** One paper in a list: title, stepper and who has it now. */
 export function PaperRow({ paper }: { paper: PaperView }) {
@@ -46,6 +47,7 @@ export function PaperRow({ paper }: { paper: PaperView }) {
                 {STAGE_LABEL[s.stage]}: {s.ownerName ?? "no owner yet"}
                 {s.dueDate && ` · due ${formatDay(s.dueDate)}`}
               </span>
+              <StageCountdown dueAt={s.dueAt} dueDate={s.dueDate} status={s.status} />
             </span>
           ))}
           {done && <span>Finished {paper.completedAt ? formatDate(paper.completedAt) : ""}</span>}

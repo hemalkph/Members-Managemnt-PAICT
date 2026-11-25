@@ -21,6 +21,7 @@ import { todayISO } from "@/lib/core/month";
 import { addDays, STAGE_LABEL } from "@/lib/papers";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
+import { StageCountdown } from "@/components/papers/stage-countdown";
 import { DaysOffCard } from "@/components/team/days-off-card";
 import { getTeamDirectory } from "@/lib/members/team-directory";
 import { awayOn } from "@/lib/team/availability";
@@ -38,6 +39,8 @@ type Item = {
   last: string | null;
   waiting: boolean;
   high: boolean;
+  /** Stages: picked due time (null = end of the due day). */
+  dueAt?: string | null;
 };
 
 const WEEKDAY = new Intl.DateTimeFormat("en-GB", { weekday: "long", timeZone: "UTC" });
@@ -68,6 +71,9 @@ function ItemRow({ item, day }: { item: Item; day?: string }) {
         </span>
         <span className="text-muted-foreground block truncate text-xs">{item.sub}</span>
       </span>
+      {item.kind === "stage" && !item.waiting && (
+        <StageCountdown dueAt={item.dueAt ?? null} dueDate={item.last} status="in_progress" className="shrink-0" />
+      )}
       <span className="flex shrink-0 flex-col items-end gap-1">
         {item.waiting && (
           <Badge variant="outline" className="text-[10px]">
@@ -96,7 +102,7 @@ export default async function MyWeekPage() {
   const [{ data: stages }, { data: tasks }, daysOff, team] = await Promise.all([
     supabase
       .from("paper_stages")
-      .select("id, stage, status, start_date, due_date, paper:papers(id, title, status)")
+      .select("id, stage, status, start_date, due_date, due_at, paper:papers(id, title, status)")
       .eq("owner_id", profile.id)
       .in("status", ["waiting", "in_progress"]),
     supabase
@@ -117,6 +123,7 @@ export default async function MyWeekPage() {
         status: "waiting" | "in_progress";
         start_date: string | null;
         due_date: string | null;
+        due_at: string | null;
         paper: { id: string; title: string; status: string } | null;
       }[]
     )
@@ -133,6 +140,7 @@ export default async function MyWeekPage() {
         last: s.due_date ?? s.start_date,
         waiting: s.status === "waiting",
         high: false,
+        dueAt: s.due_at,
       })),
     ...(tasks ?? []).map((t) => ({
       key: t.id,

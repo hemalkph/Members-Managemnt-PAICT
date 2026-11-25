@@ -1,6 +1,7 @@
 import { addDaysISO } from "@/lib/team/availability";
 import { getTeamDaysOff } from "@/lib/team/days-off-queries";
 import { todayISO } from "@/lib/core/month";
+import { StageCountdown } from "@/components/papers/stage-countdown";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -349,6 +350,7 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
                     <CalendarClockIcon className="size-4 shrink-0" /> {formatDayRange(s.startDate, s.dueDate)}
                   </p>
                 )}
+                {s.status === "in_progress" && <StageCountdown dueAt={s.dueAt} dueDate={s.dueDate} status={s.status} />}
                 {s.completedAt && (
                   <p className="text-success flex items-center gap-1.5">
                     <CheckIcon className="size-4" /> Done {formatDate(s.completedAt)}
@@ -397,6 +399,9 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
                   <EditStageDialog
                     paperId={paper.id}
                     stageId={s.id}
+                    stage={s.stage}
+                    startAt={s.startAt}
+                    dueAt={s.dueAt}
                     label={meta.label}
                     ownerId={s.ownerId}
                     startDate={s.startDate}
