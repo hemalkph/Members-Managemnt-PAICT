@@ -270,7 +270,6 @@ export function UploadMonthDialog({
             raw_mobile: s.raw_mobile,
             institute: s.institute,
             district: s.district,
-            address: s.address,
             is_new_student: s.is_new_student,
             amount: s.amount,
             export_label: s.export_label,

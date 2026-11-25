@@ -819,8 +819,6 @@ const feeImportStudentRowSchema = z.object({
   raw_mobile: optionalText(60, "Mobile"),
   institute: optionalText(100, "Institute"),
   district: optionalText(100, "District"),
-  /** Saved privately for Speed Post (Online students only), never in the fee list. */
-  address: optionalText(500, "Address").default(""),
   is_new_student: z.boolean(),
   amount: z.number().min(0).max(10_000_000).nullable(),
   export_label: optionalText(120, "Label"),
@@ -1003,6 +1001,29 @@ export const postAddressSchema = z.object({
   checked: z.boolean().default(true),
 });
 export type PostAddressInput = z.input<typeof postAddressSchema>;
+
+/** One student on an uploaded Speed Post list (the address is saved privately). */
+const postListRowSchema = z.object({
+  student_key: trimmed(2, 200, "Student key"),
+  full_name: trimmed(1, 150, "Student name"),
+  whatsapp: z
+    .string()
+    .regex(/^[0-9]{9,15}$/)
+    .nullable(),
+  address: optionalText(500, "Address").default(""),
+  district: optionalText(100, "District").default(""),
+});
+
+export const postListUploadSchema = z.object({
+  class_id: z.uuid("Choose a class"),
+  month: monthKey,
+  file_name: importFileName,
+  rows: z.array(postListRowSchema).min(1, "The list has no students").max(5000, "At most 5,000 students"),
+});
+export type PostListUploadInput = z.input<typeof postListUploadSchema>;
+
+export const postListDeleteSchema = z.object({ class_id: uuid, month: monthKey });
+export type PostListDeleteInput = z.input<typeof postListDeleteSchema>;
 
 export const postRoundBuildSchema = z.object({ batch_id: uuid, month: monthKey, kind: z.enum(["main", "top_up"]) });
 export type PostRoundBuildInput = z.input<typeof postRoundBuildSchema>;

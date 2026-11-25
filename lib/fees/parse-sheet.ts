@@ -27,7 +27,7 @@ export type ParsedStudentRecord = {
   raw_mobile: string;
   institute: string;
   district: string;
-  /** Postal address when the export has one (saved privately for Speed Post, never in the fee list). */
+  /** Postal address when the export has one (read by the Speed Post upload only, never in the fee list). */
   address: string;
   is_new_student: boolean;
   amount: number | null;

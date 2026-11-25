@@ -88,7 +88,7 @@ describe("classes", () => {
 });
 
 describe("mode decides Online and Physical", () => {
-  test("an Online class posts to everyone, a Physical class to no one", async () => {
+  test("without a Speed Post list, an Online class counts everyone online in Tute stock, a Physical class no one", async () => {
     await actAs(db, admin);
     const online = (await q("select public.fee_class_save(null, $1, $2, true, 'online') as id", [batch, `All online ${stamp}`]))[0].id;
     const physical = (await q("select public.fee_class_save(null, $1, $2, true, 'physical') as id", [batch, `All hall ${stamp}`]))[0].id;
@@ -107,12 +107,9 @@ describe("mode decides Online and Physical", () => {
     expect((await q(`select public.tute_online_share($1, ${THIS_MONTH}) as s`, [online]))[0].s).toBe("1");
     expect((await q(`select public.tute_online_share($1, ${THIS_MONTH}) as s`, [physical]))[0].s).toBe("0");
 
+    // Who gets posted comes only from the Speed Post upload, never the paid list.
     await actAs(db, admin);
-    const keys = (await q(`select student_key from public.post_month_students($1, ${THIS_MONTH})`, [batch])).map(
-      (r) => r.student_key,
-    );
-    expect(keys).toEqual(expect.arrayContaining([`on-a-${stamp}`, `on-b-${stamp}`]));
-    expect(keys).not.toContain(`ph-a-${stamp}`);
+    expect(await q(`select student_key from public.post_month_students($1, ${THIS_MONTH})`, [batch])).toEqual([]);
   });
 });
 
