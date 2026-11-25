@@ -14,6 +14,7 @@ import {
   Loader2Icon,
   MessageCircleIcon,
   PencilIcon,
+  RepeatIcon,
   SchoolIcon,
   PhoneOffIcon,
   SearchIcon,
@@ -52,15 +53,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { deleteFeeMonthAction, setFeeFollowupAction } from "@/lib/actions/fees";
 import { formatDateTime } from "@/lib/core/format";
 import { monthLabel, shiftMonth } from "@/lib/core/month";
-import {
-  comparedRowsToCsv,
-  type ComparedStudent,
-  type FeeComparisonSummary,
-} from "@/lib/fees/compare";
+import { comparedRowsToCsv, type ComparedStudent, type FeeComparisonSummary } from "@/lib/fees/compare";
 import { formatPhoneDisplay } from "@/lib/fees/phone";
 import type { FeeClassItem, FeeTemplateItem, ScheduledMonthTute } from "@/lib/fees/queries";
 import { feeWhatsAppUrl, renderFeeMessage, templateUsesTutes } from "@/lib/fees/templates";
 import type { FeeFollowupStatus } from "@/lib/supabase/database.types";
+import { isClosedFollowup } from "@/lib/fees/renewals";
 import { cn } from "@/lib/utils";
 
 type FilterBucket = "due_pending" | "due_new_wa" | "due_messaged" | "due_all" | "paid" | "new" | "excused_dropped";
@@ -73,6 +71,9 @@ const STATUS_META: Record<
   messaged: { label: "Due · Messaged", variant: "warning" },
   excused: { label: "Excused", variant: "secondary" },
   dropped: { label: "Left class", variant: "outline" },
+  promised: { label: "Promised to pay", variant: "warning" },
+  cant_afford: { label: "Can't afford", variant: "secondary" },
+  moved_class: { label: "Moved class", variant: "outline" },
 };
 
 export function FeeWorkspace({
@@ -125,10 +126,7 @@ export function FeeWorkspace({
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [pendingDeleteMonth, startDeleteMonth] = useTransition();
 
-  const batchClasses = useMemo(
-    () => classes.filter((c) => c.batchId === selectedBatchId),
-    [classes, selectedBatchId],
-  );
+  const batchClasses = useMemo(() => classes.filter((c) => c.batchId === selectedBatchId), [classes, selectedBatchId]);
   const selectedClass = useMemo(
     () => classes.find((c) => c.id === selectedClassId) ?? null,
     [classes, selectedClassId],
@@ -149,7 +147,7 @@ export function FeeWorkspace({
     for (const r of rows) {
       if (r.kind === "due") {
         if (r.followupStatus === "pending") duePending++;
-        else if (r.followupStatus === "messaged") {
+        else if (r.followupStatus === "messaged" || r.followupStatus === "promised") {
           dueMessaged++;
           if (r.contactPhoneChanged) dueNewWa++;
         } else dueExcusedDropped++;
@@ -168,10 +166,7 @@ export function FeeWorkspace({
     };
   }, [rows]);
 
-  const distinctLabels = useMemo(
-    () => [...new Set(rows.map((r) => r.primaryLabel).filter(Boolean))].sort(),
-    [rows],
-  );
+  const distinctLabels = useMemo(() => [...new Set(rows.map((r) => r.primaryLabel).filter(Boolean))].sort(), [rows]);
 
   const navigate = (
     params: { batch?: string; classId?: string | null; prev?: string | null; curr?: string | null },
@@ -246,10 +241,13 @@ export function FeeWorkspace({
     return rows.filter((r) => {
       if (bucket === "due_pending" && !(r.kind === "due" && r.followupStatus === "pending")) return false;
       if (bucket === "due_new_wa" && !(r.kind === "due" && r.contactPhoneChanged)) return false;
-      if (bucket === "due_messaged" && !(r.kind === "due" && r.followupStatus === "messaged")) return false;
-      if (bucket === "due_all" && r.kind !== "due") return false;
-      if (bucket === "excused_dropped" && !(r.kind === "due" && (r.followupStatus === "excused" || r.followupStatus === "dropped")))
+      if (
+        bucket === "due_messaged" &&
+        !(r.kind === "due" && (r.followupStatus === "messaged" || r.followupStatus === "promised"))
+      )
         return false;
+      if (bucket === "due_all" && r.kind !== "due") return false;
+      if (bucket === "excused_dropped" && !(r.kind === "due" && isClosedFollowup(r.followupStatus))) return false;
       if (bucket === "paid" && r.kind !== "paid") return false;
       if (bucket === "new" && r.kind !== "new") return false;
 
@@ -259,7 +257,8 @@ export function FeeWorkspace({
       if (instituteFilter !== "__all__" && r.institute !== instituteFilter) return false;
 
       if (q) {
-        const hay = `${r.fullName} ${r.email} ${r.currentEmail ?? ""} ${r.contactPhone ?? ""} ${r.mobileNorm ?? ""} ${r.primaryLabel} ${r.district} ${r.note}`.toLowerCase();
+        const hay =
+          `${r.fullName} ${r.email} ${r.currentEmail ?? ""} ${r.contactPhone ?? ""} ${r.mobileNorm ?? ""} ${r.primaryLabel} ${r.district} ${r.note}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
@@ -384,7 +383,13 @@ export function FeeWorkspace({
     nextMonthTutes: nextMonthTutes.length > 0 ? nextMonthTutes : ["Unit 08 - Computer Networks"],
   };
 
-  const hasBothMonths = Boolean(selectedClass && prevMonth && currMonth && selectedClass.months.some((m) => m.month === prevMonth) && selectedClass.months.some((m) => m.month === currMonth));
+  const hasBothMonths = Boolean(
+    selectedClass &&
+    prevMonth &&
+    currMonth &&
+    selectedClass.months.some((m) => m.month === prevMonth) &&
+    selectedClass.months.some((m) => m.month === currMonth),
+  );
 
   return (
     <div className="space-y-6">
@@ -392,23 +397,30 @@ export function FeeWorkspace({
         title="Fee reminders"
         description="Compare previous and current month paid lists class-by-class, automatically flag due students, and send customizable WhatsApp reminders with emojis."
         actions={
-          canEdit && batches.length > 0 ? (
-            <>
-              <Button asChild variant="outline" size="sm">
-                <Link href="/admin/class-ops">
-                  <SchoolIcon /> Manage classes
-                </Link>
-              </Button>
-              <UploadMonthDialog
-                batches={batches}
-                classes={classes}
-                defaultBatchId={selectedBatchId}
-                activeClassId={selectedClassId}
-                defaultMonth={defaultUploadMonth}
-                onImported={handleMonthImported}
-              />
-            </>
-          ) : null
+          <>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/admin/fee-reminders/renewals">
+                <RepeatIcon /> Renewals
+              </Link>
+            </Button>
+            {canEdit && batches.length > 0 ? (
+              <>
+                <Button asChild variant="outline" size="sm">
+                  <Link href="/admin/class-ops">
+                    <SchoolIcon /> Manage classes
+                  </Link>
+                </Button>
+                <UploadMonthDialog
+                  batches={batches}
+                  classes={classes}
+                  defaultBatchId={selectedBatchId}
+                  activeClassId={selectedClassId}
+                  defaultMonth={defaultUploadMonth}
+                  onImported={handleMonthImported}
+                />
+              </>
+            ) : null}
+          </>
         }
       />
 
@@ -583,9 +595,7 @@ export function FeeWorkspace({
               <TabsTrigger value="templates">
                 <SparklesIcon className="size-3.5" /> WhatsApp Templates ({templates.length})
               </TabsTrigger>
-              <TabsTrigger value="months">
-                Uploaded Months ({selectedClass?.months.length ?? 0})
-              </TabsTrigger>
+              <TabsTrigger value="months">Uploaded Months ({selectedClass?.months.length ?? 0})</TabsTrigger>
             </TabsList>
 
             {/* TAB 1: Due & Comparison */}
@@ -834,15 +844,10 @@ export function FeeWorkspace({
                                   className={cn(
                                     "hover:bg-muted/35 transition-colors",
                                     s.kind === "due" && s.followupStatus === "pending" && "bg-destructive/[0.025]",
-                                    s.kind === "due" &&
-                                      (s.followupStatus === "excused" || s.followupStatus === "dropped") &&
-                                      "opacity-65",
+                                    s.kind === "due" && isClosedFollowup(s.followupStatus) && "opacity-65",
                                   )}
                                 >
-                                  <th
-                                    scope="row"
-                                    className="border-b px-3.5 py-2.5 text-left font-normal align-top"
-                                  >
+                                  <th scope="row" className="border-b px-3.5 py-2.5 text-left font-normal align-top">
                                     <p className="font-medium leading-snug">{s.fullName}</p>
                                     <p className="text-muted-foreground truncate text-xs">{s.email || "—"}</p>
                                     {s.currentEmail && (
@@ -913,7 +918,10 @@ export function FeeWorkspace({
                                       )}
                                     </div>
                                     {s.note && (
-                                      <p className="text-muted-foreground mt-1 max-w-[240px] truncate text-xs" title={s.note}>
+                                      <p
+                                        className="text-muted-foreground mt-1 max-w-[240px] truncate text-xs"
+                                        title={s.note}
+                                      >
                                         Note: {s.note}
                                       </p>
                                     )}
@@ -1089,7 +1097,8 @@ export function FeeWorkspace({
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Remove {monthLabel(m.month)} paid list?</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    This deletes the imported student rows for {selectedClass.name} ({monthLabel(m.month)}
+                                    This deletes the imported student rows for {selectedClass.name} (
+                                    {monthLabel(m.month)}
                                     ). You can upload the file again any time.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>

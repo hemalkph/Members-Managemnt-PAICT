@@ -21,6 +21,13 @@ import type { ComparedStudent } from "@/lib/fees/compare";
 import { QUICK_LABELS } from "@/lib/fees/templates";
 import type { FeeFollowupStatus } from "@/lib/supabase/database.types";
 
+// Outcomes set on the Renewals page: listed only for a row that already has one, so saving keeps it.
+const NEW_OUTCOME_LABEL: Partial<Record<FeeFollowupStatus, string>> = {
+  promised: "Promised to pay (set on Renewals)",
+  cant_afford: "Can't afford (set on Renewals)",
+  moved_class: "Moved class (set on Renewals)",
+};
+
 export function FollowupDialog({
   student,
   classId,
@@ -106,6 +113,9 @@ export function FollowupDialog({
                 <SelectItem value="messaged">Messaged</SelectItem>
                 <SelectItem value="excused">Excused (e.g. Free card / paying later)</SelectItem>
                 <SelectItem value="dropped">Left class / Dropped</SelectItem>
+                {student && NEW_OUTCOME_LABEL[student.followupStatus] && (
+                  <SelectItem value={student.followupStatus}>{NEW_OUTCOME_LABEL[student.followupStatus]}</SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>

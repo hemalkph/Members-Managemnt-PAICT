@@ -865,13 +865,39 @@ export const feeFollowupSchema = z.object({
     .string()
     .regex(/^[0-9]{9,15}$/)
     .nullable(),
-  status: z.enum(["pending", "messaged", "excused", "dropped"]),
+  // The dialog only picks the first four; the Renewals outcomes are kept when a row is saved again.
+  status: z.enum(["pending", "messaged", "excused", "dropped", "promised", "cant_afford", "moved_class"]),
   label: optionalText(80, "Label").nullable().optional(),
   note: optionalText(500, "Note").nullable().optional(),
   template_id: optionalUuid.nullable().optional(),
   increment_message: z.boolean().optional(),
 });
 export type FeeFollowupInput = z.input<typeof feeFollowupSchema>;
+
+/** An outcome for an unpaid student on the Renewals page. */
+export const followupOutcomeSchema = z.object({
+  class_id: uuid,
+  due_month: monthKey,
+  student_key: z.string().min(2).max(200),
+  student_name: z.string().max(150),
+  whatsapp_norm: z.string().regex(/^[0-9]{9,15}$/).nullable(),
+  outcome: z.enum(["no_answer", "promised", "cant_afford", "moved_class", "dropped", "excused"]),
+  promised_by: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a date").nullable().optional(),
+  reason: z.enum(["exams", "money", "moved_away", "timing", "other_institute", "other"]).nullable().optional(),
+  moved_to: uuid.nullable().optional(),
+  note: z.string().max(500).optional(),
+  called: z.boolean().default(true),
+});
+export type FollowupOutcomeInput = z.input<typeof followupOutcomeSchema>;
+
+export const callOwnerSchema = z.object({ class_id: uuid, owner_id: uuid.nullable() });
+export type CallOwnerInput = z.input<typeof callOwnerSchema>;
+
+export const renewalSettingsSchema = z.object({
+  due_day: z.coerce.number().int().min(1, "Pick a day from 1 to 28").max(28, "Pick a day from 1 to 28"),
+  target_pct: z.coerce.number().int().min(1, "Pick a share from 1 to 100%").max(100, "Pick a share from 1 to 100%"),
+});
+export type RenewalSettingsInput = z.input<typeof renewalSettingsSchema>;
 
 export const feeTemplateSchema = z.object({
   id: uuid.optional(),

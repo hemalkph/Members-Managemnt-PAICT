@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { getActionContext, NOT_ALLOWED } from "@/lib/auth";
 import { friendlyDbError, type ActionResult } from "@/lib/core/action-result";
-import { monthKeyToDate } from "@/lib/core/month";
+import { monthKeyToDate, todayISO } from "@/lib/core/month";
+import { recordRenewal } from "@/lib/fees/renewals-queries";
 import {
   feeFollowupSchema,
   feeMonthDeleteSchema,
@@ -101,6 +102,12 @@ export async function importFeeMonthAction(
     });
     if (impErr) return { ok: false, error: friendlyDbError(impErr) };
     importedClasses.push({ id: targetClassId, count });
+  }
+
+  // Renewals: record this month's numbers and who has now paid (never fails the upload).
+  if (month === todayISO().slice(0, 7)) {
+    for (const c of importedClasses) await recordRenewal(ctx.supabase, { id: c.id, batchId: batch_id }, month);
+    revalidatePath("/admin/fee-reminders/renewals");
   }
 
   revalidate();

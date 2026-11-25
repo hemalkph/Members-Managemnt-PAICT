@@ -40,6 +40,13 @@ export type FollowupRecord = {
   lastTemplateId: string | null;
   note: string;
   updatedAt: string;
+  /** Renewals outcome details (migration 078); optional so older fixtures still work. */
+  promisedBy?: string | null;
+  reason?: string;
+  movedToClassId?: string | null;
+  callCount?: number;
+  lastCalledAt?: string | null;
+  paidSeenAt?: string | null;
 };
 
 export type ConcessionLabelMatch = {
@@ -90,6 +97,12 @@ export type ComparedStudent = {
   lastMessagedByName: string | null;
   lastTemplateId: string | null;
   note: string;
+  /** Renewals: promised payment date, drop reason code, class moved to, phone calls. */
+  promisedBy: string | null;
+  reason: string;
+  movedToClassId: string | null;
+  callCount: number;
+  lastCalledAt: string | null;
 };
 
 export type FeeComparisonSummary = {
@@ -135,6 +148,8 @@ function inferFeeLabel(amount: number | null, medianFee: number | null): string 
   if (amount < medianFee * 0.75) return `Reduced (Rs. ${amount.toLocaleString("en-LK")})`;
   return null;
 }
+
+const NO_OUTCOME = { promisedBy: null, reason: "", movedToClassId: null, callCount: 0, lastCalledAt: null } as const;
 
 function normNameKey(name: string): string {
   return name.trim().toLowerCase().replace(/\s+/g, " ");
@@ -331,6 +346,7 @@ export function compareClassMonths(params: {
         lastMessagedByName: null,
         lastTemplateId: null,
         note: "",
+        ...NO_OUTCOME,
       });
     } else {
       const f = findFollowup(prev);
@@ -379,6 +395,11 @@ export function compareClassMonths(params: {
         lastMessagedByName: f?.lastMessagedByName ?? null,
         lastTemplateId: f?.lastTemplateId ?? null,
         note: f?.note ?? "",
+        promisedBy: f?.promisedBy ?? null,
+        reason: f?.reason ?? "",
+        movedToClassId: f?.movedToClassId ?? null,
+        callCount: f?.callCount ?? 0,
+        lastCalledAt: f?.lastCalledAt ?? null,
       });
     }
   }
@@ -422,6 +443,7 @@ export function compareClassMonths(params: {
       lastMessagedByName: null,
       lastTemplateId: null,
       note: "",
+      ...NO_OUTCOME,
     });
   }
 
@@ -430,7 +452,7 @@ export function compareClassMonths(params: {
     if (r.kind === "due") {
       if (r.followupStatus === "pending") return 0;
       if (r.followupStatus === "messaged" && r.contactPhoneChanged) return 1;
-      if (r.followupStatus === "messaged") return 2;
+      if (r.followupStatus === "messaged" || r.followupStatus === "promised") return 2;
       if (r.followupStatus === "excused") return 3;
       return 4;
     }
