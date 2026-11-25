@@ -16,7 +16,7 @@ export function OwnerSelect({
 }: {
   classId: string;
   ownerId: string | null;
-  team: { id: string; name: string }[];
+  team: { id: string; name: string; away?: string | null }[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -36,7 +36,15 @@ export function OwnerSelect({
       <SelectContent>
         <SelectItem value={NONE}>Calls: anyone</SelectItem>
         {team.map((p) => (
-          <SelectItem key={p.id} value={p.id}>
+          <SelectItem
+            key={p.id}
+            value={p.id}
+            hint={
+              p.away ? (
+                <span className="ml-auto pl-3 text-xs text-amber-700 dark:text-warning">{p.away}</span>
+              ) : undefined
+            }
+          >
             Calls: {p.name}
           </SelectItem>
         ))}

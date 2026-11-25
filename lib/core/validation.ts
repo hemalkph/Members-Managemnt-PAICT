@@ -899,6 +899,18 @@ export const renewalSettingsSchema = z.object({
 });
 export type RenewalSettingsInput = z.input<typeof renewalSettingsSchema>;
 
+const isoDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a date");
+/** Days away (My week). user_id is for admins adding someone else's days off. */
+export const dayOffSchema = z
+  .object({
+    from: isoDay,
+    to: isoDay,
+    note: z.string().trim().max(200, "Keep the note under 200 characters").default(""),
+    user_id: uuid.nullable().optional(),
+  })
+  .refine((d) => d.to >= d.from, { message: "The last day can't be before the first", path: ["to"] });
+export type DayOffInput = z.input<typeof dayOffSchema>;
+
 export const feeTemplateSchema = z.object({
   id: uuid.optional(),
   name: trimmed(2, 80, "Template name"),

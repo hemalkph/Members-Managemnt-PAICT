@@ -2172,6 +2172,14 @@ export type Database = {
       };
       class_paid_count_save: { Args: { p_class: string; p_count: number }; Returns: undefined };
       class_paid_count_undo: { Args: { p_class: string }; Returns: number };
+      // Days off (who's free).
+      day_off_add: { Args: { p_from: string; p_to: string; p_note?: string; p_user?: string | null }; Returns: string };
+      day_off_delete: { Args: { p_id: string }; Returns: undefined };
+      team_days_off: {
+        Args: { p_from: string; p_to: string };
+        /** note is '' unless you are an admin or it is your own. */
+        Returns: { id: string; user_id: string; day_from: string; day_to: string; note: string }[];
+      };
       // Renewals (Fee reminders).
       fee_class_owner_set: { Args: { p_class: string; p_owner: string | null }; Returns: undefined };
       fee_followup_outcome: {

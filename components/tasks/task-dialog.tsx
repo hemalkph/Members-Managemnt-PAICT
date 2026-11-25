@@ -19,14 +19,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { saveTaskAction, setTaskFieldFilesAction } from "@/lib/actions/tasks";
+import { DayOffWarning } from "@/components/team/day-off-warning";
 import { MAX_TASK_FILE_BYTES } from "@/lib/core/validation";
+import { addDaysISO, availabilityLabel, awayOn, freeFirst, nextWorkingDay, type DayOff } from "@/lib/team/availability";
 import type { TaskView } from "@/lib/tasks/queries";
 import { fillTitle, type TaskTypeView } from "@/lib/tasks/types";
 import { PendingFiles, uploadTaskFiles } from "./task-files";
 import { TaskTypeIcon } from "./task-type-icon";
 
 export type TaskFormOptions = {
-  members: { id: string; name: string; roleIds: string[] }[];
+  /** open = the member's open tasks (for "3 open · away …"). */
+  members: { id: string; name: string; roleIds: string[]; open?: number }[];
+  /** Days off in the coming weeks (dates only), for the labels and the due-date warning. */
+  daysOff?: DayOff[];
   roles: { id: string; name: string }[];
   exams: { id: string; label: string }[];
   centres: { id: string; name: string }[];
@@ -97,6 +102,17 @@ export function TaskDialog({
   const [titleTouched, setTitleTouched] = useState(Boolean(task));
   const type = options.types.find((t) => t.id === state.type_id) ?? null;
   const pickable = options.types.filter((t) => t.active || t.id === state.type_id);
+  // Who's free: label each member for the window up to the due date (or a week), free people first.
+  const daysOff = options.daysOff ?? [];
+  const windowEnd = state.due_date && state.due_date >= today ? state.due_date : addDaysISO(today, 7);
+  const members = freeFirst(
+    options.members.map((m) => ({ ...m, open: m.open ?? 0 })),
+    daysOff,
+    today,
+    windowEnd,
+  );
+  const assignee = options.members.find((m) => m.id === state.assignee_id);
+  const dueAway = assignee && state.due_date ? awayOn(daysOff, assignee.id, state.due_date) : null;
 
   const chooseType = (id: string) => {
     const next = options.types.find((t) => t.id === id) ?? null;
@@ -121,7 +137,8 @@ export function TaskDialog({
   const setDetail = (id: string, value: string) =>
     setState((s) => {
       const details = { ...s.details, [id]: value };
-      const title = type?.titleTemplate && !titleTouched ? fillTitle(type.titleTemplate, type.fields, details) : s.title;
+      const title =
+        type?.titleTemplate && !titleTouched ? fillTitle(type.titleTemplate, type.fields, details) : s.title;
       return { ...s, details, title };
     });
 
@@ -172,7 +189,11 @@ export function TaskDialog({
       const chosen = Object.entries(fieldFiles).filter(([id]) => type?.fields.some((f) => f.id === id));
       if (chosen.length > 0 && result.data) {
         const taskId = result.data.id;
-        const upload = await uploadTaskFiles(taskId, "brief", chosen.map(([, file]) => file));
+        const upload = await uploadTaskFiles(
+          taskId,
+          "brief",
+          chosen.map(([, file]) => file),
+        );
         const linked =
           upload.ok && upload.data
             ? await setTaskFieldFilesAction({
@@ -196,7 +217,11 @@ export function TaskDialog({
           return;
         }
       }
-      toast.success(files.length > 0 ? `${result.message} with ${files.length} file${files.length === 1 ? "" : "s"}` : result.message);
+      toast.success(
+        files.length > 0
+          ? `${result.message} with ${files.length} file${files.length === 1 ? "" : "s"}`
+          : result.message,
+      );
       onOpenChange(false);
       router.refresh();
     });
@@ -228,7 +253,9 @@ export function TaskDialog({
                   ))}
                 </SelectContent>
               </Select>
-              {type?.description && <p className="text-muted-foreground text-xs whitespace-pre-line">{type.description}</p>}
+              {type?.description && (
+                <p className="text-muted-foreground text-xs whitespace-pre-line">{type.description}</p>
+              )}
             </div>
           )}
 
@@ -295,11 +322,25 @@ export function TaskDialog({
                   <div key={f.id} className="grid gap-2">
                     {label}
                     {f.kind === "long" ? (
-                      <Textarea id={id} rows={3} maxLength={2000} value={value} onChange={(e) => setDetail(f.id, e.target.value)} />
+                      <Textarea
+                        id={id}
+                        rows={3}
+                        maxLength={2000}
+                        value={value}
+                        onChange={(e) => setDetail(f.id, e.target.value)}
+                      />
                     ) : (
                       <Input
                         id={id}
-                        type={f.kind === "link" ? "url" : f.kind === "date" ? "date" : f.kind === "number" ? "number" : "text"}
+                        type={
+                          f.kind === "link"
+                            ? "url"
+                            : f.kind === "date"
+                              ? "date"
+                              : f.kind === "number"
+                                ? "number"
+                                : "text"
+                        }
                         inputMode={f.kind === "link" ? "url" : f.kind === "number" ? "decimal" : undefined}
                         placeholder={f.kind === "link" ? "https://" : undefined}
                         maxLength={f.kind === "link" ? 2000 : 200}
@@ -336,8 +377,16 @@ export function TaskDialog({
                   <SelectValue placeholder="Choose a member" />
                 </SelectTrigger>
                 <SelectContent>
-                  {options.members.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>
+                  {members.map((m) => (
+                    <SelectItem
+                      key={m.id}
+                      value={m.id}
+                      hint={
+                        <span className="text-muted-foreground ml-auto pl-3 text-xs">
+                          {availabilityLabel(m.open, daysOff, m.id, today, windowEnd)}
+                        </span>
+                      }
+                    >
                       {m.name}
                     </SelectItem>
                   ))}
@@ -402,6 +451,14 @@ export function TaskDialog({
                 value={state.due_date}
                 onChange={(e) => set("due_date", e.target.value)}
               />
+              {dueAway && assignee && (
+                <DayOffWarning
+                  name={assignee.name}
+                  day={state.due_date}
+                  nextDay={nextWorkingDay(daysOff, assignee.id, state.due_date)}
+                  onMove={() => set("due_date", nextWorkingDay(daysOff, assignee.id, state.due_date))}
+                />
+              )}
             </div>
             <div className="grid gap-2">
               <Label htmlFor="task-qty">Quantity (optional)</Label>
@@ -432,7 +489,12 @@ export function TaskDialog({
           <div className="grid gap-2">
             <Label>{task ? "Add files (optional)" : "Files for the member (optional)"}</Label>
             <PendingFiles files={files} onRemove={(i) => setFiles((f) => f.filter((_, j) => j !== i))} />
-            <Button type="button" variant="outline" className="border-dashed" onClick={() => fileInput.current?.click()}>
+            <Button
+              type="button"
+              variant="outline"
+              className="border-dashed"
+              onClick={() => fileInput.current?.click()}
+            >
               <PaperclipIcon /> Choose files
             </Button>
             <input
@@ -448,7 +510,9 @@ export function TaskDialog({
               }}
             />
             <p className="text-muted-foreground text-xs">
-              {task ? "They show as new files for the member." : "e.g. type setting or design material. Up to 50 MB each."}
+              {task
+                ? "They show as new files for the member."
+                : "e.g. type setting or design material. Up to 50 MB each."}
             </p>
           </div>
 

@@ -35,7 +35,7 @@ export function RenewalCardView({
   today: string;
   dueDay: number;
   targetPct: number;
-  team: { id: string; name: string }[];
+  team: { id: string; name: string; away?: string | null }[];
   classes: { id: string; name: string }[];
   canEdit: boolean;
   showMoney: boolean;

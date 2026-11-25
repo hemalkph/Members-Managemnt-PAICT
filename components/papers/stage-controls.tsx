@@ -27,6 +27,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DayOffWarning } from "@/components/team/day-off-warning";
+import { awayOn, nextWorkingDay, type DayOff } from "@/lib/team/availability";
 import { setGroupLinksAction, setStageLinkAction, updatePaperStageAction } from "@/lib/actions/papers";
 import { setTaskStatusAction } from "@/lib/actions/tasks";
 import type { ActionResult } from "@/lib/core/action-result";
@@ -107,6 +109,7 @@ export function EditStageDialog({
   dueDate,
   status,
   members,
+  daysOff = [],
 }: {
   paperId: string;
   stageId: string;
@@ -116,6 +119,8 @@ export function EditStageDialog({
   dueDate: string | null;
   status: "waiting" | "in_progress" | "done" | "skipped";
   members: { id: string; name: string }[];
+  /** Days off (dates only), for the due-date warning. */
+  daysOff?: DayOff[];
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -208,6 +213,14 @@ export function EditStageDialog({
               />
             </div>
           </div>
+          {owner && due && awayOn(daysOff, owner, due) && (
+            <DayOffWarning
+              name={members.find((m) => m.id === owner)?.name ?? "The owner"}
+              day={due}
+              nextDay={nextWorkingDay(daysOff, owner, due)}
+              onMove={() => setDue(nextWorkingDay(daysOff, owner, due))}
+            />
+          )}
           <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
             <div className="flex gap-2">
               {status !== "done" && status !== "skipped" && (
@@ -337,7 +350,10 @@ export function GroupLinksForm({
       onSubmit={(e) => {
         e.preventDefault();
         startTransition(async () => {
-          const result = await setGroupLinksAction({ lms_group_link: lms.trim(), physical_group_link: physical.trim() });
+          const result = await setGroupLinksAction({
+            lms_group_link: lms.trim(),
+            physical_group_link: physical.trim(),
+          });
           if (!result.ok) {
             toast.error(result.error);
             return;

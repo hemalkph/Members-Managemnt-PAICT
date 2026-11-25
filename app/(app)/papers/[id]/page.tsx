@@ -1,3 +1,6 @@
+import { addDaysISO } from "@/lib/team/availability";
+import { getTeamDaysOff } from "@/lib/team/days-off-queries";
+import { todayISO } from "@/lib/core/month";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -92,6 +95,7 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
   const groupLinks = { lms: links?.[0]?.lms_group_link ?? null, physical: links?.[0]?.physical_group_link ?? null };
   const taskByStage = new Map((stageTasks ?? []).map((t) => [t.paper_stage_id, t]));
   const members = (profiles ?? []).map((p) => ({ id: p.id, name: p.name }));
+  const daysOff = canManage ? await getTeamDaysOff(supabase, todayISO(), addDaysISO(todayISO(), 60)) : [];
   const handover = paper.stages.find((s) => s.stage === "handover");
 
   // Every stage takes files (reviewers can upload a marked PDF; hand over takes the final PDFs).
@@ -399,6 +403,7 @@ export default async function PaperPage({ params }: PageProps<"/papers/[id]">) {
                     dueDate={s.dueDate}
                     status={s.status}
                     members={members}
+                    daysOff={daysOff}
                   />
                 )}
               </div>

@@ -12,6 +12,8 @@ import {
 import { getClassComparisonData, getFeeWorkspaceBase } from "@/lib/fees/queries";
 import { buildRenewalCard, findMovedClass, isClosedFollowup, type RenewalCard } from "@/lib/fees/renewals";
 import type { Database } from "@/lib/supabase/database.types";
+import { addDaysISO, awayBetween, shortRange } from "@/lib/team/availability";
+import { getTeamDaysOff } from "@/lib/team/days-off-queries";
 
 type Client = SupabaseClient<Database>;
 
@@ -68,7 +70,8 @@ export type RenewalsPage = {
   isCurrentMonth: boolean;
   cards: RenewalsCard[];
   settings: { dueDay: number; targetPct: number };
-  team: { id: string; name: string }[];
+  /** away = "away 26–28 Nov" when they have days off this week. */
+  team: { id: string; name: string; away: string | null }[];
   classes: { id: string; name: string }[];
   showMoney: boolean;
   /** Set when the renewal functions aren't there yet (migration 078 not run). */
@@ -110,6 +113,7 @@ export async function getRenewalsPage(supabase: Client, month: string, showMoney
     };
   }
 
+  const daysOff = await getTeamDaysOff(supabase, today, addDaysISO(today, 6));
   const classes = base.classes.filter((c) => c.isActive || c.months.some((m) => m.month === month));
   const ownerById = new Map((owners ?? []).map((o) => [o.id, o.followup_owner_id]));
   const feeById = new Map((fees.data ?? []).map((f) => [f.class_id, f.fee === null ? null : Number(f.fee)]));
@@ -181,7 +185,16 @@ export async function getRenewalsPage(supabase: Client, month: string, showMoney
     isCurrentMonth,
     cards,
     settings: { dueDay: settings?.due_day ?? 10, targetPct: settings?.target_pct ?? 90 },
-    team: (directory ?? []).filter((p) => p.is_active).map((p) => ({ id: p.id, name: p.name })),
+    team: (directory ?? [])
+      .filter((p) => p.is_active)
+      .map((p) => {
+        const away = awayBetween(daysOff, p.id, today, addDaysISO(today, 6));
+        return {
+          id: p.id,
+          name: p.name,
+          away: away.length ? `away ${away.map((d) => shortRange(d.from, d.to)).join(", ")}` : null,
+        };
+      }),
     classes: base.classes.map((c) => ({ id: c.id, name: c.name })),
     showMoney,
     error: settingsError ? friendlyDbError(settingsError) : null,

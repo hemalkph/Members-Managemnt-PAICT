@@ -1,3 +1,5 @@
+import { addDaysISO } from "@/lib/team/availability";
+import { getTeamDaysOff } from "@/lib/team/days-off-queries";
 import type { Metadata } from "next";
 import { CheckCheckIcon, FileStackIcon, LoaderIcon, TriangleAlertIcon, UsersIcon } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
@@ -36,29 +38,23 @@ export default async function PapersPage({ searchParams }: PageProps<"/admin/pap
   const supabase = await createClient();
   const team = await getTeamDirectory(supabase);
   const names = teamNames(team);
-  const [
-    papers,
-    allPapers,
-    classOptions,
-    { data: usage },
-    { data: settingsRows },
-    canSetStorage,
-    { data: openTasks },
-  ] = await Promise.all([
-    getPapers(supabase, { examId: exam || null, status }, names),
-    getPapers(supabase, { examId: exam || null }, names),
-    getClassOptions(supabase),
-    supabase.rpc("storage_usage"),
-    supabase.rpc("paper_settings"),
-    mainAdminUnlocked(profile),
-    // Workload check: open and upcoming tasks per member (by due date).
-    supabase
-      .from("tasks")
-      .select("assignee_id, due_date")
-      .in("status", ["open", "waiting"])
-      .not("due_date", "is", null)
-      .limit(3000),
-  ]);
+  const daysOff = await getTeamDaysOff(supabase, todayISO(), addDaysISO(todayISO(), 60));
+  const [papers, allPapers, classOptions, { data: usage }, { data: settingsRows }, canSetStorage, { data: openTasks }] =
+    await Promise.all([
+      getPapers(supabase, { examId: exam || null, status }, names),
+      getPapers(supabase, { examId: exam || null }, names),
+      getClassOptions(supabase),
+      supabase.rpc("storage_usage"),
+      supabase.rpc("paper_settings"),
+      mainAdminUnlocked(profile),
+      // Workload check: open and upcoming tasks per member (by due date).
+      supabase
+        .from("tasks")
+        .select("assignee_id, due_date")
+        .in("status", ["open", "waiting"])
+        .not("due_date", "is", null)
+        .limit(3000),
+    ]);
   const settings = settingsRows?.[0] ?? null;
   const profiles = team.filter((m) => m.isActive);
   const tags = activeOptions(classOptions);
@@ -90,7 +86,10 @@ export default async function PapersPage({ searchParams }: PageProps<"/admin/pap
   const groups = new Map<string, { label: string; papers: typeof papers }>();
   for (const p of papers) {
     const key = p.examId ?? "none";
-    const g = groups.get(key) ?? { label: (p.examId && examTitle(p.examId)) || p.examLabel || "Not for an exam", papers: [] };
+    const g = groups.get(key) ?? {
+      label: (p.examId && examTitle(p.examId)) || p.examLabel || "Not for an exam",
+      papers: [],
+    };
     g.papers.push(p);
     groups.set(key, g);
   }
@@ -109,24 +108,25 @@ export default async function PapersPage({ searchParams }: PageProps<"/admin/pap
           </div>
         </div>
         {canEdit && (
-        <div className="flex flex-wrap gap-2">
-        <PastPaperDialog />
-        <NewPaperDialog
-          members={profiles.map((p) => ({
-            id: p.id,
-            name: p.name,
-            busy: (openTasks ?? []).filter((t) => t.assignee_id === p.id).map((t) => t.due_date!),
-          }))}
-          defaultOwners={(settings?.paper_default_owners ?? {}) as Record<string, string>}
-          exams={examChoices(tags.exams)}
-          defaultExam={exam || undefined}
-          today={todayISO()}
-          nextExamDay={nextExamDay(
-            todayISO(),
-            allPapers.filter((p) => p.kind === "paper" && p.status !== "cancelled").map((p) => p.examDay),
-          )}
-        />
-        </div>
+          <div className="flex flex-wrap gap-2">
+            <PastPaperDialog />
+            <NewPaperDialog
+              members={profiles.map((p) => ({
+                id: p.id,
+                name: p.name,
+                busy: (openTasks ?? []).filter((t) => t.assignee_id === p.id).map((t) => t.due_date!),
+              }))}
+              defaultOwners={(settings?.paper_default_owners ?? {}) as Record<string, string>}
+              daysOff={daysOff}
+              exams={examChoices(tags.exams)}
+              defaultExam={exam || undefined}
+              today={todayISO()}
+              nextExamDay={nextExamDay(
+                todayISO(),
+                allPapers.filter((p) => p.kind === "paper" && p.status !== "cancelled").map((p) => p.examDay),
+              )}
+            />
+          </div>
         )}
       </div>
 
