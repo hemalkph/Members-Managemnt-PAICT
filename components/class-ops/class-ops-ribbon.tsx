@@ -32,9 +32,12 @@ export function ClassOpsRibbon({
 }) {
   const active = classes.filter((c) => c.is_active);
   const nextMonth = shiftMonth(month, 1);
+  const prevMonth = shiftMonth(month, -1);
 
   const paidTotal = active.reduce((sum, c) => sum + (c.paid ?? 0), 0);
   const expectedTotal = active.reduce((sum, c) => sum + c.expected, 0);
+  const hasLastMonth = active.some((c) => c.last_month !== null);
+  const lastMonthTotal = active.reduce((sum, c) => sum + (c.last_month ?? 0), 0);
   const progressPct = paidProgressPct(paidTotal, expectedTotal);
 
   const missingNextPlan = active.filter((c) => c.tutes_next === 0).length;
@@ -57,13 +60,29 @@ export function ClassOpsRibbon({
             </div>
 
             <div className="text-muted-foreground flex flex-wrap items-center gap-2 text-xs tabular-nums">
-              {expectedTotal > 0 ? (
-                <span>
-                  <CountUp to={paidTotal} duration={0.6} className="text-foreground font-semibold" /> of{" "}
-                  <CountUp to={expectedTotal} duration={0.6} className="text-foreground font-semibold" /> paid ({progressPct}%)
-                </span>
-              ) : (
-                <span>No paid counts yet</span>
+              <span>
+                {monthLabel(prevMonth, "short")}:{" "}
+                {hasLastMonth ? (
+                  <>
+                    <CountUp to={lastMonthTotal} duration={0.6} className="text-foreground font-semibold" /> paid
+                  </>
+                ) : (
+                  "no count"
+                )}
+              </span>
+              <span aria-hidden>·</span>
+              <span>
+                {monthLabel(month, "short")}:{" "}
+                <CountUp to={paidTotal} duration={0.6} className="text-foreground font-semibold" /> paid
+                {isThisMonth ? " so far" : ""}
+              </span>
+              {expectedTotal > 0 && (
+                <>
+                  <span aria-hidden>·</span>
+                  <span>
+                    Tutes for <span className="text-foreground font-semibold">{expectedTotal}</span> ({progressPct}% paid)
+                  </span>
+                </>
               )}
             </div>
           </div>

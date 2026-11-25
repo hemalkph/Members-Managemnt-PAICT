@@ -602,21 +602,34 @@ function ClassCountRow({
               {row.paid_source === "typed" ? "Typed" : "Paid list"} · {formatDateTime(row.paid_at)}
             </>
           )}
-          {row.last_month !== null && <> · Last month {row.last_month}</>}
         </p>
       </div>
 
       {/* Zone 2: Paid vs Expected Progress Bar + Clickable Tute Plan Pills */}
       <div className="min-w-0 space-y-2">
         <div className="space-y-1">
-          <div className="flex items-baseline justify-between gap-2 text-xs tabular-nums">
-            <span>
-              <span className="text-foreground font-semibold">{row.paid ?? 0}</span>
-              <span className="text-muted-foreground"> / {row.expected} planned</span>
-            </span>
-            {row.expected > 0 && <span className="text-muted-foreground text-[11px]">{pct}%</span>}
-          </div>
+          <dl className="grid grid-cols-2 gap-2 text-xs tabular-nums">
+            <div>
+              <dt className="text-muted-foreground text-[11px]">{monthLabel(shiftMonth(month, -1), "short")}</dt>
+              <dd className="text-foreground font-semibold">
+                {row.last_month === null ? "No count" : `${row.last_month} paid`}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground text-[11px]">
+                {monthLabel(month, "short")}
+                {isThisMonth ? " so far" : ""}
+              </dt>
+              <dd className="text-foreground font-semibold">
+                {row.paid === null ? "No count" : `${row.paid} paid`}
+              </dd>
+            </div>
+          </dl>
           <Progress value={pct} className="h-1.5" aria-label={`${pct}% of planned students paid`} />
+          <p className="text-muted-foreground text-[11px] tabular-nums">
+            Tutes planned for {row.expected}
+            {row.expected > 0 && <> · {pct}% paid</>}
+          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5">
