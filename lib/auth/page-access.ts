@@ -5,6 +5,7 @@
 export type PageKey =
   | "overview"
   | "analytics"
+  | "money"
   | "payments"
   | "tasks"
   | "papers"
@@ -42,6 +43,8 @@ export type PageInfo = {
 export const PAGES: PageInfo[] = [
   { key: "overview", title: "Overview", href: "/admin", viewOnly: true },
   { key: "analytics", title: "Analytics", href: "/admin/analytics", mainOnly: true },
+  // Class fees, income against costs, profit.
+  { key: "money", title: "Income & profit", href: "/admin/money", mainOnly: true },
   { key: "payments", title: "Payments", href: "/admin/payments", mainOnly: true },
   { key: "tasks", title: "Tasks", href: "/admin/tasks", forMembers: true },
   { key: "papers", title: "Papers", href: "/admin/papers", forMembers: true },

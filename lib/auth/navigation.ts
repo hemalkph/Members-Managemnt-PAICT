@@ -169,6 +169,14 @@ export const ADMIN_NAV: (NavItem & { page: PageKey; section: string })[] = [
     section: "Overview",
   },
   {
+    page: "money",
+    title: "Income & profit",
+    href: "/admin/money",
+    icon: WalletIcon,
+    keywords: "income fees profit costs classes printing postage",
+    section: "Overview",
+  },
+  {
     page: "tasks",
     title: "Tasks",
     href: "/admin/tasks",

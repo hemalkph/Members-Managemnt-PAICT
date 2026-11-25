@@ -2139,6 +2139,41 @@ export type Database = {
       };
       class_paid_count_save: { Args: { p_class: string; p_count: number }; Returns: undefined };
       class_paid_count_undo: { Args: { p_class: string }; Returns: number };
+      // Money page (main admins only).
+      class_fee_set: { Args: { p_class: string; p_from_month: string; p_fee: number }; Returns: undefined };
+      class_fee_list: {
+        Args: Record<string, never>;
+        Returns: {
+          class_id: string;
+          class_name: string;
+          batch_name: string;
+          is_active: boolean;
+          /** Fee in force this month, null when none is set. */
+          fee: number | null;
+          from_month: string | null;
+        }[];
+      };
+      money_income: {
+        Args: { p_from: string; p_to: string };
+        Returns: {
+          class_id: string;
+          class_name: string;
+          batch_name: string;
+          month: string;
+          fee: number | null;
+          /** Newest paid count (upload or typed), null when none. */
+          paid: number | null;
+          free: number;
+          amount_total: number | null;
+          /** null when there is no fee or no count. */
+          income: number | null;
+          income_source: "amounts" | "fee" | "no_fee" | "no_count";
+        }[];
+      };
+      money_costs: {
+        Args: { p_from: string; p_to: string };
+        Returns: { month: string; printing: number; postage: number }[];
+      };
       class_month_tutes_copy: { Args: { p_class: string; p_from_month: string; p_to_month: string }; Returns: number };
       class_ops_overview: {
         Args: { p_month: string };
