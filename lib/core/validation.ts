@@ -1051,6 +1051,18 @@ export type PostParcelStatusInput = z.input<typeof postParcelStatusSchema>;
 export const classPaidCountSchema = z.object({ class_id: uuid, count: copies("Paid students", 0) });
 export type ClassPaidCountInput = z.input<typeof classPaidCountSchema>;
 
+/** A class's monthly fee from a month onwards (Money page, main admins). */
+export const classFeeSchema = z.object({
+  class_id: uuid,
+  from_month: monthKey,
+  // "2,500" is fine; a blank box must never become Rs 0.
+  fee: z.preprocess(
+    (v) => (typeof v === "string" ? v.replace(/[,\s]/g, "") || undefined : v),
+    z.coerce.number({ message: "Enter the fee" }).min(0, "The fee can't be below 0").max(10_000_000, "The fee is too large"),
+  ),
+});
+export type ClassFeeInput = z.input<typeof classFeeSchema>;
+
 /** Schedule several tutes for several classes in one month. */
 export const classTutesAssignSchema = z.object({
   month: monthKey,
