@@ -25,7 +25,14 @@ export type PaperStageName =
   | "scheme_en"
   | "mark";
 export type PaperFileTag = "paper" | "corrected" | "images" | "answers" | "marked" | "source" | "final" | "other";
-export type FeeFollowupStatus = "pending" | "messaged" | "excused" | "dropped";
+export type FeeFollowupStatus =
+  | "pending"
+  | "messaged"
+  | "promised"
+  | "excused"
+  | "dropped"
+  | "cant_afford"
+  | "moved_class";
 
 export type Database = {
   __InternalSupabase: {
@@ -1402,6 +1409,8 @@ export type Database = {
           created_at: string;
           /** Physical, Online or Both (Both splits by the paid list's Institute column). */
           mode: ClassMode;
+          /** Who phones this class's unpaid students (Renewals). */
+          followup_owner_id: string | null;
         };
         Insert: {
           id?: string;
@@ -1409,6 +1418,7 @@ export type Database = {
           name: string;
           is_active?: boolean;
           mode?: ClassMode;
+          followup_owner_id?: string | null;
           created_by?: string | null;
           created_at?: string;
         };
@@ -1420,6 +1430,7 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           mode?: ClassMode;
+          followup_owner_id?: string | null;
         };
         Relationships: [
           {
@@ -1595,6 +1606,14 @@ export type Database = {
           last_messaged_by: string | null;
           last_template_id: string | null;
           note: string;
+          promised_by: string | null;
+          reason: string;
+          moved_to_class: string | null;
+          call_count: number;
+          last_called_at: string | null;
+          last_called_by: string | null;
+          /** Set when an upload shows the student has paid since the reminders. */
+          paid_seen_at: string | null;
           updated_by: string | null;
           updated_at: string;
         };
@@ -1613,6 +1632,13 @@ export type Database = {
           last_messaged_by?: string | null;
           last_template_id?: string | null;
           note?: string;
+          promised_by?: string | null;
+          reason?: string;
+          moved_to_class?: string | null;
+          call_count?: number;
+          last_called_at?: string | null;
+          last_called_by?: string | null;
+          paid_seen_at?: string | null;
           updated_by?: string | null;
           updated_at?: string;
         };
@@ -1631,6 +1657,13 @@ export type Database = {
           last_messaged_by?: string | null;
           last_template_id?: string | null;
           note?: string;
+          promised_by?: string | null;
+          reason?: string;
+          moved_to_class?: string | null;
+          call_count?: number;
+          last_called_at?: string | null;
+          last_called_by?: string | null;
+          paid_seen_at?: string | null;
           updated_by?: string | null;
           updated_at?: string;
         };
@@ -2139,6 +2172,41 @@ export type Database = {
       };
       class_paid_count_save: { Args: { p_class: string; p_count: number }; Returns: undefined };
       class_paid_count_undo: { Args: { p_class: string }; Returns: number };
+      // Renewals (Fee reminders).
+      fee_class_owner_set: { Args: { p_class: string; p_owner: string | null }; Returns: undefined };
+      fee_followup_outcome: {
+        Args: {
+          p_class_id: string;
+          p_due_month: string;
+          p_student_key: string;
+          p_student_name: string;
+          p_whatsapp_norm: string | null;
+          p_outcome: "no_answer" | "promised" | "cant_afford" | "moved_class" | "dropped" | "excused";
+          p_promised_by?: string | null;
+          p_reason?: string | null;
+          p_moved_to?: string | null;
+          p_note?: string | null;
+          p_called?: boolean;
+        };
+        Returns: Database["public"]["Tables"]["fee_due_followups"]["Row"];
+      };
+      fee_renewal_record: {
+        Args: {
+          p_class: string;
+          p_month: string;
+          p_prev_total: number;
+          p_renewed: number;
+          p_new: number;
+          p_due_keys: string[];
+        };
+        Returns: undefined;
+      };
+      fee_renewal_history: {
+        Args: { p_month: string };
+        Returns: { class_id: string; day: string; prev_total: number; renewed: number; new_students: number }[];
+      };
+      fee_renewal_settings: { Args: Record<string, never>; Returns: { due_day: number; target_pct: number }[] };
+      fee_renewal_settings_set: { Args: { p_due_day: number; p_target_pct: number }; Returns: undefined };
       // Money page (main admins only).
       class_fee_set: { Args: { p_class: string; p_from_month: string; p_fee: number }; Returns: undefined };
       class_fee_list: {

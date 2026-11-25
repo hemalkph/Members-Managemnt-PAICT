@@ -19,6 +19,8 @@ import {
   WalletIcon,
   LibraryIcon,
   IdCardIcon,
+  PhoneCallIcon,
+  HandCoinsIcon,
   type LucideIcon,
 } from "lucide-react";
 import { Sticker } from "@/components/sticker";
@@ -54,6 +56,8 @@ const META: Record<string, { icon: LucideIcon; tone: string }> = {
   "task.due": { icon: AlarmClockIcon, tone: "bg-warning/20 text-amber-700 dark:text-warning" },
   "task.overdue": { icon: TriangleAlertIcon, tone: "bg-destructive/15 text-destructive" },
   "task.escalated": { icon: SirenIcon, tone: "bg-destructive/15 text-destructive" },
+  "fee.calls_due": { icon: PhoneCallIcon, tone: "bg-warning/20 text-amber-600 dark:text-warning" },
+  "fee.cant_afford": { icon: HandCoinsIcon, tone: "bg-chart-2/15 text-chart-2" },
   "stage.tomorrow": { icon: CalendarClockIcon, tone: "bg-primary/10 text-primary" },
   "task.done": { icon: CircleCheckIcon, tone: "bg-success/15 text-success" },
   "task.sent_back": { icon: CircleXIcon, tone: "bg-destructive/15 text-destructive" },

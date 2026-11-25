@@ -39,6 +39,7 @@ import { formatPhoneDisplay } from "@/lib/fees/phone";
 import type { FeeTemplateItem } from "@/lib/fees/queries";
 import { EMOJI_GROUPS, feeWhatsAppUrl, renderFeeMessage, templateUsesTutes } from "@/lib/fees/templates";
 import type { FeeFollowupStatus } from "@/lib/supabase/database.types";
+import { inReminderQueue, isClosedFollowup } from "@/lib/fees/renewals";
 
 export function WhatsAppQueueDialog({
   open,
@@ -106,9 +107,7 @@ export function WhatsAppQueueDialog({
   // Build active queue of due students (also includes messaged students whose WhatsApp # was just updated).
   const queue = useMemo(() => {
     return students.filter((s) => {
-      if (s.kind !== "due") return false;
-      if (s.followupStatus === "excused" || s.followupStatus === "dropped") return false;
-      if (!includeMessaged && s.followupStatus === "messaged" && !s.contactPhoneChanged) return false;
+      if (!inReminderQueue(s, includeMessaged)) return false;
       if (skipFreeCards && /free/i.test(s.primaryLabel)) return false;
       return true;
     });
@@ -138,7 +137,7 @@ export function WhatsAppQueueDialog({
   const messageText = customDraft && customDraft.key === draftKey ? customDraft.text : renderedDefault;
 
   const totalDueActive = useMemo(
-    () => students.filter((s) => s.kind === "due" && s.followupStatus !== "excused" && s.followupStatus !== "dropped").length,
+    () => students.filter((s) => s.kind === "due" && !isClosedFollowup(s.followupStatus)).length,
     [students],
   );
   const messagedCount = useMemo(

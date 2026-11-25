@@ -194,6 +194,12 @@ export async function getClassComparisonData(
     lastTemplateId: f.last_template_id,
     note: f.note,
     updatedAt: f.updated_at,
+    promisedBy: f.promised_by,
+    reason: f.reason,
+    movedToClassId: f.moved_to_class,
+    callCount: f.call_count,
+    lastCalledAt: f.last_called_at,
+    paidSeenAt: f.paid_seen_at,
   }));
 
   const concessionLabels: ConcessionLabelMatch[] = (concessions ?? []).map((c) => ({
