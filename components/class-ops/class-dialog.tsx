@@ -36,10 +36,11 @@ export type ClassItem = { id: string; batchId: string; name: string; mode: Class
 
 export const MODE_LABEL: Record<ClassMode, string> = { physical: "Physical", online: "Online", both: "Physical + Online" };
 
+// Who is posted comes from the Speed Post upload; the mode only guides Tute stock until a list is in.
 const MODE_HINT: Record<ClassMode, string> = {
-  physical: "Everyone comes to the hall; no Speed Post.",
-  online: "Everyone gets tutes by Speed Post.",
-  both: "Split by the paid list's Institute column (\u201cOnline\u201d goes by Speed Post).",
+  physical: "Everyone comes to the hall.",
+  online: "Everyone studies online. Upload who to post to on Speed Post.",
+  both: "Some come to the hall, some study online. Upload who to post to on Speed Post.",
 };
 
 export function ClassDialog({

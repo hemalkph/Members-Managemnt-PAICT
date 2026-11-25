@@ -2240,6 +2240,28 @@ export type Database = {
         }[];
       };
       post_round_build: { Args: { p_batch: string; p_month: string; p_kind: "main" | "top_up" }; Returns: string };
+      post_list_replace: {
+        Args: {
+          p_class: string;
+          p_month: string;
+          p_file_name: string;
+          p_rows: { student_key: string; full_name: string; whatsapp: string | null; address: string; district: string }[];
+        };
+        Returns: number;
+      };
+      post_list_delete: { Args: { p_class: string; p_month: string }; Returns: undefined };
+      post_lists: {
+        Args: { p_batch: string; p_month: string };
+        Returns: {
+          class_id: string;
+          class_name: string;
+          is_active: boolean;
+          file_name: string | null;
+          uploaded_at: string | null;
+          students: number;
+          with_address: number;
+        }[];
+      };
       post_parcel_pack: { Args: { p_parcel: string; p_packed?: boolean }; Returns: undefined };
       post_parcel_set_tracking: { Args: { p_parcel: string; p_tracking: string }; Returns: undefined };
       post_parcel_void: { Args: { p_parcel: string }; Returns: undefined };

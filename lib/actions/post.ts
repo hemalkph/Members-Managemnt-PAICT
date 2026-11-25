@@ -9,12 +9,16 @@ import {
   idSchema,
   postAddressSchema,
   postHandoverSchema,
+  postListDeleteSchema,
+  postListUploadSchema,
   postParcelStatusSchema,
   postRoundBuildSchema,
   postTrackingSchema,
   uuid,
   type PostAddressInput,
   type PostHandoverInput,
+  type PostListDeleteInput,
+  type PostListUploadInput,
   type PostParcelStatusInput,
   type PostRoundBuildInput,
   type PostTrackingInput,
@@ -54,6 +58,33 @@ export async function confirmPostAddressesAction(keys: string[]): Promise<Action
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
   const { data: n, error } = await ctx.supabase.rpc("post_addresses_confirm", { p_keys: parsed.data });
   return done(error, `${n ?? 0} address${n === 1 ? "" : "es"} confirmed`);
+}
+
+/** Replace a class's Speed Post list for the month (and save the addresses on it). */
+export async function uploadPostListAction(input: PostListUploadInput): Promise<ActionResult> {
+  const ctx = await editor();
+  if (!ctx) return { ok: false, error: NOT_ALLOWED };
+  const parsed = postListUploadSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
+  const { data: n, error } = await ctx.supabase.rpc("post_list_replace", {
+    p_class: parsed.data.class_id,
+    p_month: monthKeyToDate(parsed.data.month),
+    p_file_name: parsed.data.file_name,
+    p_rows: parsed.data.rows,
+  });
+  return done(error, `Saved ${n ?? 0} student${n === 1 ? "" : "s"} on the Speed Post list`);
+}
+
+export async function deletePostListAction(input: PostListDeleteInput): Promise<ActionResult> {
+  const ctx = await editor();
+  if (!ctx) return { ok: false, error: NOT_ALLOWED };
+  const parsed = postListDeleteSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
+  const { error } = await ctx.supabase.rpc("post_list_delete", {
+    p_class: parsed.data.class_id,
+    p_month: monthKeyToDate(parsed.data.month),
+  });
+  return done(error, "Speed Post list deleted");
 }
 
 export async function buildPostRoundAction(input: PostRoundBuildInput): Promise<ActionResult<{ id: string }>> {

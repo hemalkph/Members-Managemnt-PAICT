@@ -16,6 +16,16 @@ export type PostStudent = {
   tutesSent: number;
 };
 
+export type PostList = {
+  classId: string;
+  className: string;
+  isActive: boolean;
+  fileName: string | null;
+  uploadedAt: string | null;
+  students: number;
+  withAddress: number;
+};
+
 export type PostRoundSummary = {
   id: string;
   kind: "main" | "top_up";
@@ -43,10 +53,11 @@ export type PostParcel = {
 
 export type PostRound = PostRoundSummary & { batchId: string; month: string; parcelList: PostParcel[] };
 
-/** Online students who paid the month, and that month's rounds. */
+/** Students on the month's Speed Post lists, each class's list, and that month's rounds. */
 export async function getPostMonth(supabase: Client, batchId: string, month: string) {
-  const [students, rounds] = await Promise.all([
+  const [students, lists, rounds] = await Promise.all([
     supabase.rpc("post_month_students", { p_batch: batchId, p_month: monthKeyToDate(month) }),
+    supabase.rpc("post_lists", { p_batch: batchId, p_month: monthKeyToDate(month) }),
     supabase
       .from("post_rounds")
       .select("*, post_parcels(status, tracking_no)")
@@ -55,8 +66,20 @@ export async function getPostMonth(supabase: Client, batchId: string, month: str
       .order("created_at"),
   ]);
   if (students.error) throw new Error(students.error.message);
+  if (lists.error) throw new Error(lists.error.message);
 
   return {
+    lists: (lists.data ?? []).map(
+      (l): PostList => ({
+        classId: l.class_id,
+        className: l.class_name,
+        isActive: l.is_active,
+        fileName: l.file_name,
+        uploadedAt: l.uploaded_at,
+        students: l.students,
+        withAddress: l.with_address,
+      }),
+    ),
     students: (students.data ?? []).map(
       (s): PostStudent => ({
         studentKey: s.student_key,

@@ -34,7 +34,7 @@ The **Print plan** tab lists every tute that needs printing, most urgent first:
 
 - **Copies** — what's still to give this month + next month's need + spare copies, minus what's on hand or printing, rounded up to the tute's print batch. The sum is written out under each card.
 - **Send to print by** — the start of next month minus the printer's real print time (learned from its past jobs) and 3 spare days. *Print now* means this month is already short.
-- **Online / Hall** — how many of each class's students study online (from the latest paid list), so you know how many copies go by post.
+- **Online / Hall** — how many of each class's students get their tutes by post (from the latest Speed Post list), so you know how many copies go by post.
 - **Also needed in …** — the tute is scheduled the month after too; printing both together saves a press run.
 - **Create print job** opens the form with the number filled in.
 
@@ -42,7 +42,7 @@ Until a month's paid list is uploaded, its students are a **forecast** (shown wi
 
 **Spare copies** = safety copies (bigger when the forecast is less sure, at least 5% and at least 5) + the usual loss (damaged and counted-short copies over the last 6 months, per copy given out).
 
-**Paid so far:** a class's count is the newest of its uploaded paid list (Fee reminders) and a count typed on **Classes** (type it each day if you like). A class's **mode** on Classes decides the Online / Hall split: *Online* classes send every copy by Speed Post, *Physical* none, *Physical + Online* splits by the paid list's Institute column.
+**Paid so far:** a class's count is the newest of its uploaded paid list (Fee reminders) and a count typed on **Classes** (type it each day if you like). The Online / Hall split comes from the class's latest **Speed Post list** (students on it, against the paid count). Until a class has one, its **mode** on Classes is used: *Online* all, *Physical* none, *Physical + Online* by the paid list's Institute column.
 
 **Mid-month forecast:** if you upload the paid list or type a count a few times a month, Tute stock learns how payments usually come in (each batch learns its own). After 4 past months in a batch it scales an early upload up to a month-end estimate (shown as "~160, 120 paid so far at the usual pace"). The Print plan shows the batch that has learned least.
 
@@ -87,9 +87,9 @@ Every **Monday at 9:00** there is also one short summary: tutes low or out, prin
 
 ## Each month
 
-1. **Upload the paid list** on Fee reminders as usual. Online students' addresses (Address + Nearest City) are saved for posting.
+1. **Upload the Speed Post list** (Addresses tab → *Upload list*): pick the class and upload a file of **only the students to post to** this month, with Name, WhatsApp or Mobile, Address and Nearest City. It's separate from the Fee reminders paid list, which no longer saves addresses. Uploading again for the same class replaces its list; *Delete* removes it.
 2. **Addresses tab:** check new or changed addresses. *Confirm N that look fine* confirms every address with no warning; open the others (*Too short*, *Needs a town*, *No address*), fix them, and *Save and confirm*.
-3. **Rounds tab → Build round.** Everyone Online who paid, has a confirmed address and still needs this month's tutes gets a parcel. Students at the same address share one parcel. The copies are held for the round (Tute stock shows "held for post"). If there isn't enough stock, it says which tutes to print or count first.
+3. **Rounds tab → Build round.** Everyone on the Speed Post list who has a confirmed address and still needs this month's tutes gets a parcel. Students at the same address share one parcel. The copies are held for the round (Tute stock shows "held for post"). If there isn't enough stock, it says which tutes to print or count first.
 4. **Labels** and **Post list** print from the round page.
 5. **Pack:** parcels with the same tutes are grouped. Tick each one, or type its number in *Packed parcel number*.
 6. **Tracking numbers:** type or scan each Speed Post sticker into its parcel (camera button on Android Chrome).
@@ -105,4 +105,4 @@ Every **Monday at 9:00** there is also one short summary: tutes low or out, prin
 - **May come back** — once 30 posted parcels have a known outcome, a round marks parcels likely to come back (came back before, a district that often returns them, an unclear address, no WhatsApp). Call the student before posting. Until then the round page says it is still learning.
 - **Take out of this round** (before handover) — e.g. the student will collect in person. Their copies become free again.
 
-Addresses not used for 18 months are removed automatically.
+Addresses and Speed Post lists not used for 18 months are removed automatically.

@@ -1,16 +1,19 @@
-// Speed Post (Phase 3): private addresses, rounds that reserve stock, one
-// parcel per home, never twice, handover posts stock out once, returns.
+// Speed Post (Phase 3): its own uploaded list (apart from the Fee reminders paid
+// list), private addresses, rounds that reserve stock, one parcel per home,
+// never twice, handover posts stock out once, returns.
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import type pg from "pg";
 import { actAs, asOwner, createBatch, createPerson, createTute, outcome, session, type Actor } from "./helpers";
 
 let db: pg.Client;
 let poster: Actor;
+let postViewer: Actor;
 let uploader: Actor;
 let stocker: Actor;
 let nobody: Actor;
 let batch = "";
 let classId = "";
+let otherClass = "";
 let tuteId = "";
 let mainRound = "";
 const stamp = Date.now();
@@ -24,10 +27,13 @@ const onHand = async () => {
 };
 const addresses = (rows: { k: string; address: string }[]) =>
   JSON.stringify(rows.map((r) => ({ student_key: key(r.k), full_name: r.k, whatsapp: "94771234567", address: r.address })));
+const uploadList = (rows: { k: string; address: string }[], cls = classId) =>
+  q(`select public.post_list_replace($1, ${MONTH}, 'post.xlsx', $2::jsonb) as n`, [cls, addresses(rows)]);
 
 beforeAll(async () => {
   db = await session();
   poster = { kind: "user", id: await createPerson(db, { pageAccess: { post: "edit" } }), aal: "aal2" };
+  postViewer = { kind: "user", id: await createPerson(db, { pageAccess: { post: "view" } }), aal: "aal2" };
   uploader = { kind: "user", id: await createPerson(db, { pageAccess: { fee_reminders: "edit" } }), aal: "aal2" };
   stocker = { kind: "user", id: await createPerson(db, { pageAccess: { tutes: "edit", fee_reminders: "edit" } }), aal: "aal2" };
   nobody = { kind: "user", id: await createPerson(db), aal: "aal2" };
@@ -35,11 +41,13 @@ beforeAll(async () => {
 
   await actAs(db, stocker);
   classId = (await q("select public.fee_class_save(null, $1, $2, true) as id", [batch, `Revision ${stamp}`]))[0].id;
+  otherClass = (await q("select public.fee_class_save(null, $1, $2, true) as id", [batch, `Theory ${stamp}`]))[0].id;
   tuteId = await createTute(db, classId, `Unit 12 ${stamp}`, [MONTH]);
 
+  // The Fee reminders paid list: 4 paid, "erin" marked Online there but not on the Speed Post list.
   await asOwner(db);
   await q(`insert into public.fee_month_imports (class_id, month, unique_student_count) values ($1, ${MONTH}, 4)`, [classId]);
-  for (const [k, institute] of [["amal", "Online"], ["bimal", "Online"], ["chamal", "Online"], ["dilan", "Hall"]]) {
+  for (const [k, institute] of [["amal", ""], ["bimal", ""], ["chamal", ""], ["erin", "Online"]]) {
     await q(
       `insert into public.fee_month_students (class_id, month, student_key, full_name, institute, whatsapp_norm)
        values ($1, ${MONTH}, $2, $3, $4, '94771234567')`,
@@ -50,25 +58,50 @@ beforeAll(async () => {
 
 afterAll(() => db.end());
 
-describe("addresses", () => {
-  test("the uploader can save addresses but not read them; only the Speed Post page reads them", async () => {
+describe("the Speed Post list", () => {
+  test("only Speed Post editors upload lists and save addresses; Fee reminders can't", async () => {
     await actAs(db, uploader);
-    const saved = await q("select public.post_addresses_save($1::jsonb) as n", [
-      addresses([
-        { k: "amal", address: "12 Lake Road, Kandy" },
-        { k: "bimal", address: "12, lake road KANDY" },
-        { k: "chamal", address: "Anamaduwa" },
-      ]),
-    ]);
-    expect(saved[0].n).toBe(3);
-    expect(await q("select * from public.student_addresses where student_key like $1", [`%-${stamp}`])).toEqual([]);
-
+    expect(await outcome(db, "select public.post_addresses_save($1::jsonb)", [addresses([{ k: "amal", address: "x" }])])).toBe(
+      "42501",
+    );
+    expect(await outcome(db, `select public.post_list_replace($1, ${MONTH}, 'a.csv', '[]'::jsonb)`, [classId])).toBe("42501");
+    await actAs(db, postViewer);
+    expect(await outcome(db, `select * from public.post_lists($1, ${MONTH})`, [batch])).toBe("ok");
+    expect(await outcome(db, `select public.post_list_delete($1, ${MONTH})`, [classId])).toBe("42501");
     await actAs(db, nobody);
     expect(await outcome(db, "select * from public.post_month_students($1, null)", [batch])).not.toBe("ok");
-    expect(await outcome(db, "select public.post_addresses_save('[]'::jsonb)")).toBe("42501");
+    expect(await outcome(db, `select * from public.post_lists($1, ${MONTH})`, [batch])).toBe("42501");
+    // Nobody reads the list tables directly.
+    await actAs(db, poster);
+    expect(await outcome(db, "select * from public.post_list_students")).toBe("42501");
   });
 
-  test("Online students who paid are listed with problems; confirming skips unclear ones", async () => {
+  test("uploading replaces the class's list; a deleted list takes its students off", async () => {
+    await actAs(db, poster);
+    expect((await uploadList([{ k: "dilan", address: "1 Hill Street, Badulla" }]))[0].n).toBe(1);
+    expect((await uploadList([
+      { k: "amal", address: "12 Lake Road, Kandy" },
+      { k: "bimal", address: "12, lake road KANDY" },
+      { k: "chamal", address: "Anamaduwa" },
+    ]))[0].n).toBe(3);
+    const [list] = await q(`select students, with_address, file_name from public.post_lists($1, ${MONTH}) where class_id = $2`, [
+      batch,
+      classId,
+    ]);
+    expect(list).toEqual({ students: 3, with_address: 3, file_name: "post.xlsx" });
+
+    await uploadList([{ k: "farah", address: "9 Sea Road, Galle" }], otherClass);
+    await q(`select public.post_list_delete($1, ${MONTH})`, [otherClass]);
+    // Erin is Online on the Fee reminders paid list but not on the Speed Post list: not posted.
+    const keys = (await q(`select student_key from public.post_month_students($1, ${MONTH})`, [batch])).map((r) => r.student_key);
+    expect(keys.sort()).toEqual([key("amal"), key("bimal"), key("chamal")]);
+
+    // Tute stock's Online share follows the list: 3 posted of 4 paid.
+    await asOwner(db);
+    expect(Number((await q(`select public.tute_online_share($1, ${MONTH}) as s`, [classId]))[0].s)).toBe(0.75);
+  });
+
+  test("students on the list are listed with problems; confirming skips unclear ones", async () => {
     await actAs(db, poster);
     const rows = await q(`select full_name, problem, checked from public.post_month_students($1, ${MONTH}) order by full_name`, [batch]);
     expect(rows).toEqual([
@@ -83,15 +116,11 @@ describe("addresses", () => {
   test("a new LMS address replaces a staff correction; the same one keeps it", async () => {
     await actAs(db, poster);
     await q("select public.post_address_save($1, $2, true)", [key("chamal"), "No 5, Main Street, Anamaduwa"]);
-    await actAs(db, uploader);
     await q("select public.post_addresses_save($1::jsonb)", [addresses([{ k: "chamal", address: "Anamaduwa" }])]);
-    await actAs(db, poster);
     let [a] = await q("select address, checked from public.student_addresses where student_key = $1", [key("chamal")]);
     expect(a).toEqual({ address: "No 5, Main Street, Anamaduwa", checked: true });
 
-    await actAs(db, uploader);
     await q("select public.post_addresses_save($1::jsonb)", [addresses([{ k: "chamal", address: "New House, Puttalam" }])]);
-    await actAs(db, poster);
     [a] = await q("select address, checked from public.student_addresses where student_key = $1", [key("chamal")]);
     expect(a).toEqual({ address: "New House, Puttalam", checked: false });
   });

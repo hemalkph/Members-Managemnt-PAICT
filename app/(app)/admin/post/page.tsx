@@ -32,7 +32,7 @@ export default async function PostPage({ searchParams }: PageProps<"/admin/post"
   const header = (
     <PageHeader
       title="Speed Post"
-      description="Post each month's tutes to Online students: build a round, pack, scan tracking numbers, hand over."
+      description="Post each month's tutes: upload the Speed Post list, build a round, pack, scan tracking numbers, hand over."
       actions={
         batches.length > 0 && (
           <>
