@@ -1,11 +1,11 @@
 "use client";
 
 // React Bits — CountUp (https://reactbits.dev/text-animations/count-up)
-// Adapted to TypeScript. Animates a number with a spring when it scrolls into view.
+// Adapted to TypeScript. Animates a number with an ease-out when it scrolls into view.
 // With prefers-reduced-motion the final number is shown immediately.
 
 import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
-import { useInView, useMotionValue, useReducedMotion, useSpring } from "motion/react";
+import { animate, useInView, useReducedMotion } from "motion/react";
 import { cn } from "@/lib/utils";
 
 type CountUpProps = {
@@ -23,11 +23,6 @@ type CountUpProps = {
 export default function CountUp({ to, from = 0, duration = 1.2, delay = 0, decimals = 0, className }: CountUpProps) {
   const ref = useRef<HTMLSpanElement>(null);
   const reduceMotion = useReducedMotion();
-  const motionValue = useMotionValue(from);
-  const spring = useSpring(motionValue, {
-    damping: 20 + 40 * (1 / duration),
-    stiffness: 100 * (1 / duration),
-  });
   const inView = useInView(ref, { once: true });
 
   const format = useCallback(
@@ -45,25 +40,26 @@ export default function CountUp({ to, from = 0, duration = 1.2, delay = 0, decim
     }
   }, [format, from, to, reduceMotion]);
 
+  // A timed ease-out, not a spring: a heavily damped spring crawls for seconds and
+  // left money totals showing wrong cents (e.g. 24,999.41 for 25,000.00).
   useEffect(() => {
     if (!inView) return;
+    const show = (value: number) => {
+      if (ref.current) ref.current.textContent = format(value);
+    };
     if (reduceMotion) {
-      motionValue.jump(to);
-      spring.jump(to);
-      if (ref.current) ref.current.textContent = format(to);
+      show(to);
       return;
     }
-    const timer = setTimeout(() => motionValue.set(to), delay * 1000);
-    return () => clearTimeout(timer);
-  }, [inView, to, delay, motionValue, spring, reduceMotion, format]);
-
-  useEffect(
-    () =>
-      spring.on("change", (latest) => {
-        if (ref.current) ref.current.textContent = format(latest);
-      }),
-    [spring, format],
-  );
+    const controls = animate(from, to, {
+      duration,
+      delay,
+      ease: [0.16, 1, 0.3, 1],
+      onUpdate: show,
+      onComplete: () => show(to),
+    });
+    return () => controls.stop();
+  }, [inView, from, to, delay, duration, reduceMotion, format]);
 
   return <span ref={ref} className={cn("tabular-nums", className)} aria-label={format(to)} />;
 }
