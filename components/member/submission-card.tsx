@@ -11,6 +11,7 @@ import {
   TagIcon,
   WrenchIcon,
   GraduationCapIcon,
+  HourglassIcon,
   MapPinIcon,
   WalletIcon,
 } from "lucide-react";
@@ -20,6 +21,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { SubmissionStatus } from "@/lib/supabase/database.types";
 import { formatBytes, formatDate, formatLKR } from "@/lib/core/format";
+import { dateToMonthKey, monthLabel } from "@/lib/core/month";
+import { waitingHours, waitingSince, waitingText } from "@/lib/review/waiting";
 import { cn } from "@/lib/utils";
 import { DeleteSubmissionButton } from "./delete-submission-button";
 import { DriveVideoList, type SavedVideo } from "./drive-video-list";
@@ -34,6 +37,9 @@ export type MemberSubmission = {
   status: SubmissionStatus;
   admin_comment: string | null;
   resubmitted_at?: string | null;
+  created_at?: string;
+  /** The pay month the work counts towards (first day of the month). */
+  work_month?: string;
   unit_price: number | null;
   amount: number | null;
   rate_items: { name: string; unit: string } | null;
@@ -48,16 +54,47 @@ export function SubmissionCard({
   submission,
   editable = true,
   showMoney = false,
+  review,
 }: {
   submission: MemberSubmission;
   editable?: boolean;
   /** Show the amount (quantity × rate) for this work. */
   showMoney?: boolean;
+  /** The review limit and the time now, to show how long pending work has waited. */
+  review?: { limitHours: number; nowMs: number };
 }) {
   const s = submission;
   const canEdit = editable && s.status === "pending";
   const rejected = s.status === "rejected";
   const resent = s.status === "pending" && Boolean(s.resubmitted_at);
+  const waited =
+    review && s.status === "pending" && s.created_at
+      ? waitingText(waitingHours(waitingSince({ created_at: s.created_at, resubmitted_at: s.resubmitted_at }), review.nowMs))
+      : null;
+
+  const comment = (s.admin_comment || rejected) && (
+    <div
+      className={cn(
+        "flex gap-2 rounded-lg p-3 text-sm",
+        rejected ? "border-destructive/40 bg-destructive/5 border" : "bg-muted/60",
+      )}
+    >
+      <MessageSquareIcon className={cn("mt-0.5 size-4 shrink-0", rejected ? "text-destructive" : "text-muted-foreground")} />
+      <div className="min-w-0 flex-1">
+        <p className="text-muted-foreground text-xs font-medium">
+          {rejected ? "Why it was not approved" : resent ? "Earlier reason it was not approved" : "Admin comment"}
+        </p>
+        <p className="break-words whitespace-pre-line">{s.admin_comment || "No reason given."}</p>
+        {rejected && editable && (
+          <Button asChild size="sm" className="mt-3 w-full sm:w-auto">
+            <Link href={`/work/${s.id}/edit`}>
+              <WrenchIcon /> Fix and send again
+            </Link>
+          </Button>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <SpotlightCard className="grid gap-3 p-4 sm:p-5">
@@ -82,6 +119,8 @@ export function SubmissionCard({
           <StatusBadge status={s.status} />
         </div>
       </div>
+
+      {rejected && comment}
 
       <div className="text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 text-sm">
         <span className="inline-flex items-center gap-1">
@@ -109,9 +148,20 @@ export function SubmissionCard({
           <span className="text-foreground inline-flex items-center gap-1 font-medium">
             <WalletIcon className="size-3.5" /> {formatLKR(Number(s.amount))}
             {s.status === "pending" && <span className="text-muted-foreground font-normal">(estimate)</span>}
+            {s.status === "approved" && s.work_month && (
+              <span className="text-muted-foreground font-normal">
+                · on your {monthLabel(dateToMonthKey(s.work_month))} payslip
+              </span>
+            )}
           </span>
         )}
       </div>
+
+      {waited && review && (
+        <p className="text-muted-foreground inline-flex items-center gap-1 text-sm">
+          <HourglassIcon className="size-3.5" /> Waiting {waited} · reviews usually within {review.limitHours} h
+        </p>
+      )}
 
       {s.description && <p className="text-sm whitespace-pre-line">{s.description}</p>}
 
@@ -147,29 +197,7 @@ export function SubmissionCard({
         </div>
       )}
 
-      {(s.admin_comment || rejected) && (
-        <div
-          className={cn(
-            "flex gap-2 rounded-lg p-3 text-sm",
-            rejected ? "border-destructive/40 bg-destructive/5 border" : "bg-muted/60",
-          )}
-        >
-          <MessageSquareIcon className={cn("mt-0.5 size-4 shrink-0", rejected ? "text-destructive" : "text-muted-foreground")} />
-          <div className="min-w-0 flex-1">
-            <p className="text-muted-foreground text-xs font-medium">
-              {rejected ? "Why it was not approved" : resent ? "Earlier reason it was not approved" : "Admin comment"}
-            </p>
-            <p className="break-words whitespace-pre-line">{s.admin_comment || "No reason given."}</p>
-            {rejected && editable && (
-              <Button asChild size="sm" className="mt-3 w-full sm:w-auto">
-                <Link href={`/work/${s.id}/edit`}>
-                  <WrenchIcon /> Fix and send again
-                </Link>
-              </Button>
-            )}
-          </div>
-        </div>
-      )}
+      {!rejected && comment}
 
       {editable && (
         <div className="flex flex-wrap justify-end gap-1 border-t pt-3">

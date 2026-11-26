@@ -12,9 +12,23 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { reviewSubmissionsAction } from "@/lib/actions/admin";
 import { formatDate, formatLKR } from "@/lib/core/format";
+import { waitingSince } from "@/lib/review/waiting";
+import { ReviewCards } from "./review-cards";
 import { ReviewDialog, SentAgainBadge, type ReviewRow } from "./review-dialog";
+import { WaitingChip } from "./waiting-chip";
 
-export function ReviewTable({ rows, readOnly = false }: { rows: ReviewRow[]; readOnly?: boolean }) {
+export function ReviewTable({
+  rows,
+  readOnly = false,
+  limitHours,
+  nowMs,
+}: {
+  rows: ReviewRow[];
+  readOnly?: boolean;
+  /** Work should be reviewed within this many hours. */
+  limitHours: number;
+  nowMs: number;
+}) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [openId, setOpenId] = useState<string | null>(null);
@@ -57,9 +71,11 @@ export function ReviewTable({ rows, readOnly = false }: { rows: ReviewRow[]; rea
       <div className="flex min-h-9 flex-wrap items-center justify-between gap-2">
         <p className="text-muted-foreground text-sm">
           {rows.length} submission{rows.length === 1 ? "" : "s"} · {pendingRows.length} pending
-          {!readOnly && selectedPending.length === 0 && pendingRows.length > 1 && " · tick several to approve them together"}
+          {!readOnly && selectedPending.length === 0 && pendingRows.length > 1 && (
+            <span className="hidden md:inline"> · tick several to approve them together</span>
+          )}
         </p>
-        <div className={readOnly ? "hidden" : "flex flex-wrap items-center gap-2"}>
+        <div className={readOnly ? "hidden" : "hidden flex-wrap items-center gap-2 md:flex"}>
           {paperRows.length > 0 && (
             <Button
               variant="outline"
@@ -80,7 +96,9 @@ export function ReviewTable({ rows, readOnly = false }: { rows: ReviewRow[]; rea
         </div>
       </div>
 
-      <Card className="py-0">
+      <ReviewCards rows={rows} readOnly={readOnly} limitHours={limitHours} nowMs={nowMs} onOpen={setOpenId} />
+
+      <Card className="hidden py-0 md:flex">
         <Table>
           <TableHeader>
             <TableRow>
@@ -157,6 +175,13 @@ export function ReviewTable({ rows, readOnly = false }: { rows: ReviewRow[]; rea
                   <div className="flex flex-wrap items-center gap-1">
                     <StatusBadge status={r.status} />
                     {r.status === "pending" && r.resubmittedAt && <SentAgainBadge />}
+                    {r.status === "pending" && (
+                      <WaitingChip
+                        since={waitingSince({ created_at: r.created_at, resubmitted_at: r.resubmittedAt })}
+                        limitHours={limitHours}
+                        nowMs={nowMs}
+                      />
+                    )}
                   </div>
                 </TableCell>
               </TableRow>

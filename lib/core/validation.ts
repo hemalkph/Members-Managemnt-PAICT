@@ -161,6 +161,11 @@ export const reviewSchema = z
     path: ["comment"],
   });
 export type ReviewInput = z.input<typeof reviewSchema>;
+export const reviewLimitSchema = z
+  .number({ error: "Enter the number of hours" })
+  .int("Use a whole number of hours")
+  .min(1, "Pick between 1 and 168 hours")
+  .max(168, "Pick between 1 and 168 hours");
 
 // ---------------------------------------------------------------- members (admin)
 const memberBase = z.object({
