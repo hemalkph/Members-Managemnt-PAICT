@@ -15,6 +15,7 @@ import {
   memberActiveSchema,
   memberCreateSchema,
   memberUpdateSchema,
+  reviewLimitSchema,
   reviewSchema,
   roleSchema,
   sectionSchema,
@@ -287,7 +288,9 @@ export async function resetMemberPasswordAction(input: AdminResetPasswordInput):
 
 // ---------------------------------------------------------------- review
 
-export async function reviewSubmissionsAction(input: ReviewInput): Promise<ActionResult<{ count: number }>> {
+export async function reviewSubmissionsAction(
+  input: ReviewInput,
+): Promise<ActionResult<{ count: number; items: { id: string; seen: string }[] }>> {
   const ctx = await adminCtx("review");
   if (!ctx) return { ok: false, error: NOT_ALLOWED };
 
@@ -317,7 +320,7 @@ export async function reviewSubmissionsAction(input: ReviewInput): Promise<Actio
           .update({ status: decision, admin_comment: comment || null })
           .eq("id", i.id)
           .eq("updated_at", i.seen)
-          .select("id"),
+          .select("id, updated_at"),
       ),
   );
   const failed = results.find((r) => r.error);
@@ -339,8 +342,21 @@ export async function reviewSubmissionsAction(input: ReviewInput): Promise<Actio
   return {
     ok: true,
     message: [`${verb} ${count} submission${count === 1 ? "" : "s"}.`, ...notes].join(" "),
-    data: { count },
+    // The new "last updated" times, so Undo can move them back to pending.
+    data: { count, items: results.flatMap((r) => (r.data ?? []).map((d) => ({ id: d.id, seen: d.updated_at }))) },
   };
+}
+
+export async function setReviewLimitAction(hours: number): Promise<ActionResult> {
+  const ctx = await adminCtx("review");
+  if (!ctx) return { ok: false, error: NOT_ALLOWED };
+  const parsed = reviewLimitSchema.safeParse(hours);
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
+  const { error } = await ctx.supabase.rpc("review_limit_set", { p_hours: parsed.data });
+  if (error) return { ok: false, error: friendlyDbError(error) };
+  revalidatePath("/admin/review");
+  revalidatePath("/work");
+  return { ok: true, message: `Reviews should now be done within ${parsed.data} hours.` };
 }
 
 // ---------------------------------------------------------------- sections & roles

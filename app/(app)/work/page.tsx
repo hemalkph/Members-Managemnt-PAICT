@@ -21,11 +21,16 @@ export default async function MyWorkPage({ searchParams }: PageProps<"/work">) {
   const profile = await requireCompleteProfile();
   const month = parseMonthParam((await searchParams).month);
   const supabase = await createClient();
-  const [submissions, salary, drafts] = await Promise.all([
+  const [submissions, salary, drafts, { data: limitData }] = await Promise.all([
     getSubmissionsForMonth(supabase, profile.id, month),
     SHOW_MEMBERS_THEIR_EARNINGS ? getMySalary(supabase, profile.id, month) : Promise.resolve(0),
     getPaperDrafts(supabase, profile.id),
+    supabase.rpc("review_limit_hours"),
   ]);
+  // Falls back to 24 h until migration 082 runs.
+  // eslint-disable-next-line react-hooks/purity -- request time, for "Waiting 30 h"
+  const nowMs = Date.now();
+  const review = { limitHours: typeof limitData === "number" ? limitData : 24, nowMs };
   const summary = summarise(submissions);
 
   return (
@@ -62,7 +67,7 @@ export default async function MyWorkPage({ searchParams }: PageProps<"/work">) {
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {submissions.map((s) => (
-            <SubmissionCard key={s.id} submission={s} showMoney={SHOW_MEMBERS_THEIR_EARNINGS} />
+            <SubmissionCard key={s.id} submission={s} showMoney={SHOW_MEMBERS_THEIR_EARNINGS} review={review} />
           ))}
         </div>
       )}

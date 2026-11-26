@@ -1035,6 +1035,8 @@ export type Database = {
           paper_default_owners: Json;
           /** { stage: { start, due } } overriding the default stage days for new papers. */
           paper_stage_offsets: Json;
+          /** Work should be reviewed within this many hours (1–168). */
+          review_limit_hours: number;
           lms_group_link: string | null;
           physical_group_link: string | null;
           updated_by: string | null;
@@ -2226,6 +2228,13 @@ export type Database = {
       };
       fee_renewal_settings: { Args: Record<string, never>; Returns: { due_day: number; target_pct: number }[] };
       fee_renewal_settings_set: { Args: { p_due_day: number; p_target_pct: number }; Returns: undefined };
+      // Review limit (Work review).
+      review_limit_hours: { Args: Record<string, never>; Returns: number };
+      review_limit_set: { Args: { p_hours: number }; Returns: undefined };
+      review_waiting_summary: {
+        Args: Record<string, never>;
+        Returns: { waiting: number; over_limit: number; oldest_at: string | null; oldest_month: string | null }[];
+      };
       // Money page (main admins only).
       class_fee_set: { Args: { p_class: string; p_from_month: string; p_fee: number }; Returns: undefined };
       class_fee_list: {

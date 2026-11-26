@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
-import { InboxIcon, LockIcon } from "lucide-react";
+import Link from "next/link";
+import { HourglassIcon, InboxIcon, LockIcon } from "lucide-react";
 import type { ReviewRow } from "@/components/admin/review-dialog";
 import { ReviewFilters } from "@/components/admin/review-filters";
+import { ReviewLimitForm } from "@/components/admin/review-limit-form";
 import { ReviewTable } from "@/components/admin/review-table";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
@@ -14,6 +16,7 @@ import { getPayMonth } from "@/lib/payments";
 import { getStructure } from "@/lib/organisation/structure";
 import { createClient } from "@/lib/supabase/server";
 import { uuid } from "@/lib/core/validation";
+import { waitingHours, waitingText } from "@/lib/review/waiting";
 
 export const metadata: Metadata = { title: "Work review" };
 
@@ -33,11 +36,18 @@ export default async function ReviewPage({ searchParams }: PageProps<"/admin/rev
   const section = uuid.safeParse(param(sp.section)).success ? param(sp.section) : null;
 
   const supabase = await createClient();
-  const [structure, { data: members }, payMonth] = await Promise.all([
+  const [structure, { data: members }, payMonth, { data: limitData }, { data: waitingData }] = await Promise.all([
     getStructure(supabase),
     supabase.from("profiles").select("id, full_name, email").order("full_name"),
     getPayMonth(supabase, month),
+    supabase.rpc("review_limit_hours"),
+    supabase.rpc("review_waiting_summary"),
   ]);
+  // Before migration 082 runs these calls fail: fall back to 24 h and no summary.
+  const limitHours = typeof limitData === "number" ? limitData : 24;
+  const waiting = waitingData?.[0] ?? null;
+  // eslint-disable-next-line react-hooks/purity -- request time, for "Waiting 30 h"
+  const nowMs = Date.now();
 
   let query = supabase
     .from("submissions")
@@ -94,6 +104,25 @@ export default async function ReviewPage({ searchParams }: PageProps<"/admin/rev
         leading={<Sticker name="press" size={64} loop />}
       />
       {!canEdit && <ReadOnlyNotice />}
+      {waiting && waiting.over_limit > 0 && waiting.oldest_at && (
+        <Alert variant="warning">
+          <HourglassIcon />
+          <AlertTitle>
+            {waiting.over_limit} waiting over {limitHours} h · oldest {waitingText(waitingHours(waiting.oldest_at, nowMs))}
+          </AlertTitle>
+          <AlertDescription>
+            {waiting.oldest_month && (
+              <Link
+                className="underline underline-offset-2"
+                href={`/admin/review?status=pending&month=${dateToMonthKey(waiting.oldest_month)}`}
+              >
+                Show the oldest month&apos;s pending work
+              </Link>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+      {canEdit && <ReviewLimitForm key={limitHours} hours={limitHours} />}
       <ReviewFilters
         month={month}
         sections={structure.map((s) => ({ id: s.id, name: s.name, roles: s.roles.map((r) => ({ id: r.id, name: r.name })) }))}
@@ -116,7 +145,7 @@ export default async function ReviewPage({ searchParams }: PageProps<"/admin/rev
           description={`No submissions match these filters for ${monthLabel(month)}.`}
         />
       ) : (
-        <ReviewTable rows={rows} readOnly={!canEdit} />
+        <ReviewTable rows={rows} readOnly={!canEdit} limitHours={limitHours} nowMs={nowMs} />
       )}
     </div>
   );
