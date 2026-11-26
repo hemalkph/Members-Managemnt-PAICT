@@ -15,6 +15,8 @@ const st = (over: Partial<StageView> & Pick<StageView, "stage" | "position">): S
   status: "waiting",
   completedAt: null,
   startedAt: null,
+  startAt: null,
+  dueAt: null,
   overdue: false,
   ...over,
 });

@@ -487,6 +487,9 @@ export const paperSchema = z
           owner_id: optionalUuid,
           start_date: optionalDate,
           due_date: optionalDate,
+          /** Pre-exam stage times from the work window ("…+05:30"), or "". */
+          start_at: z.string().max(40).optional().default(""),
+          due_at: z.string().max(40).optional().default(""),
           skip: z.boolean(),
         }),
       )
@@ -505,6 +508,10 @@ export const paperStageUpdateSchema = z
     start_date: optionalDate,
     due_date: optionalDate,
     action: z.enum(["save", "skip", "done"]),
+    /** Pre-exam stages: the times picked on the calendar (optional). */
+    stage: z.enum(PAPER_STAGES).optional(),
+    start_at: z.string().max(40).optional(),
+    due_at: z.string().max(40).optional(),
   })
   .refine((v) => !v.start_date || !v.due_date || v.start_date <= v.due_date, {
     message: "The start date is after the due date.",

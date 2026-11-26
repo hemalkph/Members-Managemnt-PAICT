@@ -51,6 +51,7 @@ import type { TaskView } from "@/lib/tasks/queries";
 import { getSiteUrl } from "@/lib/core/env";
 import { taskWhatsAppText, whatsAppLink } from "@/lib/tasks/whatsapp";
 import { cn } from "@/lib/utils";
+import { StageCountdown } from "@/components/papers/stage-countdown";
 import { TaskDetails } from "./task-details";
 import { TaskTypeIcon } from "./task-type-icon";
 import { TaskFilesButton } from "./task-files";
@@ -289,6 +290,9 @@ export function TaskCard({
           >
             <CalendarClockIcon className="size-3.5" /> {task.dueLabel}
           </span>
+        )}
+        {task.paperId && (task.status === "open" || task.status === "waiting") && (
+          <StageCountdown dueAt={task.stageDueAt} dueDate={task.dueDate} status="in_progress" />
         )}
         {task.examLabel && (
           <span className="inline-flex items-center gap-1">

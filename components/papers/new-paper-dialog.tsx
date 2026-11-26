@@ -30,13 +30,25 @@ import {
   defaultExamDay,
   defaultSchedule,
   onlineExamDay,
+  PRE_EXAM_STAGES,
   STAGES,
   type PaperMedium,
   type StageOffsets,
 } from "@/lib/papers";
 import { cn } from "@/lib/utils";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
+import { defaultWindow, fromColomboISO, stretchStages, windowError } from "@/lib/papers/times";
 
-type StageState = { stage: PaperStageName; owner_id: string; start_date: string; due_date: string; skip: boolean };
+type StageState = {
+  stage: PaperStageName;
+  owner_id: string;
+  start_date: string;
+  due_date: string;
+  /** Pre-exam stages: start and due times ("…+05:30"); "" for the others. */
+  start_at: string;
+  due_at: string;
+  skip: boolean;
+};
 type Part = "full" | "split" | "mcq" | "essay";
 const NONE = "none";
 
@@ -57,11 +69,30 @@ function planStages(examDay: string, owners: Owners = {}, offsets: StageOffsets 
     owner_id: owners[s.stage] ?? "",
     start_date: schedule?.[s.stage].start ?? "",
     due_date: schedule?.[s.stage].due ?? "",
+    start_at: "",
+    due_at: "",
     skip: false,
   }));
 }
 
 const looksBilingual = (text: string) => /\bRFP\b|ranking/i.test(text);
+
+/** Fill the pre-exam stages' times (and dates) from the work window, in their usual shape. */
+function withTimes(stages: StageState[], start: string, end: string, offsets: StageOffsets): StageState[] {
+  if (!start || !end || windowError(start, end)) return stages;
+  const times = stretchStages(start, end, [], offsets);
+  return stages.map((st) => {
+    const t = times[st.stage];
+    if (!t) return st;
+    return {
+      ...st,
+      start_at: t.startAt,
+      due_at: t.dueAt,
+      start_date: fromColomboISO(t.startAt).date,
+      due_date: fromColomboISO(t.dueAt).date,
+    };
+  });
+}
 
 /** Admins: add a paper or tute, with the class's weekly flow filled in. */
 export function NewPaperDialog({
@@ -104,7 +135,18 @@ export function NewPaperDialog({
     Object.fromEntries(
       Object.entries(defaultOwners).filter(([, id]) => id && members.some((m) => m.id === id)),
     ) as Owners;
-  const [stages, setStages] = useState<StageState[]>(() => planStages(startExamDay(), usualTeam(), offsets));
+  const [win, setWin] = useState(() => defaultWindow(startExamDay(), offsets));
+  const [stages, setStages] = useState<StageState[]>(() => {
+    const w = defaultWindow(startExamDay(), offsets);
+    return withTimes(planStages(startExamDay(), usualTeam(), offsets), w.start, w.end, offsets);
+  });
+  const winError = win.start && win.end ? windowError(win.start, win.end) : null;
+
+  /** New work window: the pre-exam stages fill it again (owners stay). */
+  const applyWindow = (next: { start: string; end: string }) => {
+    setWin(next);
+    setStages((prev) => withTimes(prev, next.start, next.end, offsets));
+  };
   const [savingTeam, startSavingTeam] = useTransition();
   const [pending, startTransition] = useTransition();
   // Things the admin changed by hand are never overwritten automatically.
@@ -133,8 +175,15 @@ export function NewPaperDialog({
     setExamDay(value);
     if (!value) return;
     const schedule = defaultSchedule(value, offsets);
+    const w = defaultWindow(value, offsets);
+    setWin(w);
     setStages((prev) =>
-      prev.map((s) => ({ ...s, start_date: schedule[s.stage].start, due_date: schedule[s.stage].due })),
+      withTimes(
+        prev.map((s) => ({ ...s, start_date: schedule[s.stage].start, due_date: schedule[s.stage].due })),
+        w.start,
+        w.end,
+        offsets,
+      ),
     );
   };
 
@@ -153,7 +202,9 @@ export function NewPaperDialog({
     setExam2Id("");
     setExamDay(d);
     setNotes("");
-    setStages(planStages(d, usualTeam(), offsets));
+    const w = defaultWindow(d, offsets);
+    setWin(w);
+    setStages(withTimes(planStages(d, usualTeam(), offsets), w.start, w.end, offsets));
   };
 
   /** Workload check: the member's tasks due in this paper's work week (Mon before → exam day). */
@@ -182,6 +233,10 @@ export function NewPaperDialog({
     const kept = stages.filter((s) => !s.skip && (english || !STAGES.find((x) => x.stage === s.stage)?.english));
     if (kept.length === 0) {
       toast.error("Keep at least one stage");
+      return;
+    }
+    if (winError) {
+      toast.error(winError);
       return;
     }
     startTransition(async () => {
@@ -376,6 +431,36 @@ export function NewPaperDialog({
           )}
 
           <div className="space-y-2">
+            <p className="text-sm font-medium">Work window</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-1.5">
+                <Label className="text-muted-foreground text-xs">Start (Create begins)</Label>
+                <DateTimePicker
+                  value={win.start}
+                  ariaLabel="Work window start"
+                  onChange={(start) => applyWindow({ start, end: win.end })}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label className="text-muted-foreground text-xs">Hand over by</Label>
+                <DateTimePicker
+                  value={win.end}
+                  ariaLabel="Hand over deadline"
+                  minDate={win.start ? fromColomboISO(win.start).date : undefined}
+                  onChange={(end) => applyWindow({ start: win.start, end })}
+                />
+              </div>
+            </div>
+            {winError ? (
+              <p className="text-destructive text-xs">{winError}</p>
+            ) : (
+              <p className="text-muted-foreground text-xs">
+                The stages before the exam fill this window in their usual shape. Change any stage below if you need to.
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
             <div className="flex items-baseline justify-between gap-2">
               <p className="text-sm font-medium">Stages and work days</p>
               <div className="flex items-center gap-2">
@@ -457,25 +542,47 @@ export function NewPaperDialog({
                         })}
                       </SelectContent>
                     </Select>
-                    <div className="grid grid-cols-2 gap-2 sm:contents">
-                      <Input
-                        type="date"
-                        aria-label={`${meta.label} start date`}
-                        title="Start"
-                        value={st.start_date}
-                        disabled={off}
-                        onChange={(e) => setStage(meta.stage, { start_date: e.target.value })}
-                      />
-                      <Input
-                        type="date"
-                        aria-label={`${meta.label} due date`}
-                        title="Due"
-                        value={st.due_date}
-                        min={st.start_date || undefined}
-                        disabled={off}
-                        onChange={(e) => setStage(meta.stage, { due_date: e.target.value })}
-                      />
-                    </div>
+                    {PRE_EXAM_STAGES.includes(meta.stage) ? (
+                      <div className="grid grid-cols-2 gap-2 sm:contents">
+                        <DateTimePicker
+                          value={st.start_at}
+                          disabled={off}
+                          ariaLabel={`${meta.label} start`}
+                        compact
+                          onChange={(iso) =>
+                            setStage(meta.stage, { start_at: iso, start_date: fromColomboISO(iso).date })
+                          }
+                        />
+                        <DateTimePicker
+                          value={st.due_at}
+                          disabled={off}
+                          ariaLabel={`${meta.label} due`}
+                        compact
+                          minDate={st.start_date || undefined}
+                          onChange={(iso) => setStage(meta.stage, { due_at: iso, due_date: fromColomboISO(iso).date })}
+                        />
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-2 sm:contents">
+                        <Input
+                          type="date"
+                          aria-label={`${meta.label} start date`}
+                          title="Start"
+                          value={st.start_date}
+                          disabled={off}
+                          onChange={(e) => setStage(meta.stage, { start_date: e.target.value })}
+                        />
+                        <Input
+                          type="date"
+                          aria-label={`${meta.label} due date`}
+                          title="Due"
+                          value={st.due_date}
+                          min={st.start_date || undefined}
+                          disabled={off}
+                          onChange={(e) => setStage(meta.stage, { due_date: e.target.value })}
+                        />
+                      </div>
+                    )}
                     <label className="flex items-center gap-2 text-xs">
                       <Switch
                         checked={off}

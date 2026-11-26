@@ -8,7 +8,7 @@ import type { PaperView, StageView } from "@/lib/papers";
 type Client = SupabaseClient<Database>;
 
 const PAPER_SELECT =
-  "id, title, kind, medium, part, exam_day, lms_link, physical_link, handed_over_at, files_cleared_at, files_cleared_count, exam_id, notes, status, created_at, completed_at, exam:exams(name, batch:batches(name)), paper_stages(id, stage, position, owner_id, start_date, due_date, link, status, completed_at, started_at, owner:profiles!paper_stages_owner_id_fkey(full_name, email))";
+  "id, title, kind, medium, part, exam_day, lms_link, physical_link, handed_over_at, files_cleared_at, files_cleared_count, exam_id, notes, status, created_at, completed_at, exam:exams(name, batch:batches(name)), paper_stages(id, stage, position, owner_id, start_date, due_date, link, status, completed_at, started_at, start_at, due_at, owner:profiles!paper_stages_owner_id_fkey(full_name, email))";
 
 type Row = {
   id: string;
@@ -39,6 +39,8 @@ type Row = {
     status: StageView["status"];
     completed_at: string | null;
     started_at: string | null;
+    start_at: string | null;
+    due_at: string | null;
     owner: { full_name: string; email: string } | null;
   }[];
 };
@@ -77,6 +79,8 @@ function toView(row: Row, today: string, names?: Map<string, string>): PaperView
         status: s.status,
         completedAt: s.completed_at,
         startedAt: s.started_at,
+        startAt: s.start_at,
+        dueAt: s.due_at,
         overdue: s.status === "in_progress" && Boolean(s.due_date && s.due_date < today),
       })),
   };
