@@ -16,3 +16,8 @@ export function getSupabaseAnonKey(): string {
 export function getSiteUrl(): string {
   return (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
 }
+
+/** Base for absolute preview-image URLs; undefined (not a crash) when the site URL is malformed. */
+export function getMetadataBase(): URL | undefined {
+  return URL.canParse(getSiteUrl()) ? new URL(getSiteUrl()) : undefined;
+}

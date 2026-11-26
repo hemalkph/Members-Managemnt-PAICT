@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import "lenis/dist/lenis.css";
 import "./globals.css";
+import { getMetadataBase } from "@/lib/core/env";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -18,6 +19,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: getMetadataBase(),
   title: {
     default: "Team WorkSpace PAICT",
     template: "%s · Team WorkSpace PAICT",

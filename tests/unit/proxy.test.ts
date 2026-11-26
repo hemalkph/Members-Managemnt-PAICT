@@ -97,4 +97,28 @@ describe("updateSession", () => {
     );
     expect(r2.cookies.get(LAST_ACTIVE_COOKIE)).toBeUndefined();
   });
+  describe("public receipt page", () => {
+    const path = "/receipt/3f2b8c1e-9a4d-4c6b-8e2f-1a2b3c4d5e6f";
+    const expired = () => String(Date.now() - SERVER_IDLE_TIMEOUT_MS - 1000);
+
+    it("signed-out visitor sees /receipt", async () => {
+      mockClaims.mockResolvedValue({ data: { claims: null } });
+      const res = await updateSession(makeRequest(path));
+      expect(res.status).toBe(200);
+    });
+
+    it("idle-expired visitor still sees /receipt", async () => {
+      mockClaims.mockResolvedValue({ data: { claims: { sub: "user-1" } } });
+      const res = await updateSession(makeRequest(path, { cookies: { [LAST_ACTIVE_COOKIE]: expired() } }));
+      expect(res.status).toBe(200);
+      expect(res.headers.get("location")).toBeNull();
+    });
+
+    it("idle-expired visitor is still signed out elsewhere", async () => {
+      mockClaims.mockResolvedValue({ data: { claims: { sub: "user-1" } } });
+      const res = await updateSession(makeRequest("/dashboard", { cookies: { [LAST_ACTIVE_COOKIE]: expired() } }));
+      expect(res.status).toBe(307);
+      expect(new URL(res.headers.get("location")!).pathname).toBe("/auth/signout");
+    });
+  });
 });

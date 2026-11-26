@@ -15,6 +15,12 @@ export function formatDate(value: string | null | undefined): string {
   }).format(date);
 }
 
+/** A plain date ("YYYY-MM-DD") as "25/11/2026", as in WhatsApp receipts. */
+export function formatDateNumeric(value: string | null | undefined): string {
+  const m = value?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : "—";
+}
+
 /** A plain date ("YYYY-MM-DD") as "Wed 4 Nov". */
 export function formatDay(value: string | null | undefined): string {
   if (!value) return "—";

@@ -5,7 +5,8 @@ import { idleCookieOptions, isIdleExpired, LAST_ACTIVE_COOKIE, parseLastActive }
 import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/core/env";
 
 // /api/hooks: called by the database with its own secret (no login cookie).
-const PUBLIC_PATHS = ["/login", "/auth", "/api/hooks"];
+// /receipt: salary receipts opened from WhatsApp, behind a random code.
+const PUBLIC_PATHS = ["/login", "/auth", "/api/hooks", "/receipt"];
 
 function isPublic(pathname: string) {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
@@ -48,6 +49,8 @@ export async function updateSession(request: NextRequest) {
   const isServerAction = request.method === "POST" && request.headers.has("next-action");
   const isSignOut = pathname === "/auth/signout" || pathname.startsWith("/auth/signout/");
   const isConfirm = pathname === "/auth/confirm" || pathname.startsWith("/auth/confirm/");
+  // A receipt needs no login, so an idle session mustn't sign the member out before they see it.
+  const isReceipt = pathname === "/receipt" || pathname.startsWith("/receipt/");
 
   const redirectTo = (path: string, search?: string) => {
     const url = request.nextUrl.clone();
@@ -58,7 +61,7 @@ export async function updateSession(request: NextRequest) {
     return redirect;
   };
 
-  if (idleExpired && !isSignOut && !isConfirm) {
+  if (idleExpired && !isSignOut && !isConfirm && !isReceipt) {
     if (isApi) {
       return NextResponse.json({ ok: false, error: "Session timed out due to inactivity." }, { status: 401 });
     }

@@ -10,6 +10,7 @@ import {
   DownloadIcon,
   FileTextIcon,
   Loader2Icon,
+  MessageCircleIcon,
   MoreHorizontalIcon,
   Undo2Icon,
 } from "lucide-react";
@@ -28,8 +29,10 @@ import {
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { markPaidAction } from "@/lib/actions/payments";
+import { canSendReceipt, receiptQueue } from "@/lib/payments/receipt";
 import { formatDate, formatLKR, maskAccountNumber } from "@/lib/core/format";
 import { MarkPaidDialog } from "./mark-paid-dialog";
+import { ReceiptQueueDialog, receiptHref, type PaidInfo } from "./receipt-queue-dialog";
 
 export type PayoutRow = {
   id: string;
@@ -47,6 +50,11 @@ export type PayoutRow = {
   status: "paid" | "unpaid";
   paidOn: string | null;
   reference: string | null;
+  monthKey: string;
+  /** Random code in the public receipt link. */
+  receiptToken: string;
+  /** Normalised WhatsApp number, or null when the member has none. */
+  waPhone: string | null;
 };
 
 export function PayoutsTable({ rows, today }: { rows: PayoutRow[]; today: string }) {
@@ -54,6 +62,7 @@ export function PayoutsTable({ rows, today }: { rows: PayoutRow[]; today: string
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [dialogIds, setDialogIds] = useState<string[] | null>(null);
   const [pending, startTransition] = useTransition();
+  const [queue, setQueue] = useState<{ rows: PayoutRow[]; paid: PaidInfo } | null>(null);
 
   const unpaid = rows.filter((r) => r.status === "unpaid");
   const selectedUnpaid = unpaid.filter((r) => selected.has(r.id));
@@ -145,8 +154,9 @@ export function PayoutsTable({ rows, today }: { rows: PayoutRow[]; today: string
                     {r.name}
                   </Link>
                   <p className="text-muted-foreground font-mono text-xs">{r.payslipNo}</p>
-                  <div className="mt-1 sm:hidden">
+                  <div className="mt-1 flex items-start gap-1 sm:hidden">
                     <PaidBadge row={r} />
+                    <ReceiptButton row={r} />
                   </div>
                 </TableCell>
                 <TableCell className="hidden text-xs lg:table-cell">
@@ -184,7 +194,10 @@ export function PayoutsTable({ rows, today }: { rows: PayoutRow[]; today: string
                 </TableCell>
                 <TableCell className="text-right font-semibold tabular-nums">{formatLKR(r.total)}</TableCell>
                 <TableCell className="hidden sm:table-cell">
-                  <PaidBadge row={r} />
+                  <div className="flex items-start gap-1">
+                    <PaidBadge row={r} />
+                    <ReceiptButton row={r} />
+                  </div>
                 </TableCell>
                 <TableCell className="pr-4">
                   <DropdownMenu>
@@ -204,6 +217,13 @@ export function PayoutsTable({ rows, today }: { rows: PayoutRow[]; today: string
                           <DownloadIcon /> Download PDF
                         </a>
                       </DropdownMenuItem>
+                      {canSendReceipt(r) && (
+                        <DropdownMenuItem asChild disabled={!r.waPhone}>
+                          <a href={receiptHref(r, null) ?? undefined} target="_blank" rel="noreferrer">
+                            <MessageCircleIcon /> {r.waPhone ? "Send receipt on WhatsApp" : "No WhatsApp number"}
+                          </a>
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuSeparator />
                       {r.status === "unpaid" ? (
                         <DropdownMenuItem onSelect={() => setDialogIds([r.id])}>
@@ -240,10 +260,18 @@ export function PayoutsTable({ rows, today }: { rows: PayoutRow[]; today: string
         today={today}
         open={dialogIds !== null}
         onOpenChange={(open) => !open && setDialogIds(null)}
-        onDone={() => {
+        onDone={(paid) => {
+          const toSend = receiptQueue(dialogRows);
           setSelected(new Set());
           setDialogIds(null);
+          if (toSend.length > 0) setQueue({ rows: toSend, paid });
         }}
+      />
+      <ReceiptQueueDialog
+        rows={queue?.rows ?? []}
+        paid={queue?.paid ?? null}
+        open={queue !== null}
+        onOpenChange={(open) => !open && setQueue(null)}
       />
     </div>
   );
@@ -268,5 +296,38 @@ function PaidBadge({ row }: { row: PayoutRow }) {
     <Badge variant="warning">
       <CircleDashedIcon /> Not paid
     </Badge>
+  );
+}
+
+/** One-tap WhatsApp receipt for a paid row. */
+function ReceiptButton({ row }: { row: PayoutRow }) {
+  if (!canSendReceipt(row)) return null;
+  const href = receiptHref(row, null);
+  const first = row.name.trim().split(/\s+/)[0];
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        {href ? (
+          <Button
+            asChild
+            size="icon-sm"
+            variant="ghost"
+            className="text-muted-foreground rounded-full hover:bg-emerald-500/12 hover:text-emerald-600 dark:hover:text-emerald-300"
+            aria-label={`Send ${first} a receipt on WhatsApp`}
+          >
+            <a href={href} target="_blank" rel="noreferrer">
+              <MessageCircleIcon className="size-4" />
+            </a>
+          </Button>
+        ) : (
+          <span tabIndex={0} aria-label="No WhatsApp number">
+            <Button size="icon-sm" variant="ghost" className="rounded-full" disabled aria-hidden tabIndex={-1}>
+              <MessageCircleIcon className="size-4" />
+            </Button>
+          </span>
+        )}
+      </TooltipTrigger>
+      <TooltipContent>{href ? `Send ${first} a receipt on WhatsApp` : "No WhatsApp number"}</TooltipContent>
+    </Tooltip>
   );
 }
