@@ -1,7 +1,9 @@
 import { addDaysISO } from "@/lib/team/availability";
 import { getTeamDaysOff } from "@/lib/team/days-off-queries";
 import type { Metadata } from "next";
-import { CheckCheckIcon, FileStackIcon, LoaderIcon, TriangleAlertIcon, UsersIcon } from "lucide-react";
+import Link from "next/link";
+import { CheckCheckIcon, FileStackIcon, HourglassIcon, LoaderIcon, TriangleAlertIcon, UsersIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
 import { NewPaperDialog } from "@/components/papers/new-paper-dialog";
 import { PastPaperDialog } from "@/components/papers/past-paper-dialog";
@@ -18,7 +20,7 @@ import { STORAGE_LIMIT_BYTES } from "@/lib/papers/cleanup";
 import { activeOptions, getClassOptions } from "@/lib/organisation/classes";
 import { todayISO } from "@/lib/core/month";
 import { getPapers } from "@/lib/papers/queries";
-import { nextExamDay } from "@/lib/papers";
+import { nextExamDay, type StageOffsets } from "@/lib/papers";
 import { createClient } from "@/lib/supabase/server";
 import { getTeamDirectory, teamNames } from "@/lib/members/team-directory";
 import { ReadOnlyNotice } from "@/components/read-only-notice";
@@ -56,6 +58,8 @@ export default async function PapersPage({ searchParams }: PageProps<"/admin/pap
         .limit(3000),
     ]);
   const settings = settingsRows?.[0] ?? null;
+  const { data: offsetsJson } = await supabase.rpc("paper_stage_offsets");
+  const offsets = (offsetsJson ?? {}) as StageOffsets;
   const profiles = team.filter((m) => m.isActive);
   const tags = activeOptions(classOptions);
 
@@ -107,27 +111,35 @@ export default async function PapersPage({ searchParams }: PageProps<"/admin/pap
             </p>
           </div>
         </div>
-        {canEdit && (
-          <div className="flex flex-wrap gap-2">
-            <PastPaperDialog />
-            <NewPaperDialog
-              members={profiles.map((p) => ({
-                id: p.id,
-                name: p.name,
-                busy: (openTasks ?? []).filter((t) => t.assignee_id === p.id).map((t) => t.due_date!),
-              }))}
-              defaultOwners={(settings?.paper_default_owners ?? {}) as Record<string, string>}
-              daysOff={daysOff}
-              exams={examChoices(tags.exams)}
-              defaultExam={exam || undefined}
-              today={todayISO()}
-              nextExamDay={nextExamDay(
-                todayISO(),
-                allPapers.filter((p) => p.kind === "paper" && p.status !== "cancelled").map((p) => p.examDay),
-              )}
-            />
-          </div>
-        )}
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline">
+            <Link href="/admin/papers/countdown">
+              <HourglassIcon /> Exam countdown
+            </Link>
+          </Button>
+          {canEdit && (
+            <>
+              <PastPaperDialog />
+              <NewPaperDialog
+                members={profiles.map((p) => ({
+                  id: p.id,
+                  name: p.name,
+                  busy: (openTasks ?? []).filter((t) => t.assignee_id === p.id).map((t) => t.due_date!),
+                }))}
+                defaultOwners={(settings?.paper_default_owners ?? {}) as Record<string, string>}
+                daysOff={daysOff}
+                offsets={offsets}
+                exams={examChoices(tags.exams)}
+                defaultExam={exam || undefined}
+                today={todayISO()}
+                nextExamDay={nextExamDay(
+                  todayISO(),
+                  allPapers.filter((p) => p.kind === "paper" && p.status !== "cancelled").map((p) => p.examDay),
+                )}
+              />
+            </>
+          )}
+        </div>
       </div>
 
       {!canEdit && <ReadOnlyNotice />}

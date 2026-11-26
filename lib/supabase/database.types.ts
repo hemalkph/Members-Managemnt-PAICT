@@ -1033,6 +1033,8 @@ export type Database = {
           reminder_days: number;
           paper_file_days: number;
           paper_default_owners: Json;
+          /** { stage: { start, due } } overriding the default stage days for new papers. */
+          paper_stage_offsets: Json;
           lms_group_link: string | null;
           physical_group_link: string | null;
           updated_by: string | null;
@@ -2172,6 +2174,13 @@ export type Database = {
       };
       class_paid_count_save: { Args: { p_class: string; p_count: number }; Returns: undefined };
       class_paid_count_undo: { Args: { p_class: string }; Returns: number };
+      // Exam countdown (papers).
+      paper_stage_offsets: { Args: Record<string, never>; Returns: Json };
+      paper_stage_offsets_set: { Args: { p_offsets: Json }; Returns: undefined };
+      paper_stage_stats: {
+        Args: Record<string, never>;
+        Returns: { stage: PaperStageName; done: number; late: number; avg_days_late: number; median_days: number }[];
+      };
       // Days off (who's free).
       day_off_add: { Args: { p_from: string; p_to: string; p_note?: string; p_user?: string | null }; Returns: string };
       day_off_delete: { Args: { p_id: string }; Returns: undefined };

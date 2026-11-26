@@ -25,7 +25,15 @@ import { ExamOptions, type ExamChoice } from "@/components/papers/exam-options";
 import { createPaperAction, setPaperDefaultOwnersAction } from "@/lib/actions/papers";
 import type { PaperStageName } from "@/lib/supabase/database.types";
 import { formatDay as day } from "@/lib/core/format";
-import { addDays, defaultExamDay, defaultSchedule, onlineExamDay, STAGES, type PaperMedium } from "@/lib/papers";
+import {
+  addDays,
+  defaultExamDay,
+  defaultSchedule,
+  onlineExamDay,
+  STAGES,
+  type PaperMedium,
+  type StageOffsets,
+} from "@/lib/papers";
 import { cn } from "@/lib/utils";
 
 type StageState = { stage: PaperStageName; owner_id: string; start_date: string; due_date: string; skip: boolean };
@@ -42,8 +50,8 @@ const FOLLOWS: Partial<Record<PaperStageName, PaperStageName>> = {
 
 type Owners = Partial<Record<PaperStageName, string>>;
 
-function planStages(examDay: string, owners: Owners = {}): StageState[] {
-  const schedule = examDay ? defaultSchedule(examDay) : null;
+function planStages(examDay: string, owners: Owners = {}, offsets: StageOffsets = {}): StageState[] {
+  const schedule = examDay ? defaultSchedule(examDay, offsets) : null;
   return STAGES.map((s) => ({
     stage: s.stage,
     owner_id: owners[s.stage] ?? "",
@@ -64,6 +72,7 @@ export function NewPaperDialog({
   nextExamDay,
   defaultOwners = {},
   daysOff = [],
+  offsets = {},
 }: {
   /** busy = due dates of the member's open and upcoming tasks (for the workload check). */
   members: { id: string; name: string; busy: string[] }[];
@@ -76,6 +85,8 @@ export function NewPaperDialog({
   defaultOwners?: Owners;
   /** Days off in the coming weeks (dates only): owners away during a stage's work days are flagged. */
   daysOff?: DayOff[];
+  /** Admin-set stage days (Exam countdown → Apply); new papers use them. */
+  offsets?: StageOffsets;
 }) {
   const router = useRouter();
   const startExamDay = () => exams.find((e) => e.id === defaultExam)?.examDate ?? nextExamDay ?? defaultExamDay(today);
@@ -93,7 +104,7 @@ export function NewPaperDialog({
     Object.fromEntries(
       Object.entries(defaultOwners).filter(([, id]) => id && members.some((m) => m.id === id)),
     ) as Owners;
-  const [stages, setStages] = useState<StageState[]>(() => planStages(startExamDay(), usualTeam()));
+  const [stages, setStages] = useState<StageState[]>(() => planStages(startExamDay(), usualTeam(), offsets));
   const [savingTeam, startSavingTeam] = useTransition();
   const [pending, startTransition] = useTransition();
   // Things the admin changed by hand are never overwritten automatically.
@@ -121,7 +132,7 @@ export function NewPaperDialog({
   const applyExamDay = (value: string) => {
     setExamDay(value);
     if (!value) return;
-    const schedule = defaultSchedule(value);
+    const schedule = defaultSchedule(value, offsets);
     setStages((prev) =>
       prev.map((s) => ({ ...s, start_date: schedule[s.stage].start, due_date: schedule[s.stage].due })),
     );
@@ -142,7 +153,7 @@ export function NewPaperDialog({
     setExam2Id("");
     setExamDay(d);
     setNotes("");
-    setStages(planStages(d, usualTeam()));
+    setStages(planStages(d, usualTeam(), offsets));
   };
 
   /** Workload check: the member's tasks due in this paper's work week (Mon before → exam day). */
