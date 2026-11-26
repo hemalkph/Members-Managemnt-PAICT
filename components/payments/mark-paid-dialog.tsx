@@ -31,7 +31,7 @@ export function MarkPaidDialog({
   today: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onDone: () => void;
+  onDone: (paid: { paidOn: string; reference: string | null }) => void;
 }) {
   const router = useRouter();
   const [paidOn, setPaidOn] = useState(today);
@@ -67,8 +67,9 @@ export function MarkPaidDialog({
       } else {
         toast.success(result.message);
       }
+      const paid = { paidOn, reference: reference.trim() || null };
       setReference("");
-      onDone();
+      onDone(paid);
       router.refresh();
     });
   };
@@ -85,7 +86,7 @@ export function MarkPaidDialog({
         <DialogHeader>
           <DialogTitle>{single ? `Mark ${single.name} as paid` : `Mark ${rows.length} members as paid`}</DialogTitle>
           <DialogDescription>
-            {formatLKR(total)} in total. Members see the date and reference on their payslip.
+            {formatLKR(total)} in total. Members see the date and reference on their payslip. Next, you can send each one a receipt on WhatsApp.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={save} className="grid gap-4">

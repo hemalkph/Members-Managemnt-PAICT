@@ -323,6 +323,7 @@ export type Database = {
           paid_at: string | null;
           paid_by: string | null;
           payment_reference: string | null;
+          receipt_token: string;
           created_at: string;
           updated_at: string;
         };
@@ -2234,6 +2235,21 @@ export type Database = {
       review_waiting_summary: {
         Args: Record<string, never>;
         Returns: { waiting: number; over_limit: number; oldest_at: string | null; oldest_month: string | null }[];
+      };
+      // Public salary receipt (anyone with the code; only while paid).
+      payout_receipt: {
+        Args: { p_token: string };
+        Returns: {
+          first_name: string;
+          month: string;
+          payslip_no: string;
+          salary_amount: number;
+          work_amount: number;
+          approved_items: number;
+          total_amount: number;
+          paid_on: string;
+          payment_reference: string | null;
+        }[];
       };
       // Money page (main admins only).
       class_fee_set: { Args: { p_class: string; p_from_month: string; p_fee: number }; Returns: undefined };

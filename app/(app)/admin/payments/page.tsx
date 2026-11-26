@@ -28,6 +28,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { getAnalytics } from "@/lib/payments/analytics";
 import { requireMainAdmin } from "@/lib/auth";
 import { formatDateTime, formatLKR } from "@/lib/core/format";
+import { normalizeWaPhone } from "@/lib/fees/phone";
 import { monthKeyToDate, monthLabel, parseMonthParam, periodDays, periodRangeLabel, shiftMonth, todayISO } from "@/lib/core/month";
 import { getPayMonth, getPayoutsForMonth, payoutTotals } from "@/lib/payments";
 import { createClient } from "@/lib/supabase/server";
@@ -194,15 +195,20 @@ export default async function PaymentsPage({ searchParams }: PageProps<"/admin/p
   const payouts = await getPayoutsForMonth(supabase, month);
   const totals = payoutTotals(payouts);
   const ids = payouts.map((p) => p.user_id).filter((id): id is string => Boolean(id));
-  const { data: banks } = ids.length
-    ? await supabase.from("bank_details").select("user_id, bank_name, account_last4, updated_at").in("user_id", ids)
-    : { data: [] };
+  const [{ data: banks }, { data: contacts }] = ids.length
+    ? await Promise.all([
+        supabase.from("bank_details").select("user_id, bank_name, account_last4, updated_at").in("user_id", ids),
+        supabase.from("profiles").select("id, whatsapp, phone").in("id", ids),
+      ])
+    : [{ data: [] }, { data: [] }];
   const bankByUser = new Map((banks ?? []).map((b) => [b.user_id, b]));
+  const contactByUser = new Map((contacts ?? []).map((c) => [c.id, c]));
   const paidPercent = totals.total > 0 ? Math.round((totals.paid / totals.total) * 100) : totals.paidCount > 0 ? 100 : 0;
   const allPaid = totals.unpaidCount === 0;
 
   const rows: PayoutRow[] = payouts.map((p) => {
     const live = p.user_id ? bankByUser.get(p.user_id) : undefined;
+    const contact = p.user_id ? contactByUser.get(p.user_id) : undefined;
     return {
       id: p.id,
       payslipNo: p.payslip_no,
@@ -220,6 +226,9 @@ export default async function PaymentsPage({ searchParams }: PageProps<"/admin/p
       status: p.status,
       paidOn: p.paid_on,
       reference: p.payment_reference,
+      monthKey: month,
+      receiptToken: p.receipt_token,
+      waPhone: normalizeWaPhone(contact?.whatsapp || contact?.phone || p.member_phone),
     };
   });
 
